@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Ask a question</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "background-dark": "#111827", // gray-900
+            "surface-dark": "#1F2937", // gray-800
+            "surface-dark-hover": "#374151", // gray-700
+            "text-dark": "#E5E7EB", // gray-200
+            "text-secondary-dark": "#9CA3AF", // gray-400
+            "accent-green": "#10B981", // emerald-500
+          },
+          fontFamily: {
+            display: ["Inter", "sans-serif"],
+          },
+          borderRadius: {
+            DEFAULT: "0.5rem", // 8px
+            lg: "0.75rem", // 12px
+            xl: "1rem", // 16px
+          },
+        },
+      },
+    };
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings:
+      'FILL' 0,
+      'wght' 300,
+      'GRAD' 0,
+      'opsz' 24
+    }
+  </style>
+</head>
+<body class="bg-background-dark font-display antialiased text-text-dark">
+<div class="flex h-screen items-center justify-center p-4 bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDDSv69pzMRTBqS3Q3s_M2QbJlz6Dx-f7MYQcI9D2Xu0kAMgP_cuCVnpN506onD5HC2uF_otXxPz5ZTIrEsl8OCC_KBuj9tKZEwnyA8ksLtecWZjU5wImiAxVeKc3sbFCA548jWOs6V0lfGQ1nosCmdObidorl4CPdS63YASvUsRskf4kwr64Pc9THi79OiUgfLhNr67oqY8ICyBh-aFhAt_1qLUv9lCKJgvmqkB75GxiaYRnn6SQzrGr8XFYHg111o33VdzccDehEW');">
+<div class="w-full max-w-sm rounded-xl bg-surface-dark shadow-2xl border border-gray-700">
+<div class="p-6">
+<div class="flex items-center gap-4 mb-6">
+<button class="text-text-secondary-dark hover:text-text-dark transition-colors">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="text-xl font-semibold text-text-dark">Ask a question</h1>
+</div>
+<div class="space-y-3">
+<div class="group flex cursor-pointer items-center gap-4 rounded-lg border border-transparent bg-gray-900/50 p-4 transition-all hover:border-accent-green hover:bg-surface-dark-hover">
+<div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-surface-dark-hover text-accent-green">
+<span class="material-symbols-outlined text-3xl">title</span>
+</div>
+<div class="flex-grow">
+<h2 class="font-semibold text-text-dark">Question</h2>
+<p class="text-sm text-text-secondary-dark">Define the question text</p>
+</div>
+</div>
+<div class="group flex cursor-pointer items-center gap-4 rounded-lg border border-transparent bg-gray-900/50 p-4 transition-all hover:border-accent-green hover:bg-surface-dark-hover">
+<div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-surface-dark-hover text-accent-green">
+<span class="material-symbols-outlined text-3xl">radio_button_checked</span>
+</div>
+<div class="flex-grow">
+<h2 class="font-semibold text-text-dark">Buttons</h2>
+<p class="text-sm text-text-secondary-dark">Maximum of 3 choices</p>
+</div>
+</div>
+<div class="group flex cursor-pointer items-center gap-4 rounded-lg border border-transparent bg-gray-900/50 p-4 transition-all hover:border-accent-green hover:bg-surface-dark-hover">
+<div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-surface-dark-hover text-accent-green">
+<span class="material-symbols-outlined text-3xl">list_alt</span>
+</div>
+<div class="flex-grow">
+<h2 class="font-semibold text-text-dark">List</h2>
+<p class="text-sm text-text-secondary-dark">Maximum of 10 choices</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+</body></html>

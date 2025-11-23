@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Configure: Send a Message</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,0..200" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#4A90E2", // Calm Blue
+                        "background-light": "#F7F8FA",
+                        "background-dark": "#102216", // Keeping this as a fallback from original components
+                        "text-primary": "#333333",
+                        "border-light": "#E0E0E0"
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings:
+            'FILL' 0,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24
+        }
+    </style>
+</head>
+<body class="font-display">
+<div class="relative flex h-auto min-h-screen w-full flex-col bg-background-light" style="font-family: 'Manrope', sans-serif;">
+<div class="flex h-full grow flex-col">
+<div class="flex flex-1 justify-center p-4 sm:p-8 md:p-12">
+<div class="flex flex-col w-full max-w-3xl flex-1 space-y-6">
+<!-- PageHeading Component -->
+<header class="flex flex-wrap items-center justify-between gap-4 border-b border-border-light pb-4">
+<h1 class="text-text-primary text-2xl sm:text-3xl font-bold leading-tight">Configure: Send a Message</h1>
+<button class="flex items-center justify-center rounded-lg p-2 text-text-primary/70 hover:bg-black/5">
+<span class="material-symbols-outlined">close</span>
+</button>
+</header>
+<main class="flex flex-col gap-6">
+<!-- Message Type Section -->
+<section>
+<label class="text-text-primary text-base font-medium leading-normal pb-2 block">Message Type</label>
+<!-- SegmentedButtons Component -->
+<div class="flex h-10 w-full items-center justify-center rounded-lg bg-black/5 p-1">
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-2 has-[:checked]:bg-white has-[:checked]:shadow-sm has-[:checked]:text-primary text-text-primary/80 text-sm font-medium leading-normal transition-colors">
+<span class="truncate">Text</span>
+<input checked="" class="invisible w-0" name="message-type" type="radio" value="Text"/>
+</label>
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-2 has-[:checked]:bg-white has-[:checked]:shadow-sm has-[:checked]:text-primary text-text-primary/80 text-sm font-medium leading-normal transition-colors">
+<span class="truncate">Image</span>
+<input class="invisible w-0" name="message-type" type="radio" value="Image"/>
+</label>
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-2 has-[:checked]:bg-white has-[:checked]:shadow-sm has-[:checked]:text-primary text-text-primary/80 text-sm font-medium leading-normal transition-colors">
+<span class="truncate">Video</span>
+<input class="invisible w-0" name="message-type" type="radio" value="Video"/>
+</label>
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-2 has-[:checked]:bg-white has-[:checked]:shadow-sm has-[:checked]:text-primary text-text-primary/80 text-sm font-medium leading-normal transition-colors">
+<span class="truncate">Audio</span>
+<input class="invisible w-0" name="message-type" type="radio" value="Audio"/>
+</label>
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-2 has-[:checked]:bg-white has-[:checked]:shadow-sm has-[:checked]:text-primary text-text-primary/80 text-sm font-medium leading-normal transition-colors">
+<span class="truncate">Document</span>
+<input class="invisible w-0" name="message-type" type="radio" value="Document"/>
+</label>
+</div>
+</section>
+<!-- Content Input Section -->
+<section>
+<label class="flex flex-col w-full">
+<p class="text-text-primary text-base font-medium leading-normal pb-2">Content</p>
+<div class="relative rounded-lg border border-border-light bg-white focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
+<!-- TextField Component (modified) -->
+<textarea class="form-input flex w-full min-w-0 flex-1 resize-y overflow-hidden rounded-lg text-text-primary focus:outline-0 focus:ring-0 border-none bg-transparent min-h-36 p-4 text-base font-normal leading-normal placeholder:text-text-primary/50" placeholder="Type your message here..."></textarea>
+<!-- Toolbar Component -->
+<div class="flex items-center justify-between gap-2 border-t border-border-light px-2 py-1">
+<div class="flex gap-1">
+<button class="p-2 rounded-md text-text-primary/60 hover:bg-black/5 hover:text-text-primary">
+<span class="material-symbols-outlined text-xl">format_bold</span>
+</button>
+<button class="p-2 rounded-md text-text-primary/60 hover:bg-black/5 hover:text-text-primary">
+<span class="material-symbols-outlined text-xl">format_italic</span>
+</button>
+<button class="p-2 rounded-md text-text-primary/60 hover:bg-black/5 hover:text-text-primary">
+<span class="material-symbols-outlined text-xl">mood</span>
+</button>
+</div>
+<p class="text-sm text-text-primary/50 px-2">0/1000</p>
+</div>
+</div>
+</label>
+</section>
+<!-- Content Preview Section -->
+<section>
+<!-- SectionHeader Component -->
+<h3 class="text-text-primary text-lg font-bold leading-tight tracking-[-0.015em] pb-2 pt-4">Preview</h3>
+<div class="w-full rounded-lg border border-border-light bg-white p-4">
+<div class="flex w-full max-w-sm flex-col items-start gap-2">
+<div class="rounded-xl rounded-bl-sm bg-primary/10 px-4 py-2 text-text-primary">
+<p>This is a preview of your message. You can see how it will look to the end-user here.</p>
+</div>
+<span class="text-xs text-text-primary/50">Just now</span>
+</div>
+</div>
+</section>
+</main>
+<!-- Action Buttons Footer -->
+<footer class="flex flex-wrap items-center justify-end gap-3 border-t border-border-light pt-4 mt-auto">
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-black/5 text-text-primary text-sm font-medium leading-normal hover:bg-black/10 transition-colors">
+<span class="truncate">Cancel</span>
+</button>
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-medium leading-normal hover:bg-primary/90 transition-colors">
+<span class="truncate">Save Message</span>
+</button>
+</footer>
+</div>
+</div>
+</div>
+</div>
+</body></html>
