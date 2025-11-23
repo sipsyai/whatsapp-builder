@@ -79,7 +79,7 @@ export const WhatsappConfigPage = () => {
                         <input
                             type="text"
                             name="phoneNumberId"
-                            value={config.phoneNumberId}
+                            value={config.phoneNumberId || ''}
                             onChange={handleChange}
                             placeholder="e.g., 105954558954423"
                             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
@@ -94,7 +94,7 @@ export const WhatsappConfigPage = () => {
                         <input
                             type="text"
                             name="businessAccountId"
-                            value={config.businessAccountId}
+                            value={config.businessAccountId || ''}
                             onChange={handleChange}
                             placeholder="e.g., 108954558954423"
                             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
@@ -109,7 +109,7 @@ export const WhatsappConfigPage = () => {
                             <input
                                 type="password"
                                 name="accessToken"
-                                value={config.accessToken}
+                                value={config.accessToken || ''}
                                 onChange={handleChange}
                                 placeholder="EAAG..."
                                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all font-mono"
@@ -154,7 +154,7 @@ export const WhatsappConfigPage = () => {
                             <input
                                 type="text"
                                 name="webhookVerifyToken"
-                                value={config.webhookVerifyToken}
+                                value={config.webhookVerifyToken || ''}
                                 onChange={handleChange}
                                 placeholder="Create a secure random string"
                                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"

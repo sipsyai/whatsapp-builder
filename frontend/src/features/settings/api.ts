@@ -36,17 +36,17 @@ export interface WebhookUrlResponse {
 
 export const whatsappConfigApi = {
     getConfig: async (): Promise<WhatsAppConfigResponse> => {
-        const response = await apiClient.get('/whatsapp/config');
+        const response = await apiClient.get('/api/whatsapp/config');
         return response.data;
     },
 
     saveConfig: async (config: Omit<WhatsAppConfig, 'id' | 'isActive' | 'createdAt' | 'updatedAt'>): Promise<WhatsAppConfigResponse> => {
-        const response = await apiClient.post('/whatsapp/config', config);
+        const response = await apiClient.post('/api/whatsapp/config', config);
         return response.data;
     },
 
     testConnection: async (phoneNumberId?: string, accessToken?: string): Promise<TestConnectionResponse> => {
-        const response = await apiClient.post('/whatsapp/config/test', {
+        const response = await apiClient.post('/api/whatsapp/config/test', {
             phoneNumberId,
             accessToken,
         });
@@ -54,7 +54,7 @@ export const whatsappConfigApi = {
     },
 
     getWebhookUrl: async (): Promise<WebhookUrlResponse> => {
-        const response = await apiClient.get('/whatsapp/config/webhook-url');
+        const response = await apiClient.get('/api/whatsapp/config/webhook-url');
         return response.data;
     },
 };
