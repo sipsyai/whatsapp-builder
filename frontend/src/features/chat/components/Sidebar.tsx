@@ -1,4 +1,4 @@
-import type { Conversation } from "../mockData";
+import type { Conversation } from "../../conversations/api";
 
 interface SidebarProps {
     conversations: Conversation[];
@@ -8,6 +8,11 @@ interface SidebarProps {
 }
 
 export const Sidebar = ({ conversations, activeId, onSelect, onBack }: SidebarProps) => {
+    const formatTime = (dateString: string) => {
+        const date = new Date(dateString);
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    };
+
     return (
         <div className="flex flex-col h-full">
             {/* Header */}
@@ -60,18 +65,26 @@ export const Sidebar = ({ conversations, activeId, onSelect, onBack }: SidebarPr
                             }`}
                     >
                         <div className="w-12 h-12 rounded-full overflow-hidden mr-3 shrink-0">
-                            <img src={conv.avatar} alt={conv.name} className="w-full h-full object-cover" />
+                            <img
+                                src={conv.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(conv.name || conv.title || 'Unknown')}&background=random`}
+                                alt={conv.name || conv.title}
+                                className="w-full h-full object-cover"
+                            />
                         </div>
                         <div className="flex-1 min-w-0 border-b border-gray-100 dark:border-gray-800 pb-3">
                             <div className="flex justify-between items-baseline mb-1">
-                                <h3 className="text-base font-normal text-gray-900 dark:text-gray-100 truncate">{conv.name}</h3>
-                                <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">{conv.timestamp}</span>
+                                <h3 className="text-base font-normal text-gray-900 dark:text-gray-100 truncate">
+                                    {conv.name || conv.title || 'Unknown User'}
+                                </h3>
+                                <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">
+                                    {formatTime(conv.updatedAt || conv.createdAt)}
+                                </span>
                             </div>
                             <div className="flex justify-between items-center">
                                 <p className="text-sm text-gray-600 dark:text-gray-400 truncate pr-2">
-                                    {conv.lastMessage}
+                                    {conv.lastMessage || (conv.messages && conv.messages.length > 0 ? conv.messages[conv.messages.length - 1].content : 'No messages')}
                                 </p>
-                                {conv.unreadCount > 0 && (
+                                {(conv.unreadCount || 0) > 0 && (
                                     <span className="bg-[#25D366] text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
                                         {conv.unreadCount}
                                     </span>

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import type { Conversation } from "../mockData";
+import type { Conversation } from "../../conversations/api";
 import { MessageBubble } from "./MessageBubble";
 
 interface ChatWindowProps {
@@ -38,10 +38,16 @@ export const ChatWindow = ({ conversation, onSendMessage }: ChatWindowProps) => 
             <div className="h-16 bg-gray-100 dark:bg-[#202c33] flex items-center justify-between px-4 border-b border-gray-200 dark:border-gray-700 shrink-0">
                 <div className="flex items-center cursor-pointer">
                     <div className="w-10 h-10 rounded-full overflow-hidden mr-3">
-                        <img src={conversation.avatar} alt={conversation.name} className="w-full h-full object-cover" />
+                        <img
+                            src={conversation.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(conversation.name || conversation.title || 'Unknown')}&background=random`}
+                            alt={conversation.name || conversation.title}
+                            className="w-full h-full object-cover"
+                        />
                     </div>
                     <div>
-                        <h3 className="text-base font-normal text-gray-900 dark:text-gray-100">{conversation.name}</h3>
+                        <h3 className="text-base font-normal text-gray-900 dark:text-gray-100">
+                            {conversation.name || conversation.title || 'Unknown User'}
+                        </h3>
                         <p className="text-xs text-gray-500 dark:text-gray-400">click here for contact info</p>
                     </div>
                 </div>
@@ -57,7 +63,7 @@ export const ChatWindow = ({ conversation, onSendMessage }: ChatWindowProps) => 
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
-                {conversation.messages.map((msg) => (
+                {(conversation.messages || []).map((msg) => (
                     <MessageBubble key={msg.id} message={msg} />
                 ))}
                 <div ref={messagesEndRef} />

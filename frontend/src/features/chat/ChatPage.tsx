@@ -1,51 +1,155 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { ChatWindow } from "./components/ChatWindow";
-import { mockConversations } from "./mockData";
-import type { Conversation } from "./mockData";
+import { getConversations, getMessages, sendMessage, markAsRead, type Conversation, type Message } from "../conversations/api";
+import { socket } from "../../api/socket";
 
 interface ChatPageProps {
     onBack?: () => void;
 }
 
 export const ChatPage = ({ onBack }: ChatPageProps) => {
-    const [conversations, setConversations] = useState<Conversation[]>(mockConversations);
+    const [conversations, setConversations] = useState<Conversation[]>([]);
     const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
 
     const activeConversation = conversations.find((c) => c.id === activeConversationId);
 
-    const handleSelectConversation = (id: string) => {
-        setActiveConversationId(id);
-        // Mark as read logic would go here
-        setConversations(prev => prev.map(c =>
-            c.id === id ? { ...c, unreadCount: 0 } : c
-        ));
+    useEffect(() => {
+        loadConversations();
+
+        // Connect socket
+        socket.connect();
+        socket.on('conversation:update', handleConversationUpdate);
+        socket.on('message:new', handleNewMessage);
+
+        return () => {
+            socket.off('conversation:update', handleConversationUpdate);
+            socket.off('message:new', handleNewMessage);
+            socket.disconnect();
+        };
+    }, []);
+
+    const loadConversations = async () => {
+        try {
+            setLoading(true);
+            const data = await getConversations();
+            setConversations(data);
+        } catch (error) {
+            console.error("Failed to load conversations:", error);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const handleSendMessage = (content: any, type: "text" | "image" | "document" = "text") => {
-        if (!activeConversationId) return;
+    const handleConversationUpdate = (updatedConversation: Conversation) => {
+        setConversations(prev => {
+            const index = prev.findIndex(c => c.id === updatedConversation.id);
+            if (index === -1) return [updatedConversation, ...prev];
+            const newConversations = [...prev];
+            newConversations[index] = { ...newConversations[index], ...updatedConversation };
+            return newConversations.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+        });
+    };
 
-        const newMessage = {
-            id: Date.now().toString(),
-            sender: "me" as const,
-            type,
-            content,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            status: "sent" as const
-        };
-
+    const handleNewMessage = (message: Message) => {
         setConversations(prev => prev.map(c => {
-            if (c.id === activeConversationId) {
+            if (c.id === message.conversationId) {
+                // Check if message already exists to prevent duplicates
+                if (c.messages?.some(m => m.id === message.id)) return c;
+
                 return {
                     ...c,
-                    messages: [...c.messages, newMessage],
-                    lastMessage: type === 'text' ? content : type,
-                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    messages: [...(c.messages || []), message],
+                    lastMessage: message.content,
+                    updatedAt: message.createdAt,
+                    unreadCount: c.id !== activeConversationId ? (c.unreadCount || 0) + 1 : 0
                 };
             }
             return c;
-        }));
+        }).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()));
     };
+
+    const handleSelectConversation = async (id: string) => {
+        setActiveConversationId(id);
+
+        // Load messages if not already loaded
+        const conversation = conversations.find(c => c.id === id);
+        if (conversation && (!conversation.messages || conversation.messages.length === 0)) {
+            try {
+                const messages = await getMessages(id);
+                setConversations(prev => prev.map(c =>
+                    c.id === id ? { ...c, messages, unreadCount: 0 } : c
+                ));
+            } catch (error) {
+                console.error("Failed to load messages:", error);
+            }
+        }
+
+        // Mark as read
+        try {
+            await markAsRead(id);
+            setConversations(prev => prev.map(c =>
+                c.id === id ? { ...c, unreadCount: 0 } : c
+            ));
+        } catch (error) {
+            console.error("Failed to mark as read:", error);
+        }
+    };
+
+    const handleSendMessage = async (content: any, type: "text" | "image" | "document" = "text") => {
+        if (!activeConversationId) return;
+
+        try {
+            // Optimistic update
+            const tempId = Date.now().toString();
+            const optimisticMessage: any = {
+                id: tempId,
+                conversationId: activeConversationId,
+                content: typeof content === 'string' ? content : JSON.stringify(content),
+                role: 'user', // Assuming 'user' for now
+                createdAt: new Date().toISOString(),
+                status: 'sent'
+            };
+
+            setConversations(prev => prev.map(c => {
+                if (c.id === activeConversationId) {
+                    return {
+                        ...c,
+                        messages: [...(c.messages || []), optimisticMessage],
+                        lastMessage: typeof content === 'string' ? content : 'Media',
+                        updatedAt: new Date().toISOString()
+                    };
+                }
+                return c;
+            }));
+
+            const sentMessage = await sendMessage(activeConversationId, { content, type });
+
+            // Replace optimistic message with real one
+            setConversations(prev => prev.map(c => {
+                if (c.id === activeConversationId) {
+                    return {
+                        ...c,
+                        messages: c.messages?.map(m => m.id === tempId ? sentMessage : m) || [sentMessage]
+                    };
+                }
+                return c;
+            }));
+
+        } catch (error) {
+            console.error("Failed to send message:", error);
+            alert("Failed to send message");
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-screen bg-background-light dark:bg-background-dark">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex h-screen w-screen overflow-hidden bg-background-light dark:bg-background-dark">

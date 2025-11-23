@@ -218,22 +218,11 @@ export const BuilderPage = ({ onSwitchToChat }: BuilderPageProps) => {
         };
 
         try {
-            const response = await fetch('http://localhost:3000/flows', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(payload),
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                alert(`Flow saved successfully! ID: ${data.id}`);
-                console.log("Saved flow:", data);
-            } else {
-                alert("Failed to save flow.");
-                console.error("Save error:", await response.text());
-            }
+            // Use the API client instead of direct fetch
+            const { createFlow } = await import('../../flows/api');
+            const data = await createFlow(payload);
+            alert(`Flow saved successfully! ID: ${data.id}`);
+            console.log("Saved flow:", data);
         } catch (error) {
             console.error("Network error:", error);
             alert("Could not connect to backend (NestJS). Is it running on port 3000?");
