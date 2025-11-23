@@ -1,0 +1,86 @@
+{
+  "version": "7.2",
+  "screens": [
+    {
+      "id": "WELCOME",
+      "title": "Hoş Geldiniz",
+      "terminal": false,
+      "data": {},
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Basit Flow Örneği"
+          },
+          {
+            "type": "TextBody",
+            "text": "Bu basit bir Flow örneğidir. Endpoint gerektirmez."
+          },
+          {
+            "type": "TextInput",
+            "name": "name",
+            "label": "Adınız",
+            "input-type": "text",
+            "required": true
+          },
+          {
+            "type": "RadioButtonsGroup",
+            "name": "choice",
+            "label": "Seçiminiz",
+            "required": true,
+            "data-source": [
+              {
+                "id": "option1",
+                "title": "Seçenek 1"
+              },
+              {
+                "id": "option2",
+                "title": "Seçenek 2"
+              }
+            ]
+          },
+          {
+            "type": "Footer",
+            "label": "Devam",
+            "on-click-action": {
+              "name": "navigate",
+              "next": {
+                "type": "screen",
+                "name": "SUCCESS"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "SUCCESS",
+      "title": "Tamamlandı",
+      "terminal": true,
+      "success": true,
+      "data": {},
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Teşekkürler!"
+          },
+          {
+            "type": "TextBody",
+            "text": "Merhaba ${screen.WELCOME.form.name}, seçiminiz: ${screen.WELCOME.form.choice}"
+          },
+          {
+            "type": "Footer",
+            "label": "Tamam",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {}
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

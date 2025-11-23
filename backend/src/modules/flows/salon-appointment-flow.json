@@ -1,0 +1,327 @@
+{
+  "version": "3.1",
+  "data_api_version": "3.0",
+  "routing_model": {
+    "START": ["SERVICE_SELECTION"]
+  },
+  "screens": [
+    {
+      "id": "START",
+      "title": "Kuaför Randevusu",
+      "terminal": false,
+      "success": false,
+      "data": {},
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Hoş Geldiniz! 💇‍♀️"
+          },
+          {
+            "type": "TextBody",
+            "text": "Randevu oluşturmak için aşağıdaki bilgileri doldurun."
+          },
+          {
+            "type": "Footer",
+            "label": "Devam Et",
+            "on-click-action": {
+              "name": "navigate",
+              "next": {
+                "type": "screen",
+                "name": "SERVICE_SELECTION"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "SERVICE_SELECTION",
+      "title": "Hizmet Seçimi",
+      "terminal": false,
+      "success": false,
+      "data": {
+        "service": {
+          "type": "string",
+          "__example__": "haircut"
+        },
+        "stylist": {
+          "type": "string",
+          "__example__": "stylist_1"
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Hizmet Seçin"
+          },
+          {
+            "type": "RadioButtonsGroup",
+            "name": "service",
+            "label": "Hangi hizmeti almak istersiniz?",
+            "required": true,
+            "data-source": [
+              {
+                "id": "haircut",
+                "title": "Saç Kesimi",
+                "description": "150 TL - 30 dk",
+                "enabled": true
+              },
+              {
+                "id": "coloring",
+                "title": "Saç Boyama",
+                "description": "500 TL - 2 saat",
+                "enabled": true
+              },
+              {
+                "id": "blowdry",
+                "title": "Fön",
+                "description": "100 TL - 30 dk",
+                "enabled": true
+              },
+              {
+                "id": "perm",
+                "title": "Perma",
+                "description": "800 TL - 3 saat",
+                "enabled": true
+              },
+              {
+                "id": "keratin",
+                "title": "Keratin Bakımı",
+                "description": "1200 TL - 3 saat",
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "type": "Dropdown",
+            "name": "stylist",
+            "label": "Kuaför Seçin",
+            "required": true,
+            "data-source": [
+              {
+                "id": "stylist_1",
+                "title": "Ayşe Hanım",
+                "enabled": true
+              },
+              {
+                "id": "stylist_2",
+                "title": "Zeynep Hanım",
+                "enabled": true
+              },
+              {
+                "id": "stylist_3",
+                "title": "Mehmet Bey",
+                "enabled": true
+              }
+            ]
+          },
+          {
+            "type": "Footer",
+            "label": "İleri",
+            "on-click-action": {
+              "name": "navigate",
+              "next": {
+                "type": "screen",
+                "name": "DATETIME_SELECTION"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "DATETIME_SELECTION",
+      "title": "Tarih ve Saat",
+      "terminal": false,
+      "success": false,
+      "data": {
+        "appointment_date": {
+          "type": "string",
+          "__example__": "2025-01-25"
+        },
+        "appointment_time": {
+          "type": "string",
+          "__example__": "14:00"
+        },
+        "available_slots": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              }
+            }
+          },
+          "__example__": []
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Tarih ve Saat Seçin"
+          },
+          {
+            "type": "DatePicker",
+            "name": "appointment_date",
+            "label": "Randevu Tarihi",
+            "required": true,
+            "min-date": "2025-01-23",
+            "max-date": "2025-02-23",
+            "helper-text": "Müsait bir tarih seçin",
+            "on-select-action": {
+              "name": "data_exchange",
+              "payload": {
+                "service": "${form.service}",
+                "stylist": "${form.stylist}",
+                "date": "${form.appointment_date}"
+              }
+            }
+          },
+          {
+            "type": "Dropdown",
+            "name": "appointment_time",
+            "label": "Randevu Saati",
+            "required": true,
+            "data-source": "${data.available_slots}",
+            "enabled": "${form.appointment_date != ''}"
+          },
+          {
+            "type": "Footer",
+            "label": "İleri",
+            "on-click-action": {
+              "name": "navigate",
+              "next": {
+                "type": "screen",
+                "name": "CUSTOMER_INFO"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "CUSTOMER_INFO",
+      "title": "Bilgileriniz",
+      "terminal": false,
+      "success": false,
+      "data": {
+        "customer_name": {
+          "type": "string",
+          "__example__": "Ali Yılmaz"
+        },
+        "customer_phone": {
+          "type": "string",
+          "__example__": "+905551234567"
+        },
+        "notes": {
+          "type": "string",
+          "__example__": ""
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "İletişim Bilgileri"
+          },
+          {
+            "type": "TextInput",
+            "name": "customer_name",
+            "label": "Adınız Soyadınız",
+            "input-type": "text",
+            "required": true,
+            "helper-text": "Lütfen tam adınızı girin"
+          },
+          {
+            "type": "TextInput",
+            "name": "customer_phone",
+            "label": "Telefon Numaranız",
+            "input-type": "phone",
+            "required": true,
+            "helper-text": "Örn: +90 555 123 4567"
+          },
+          {
+            "type": "TextArea",
+            "name": "notes",
+            "label": "Özel Notlar (Opsiyonel)",
+            "required": false,
+            "helper-text": "Varsa özel isteklerinizi yazın"
+          },
+          {
+            "type": "Footer",
+            "label": "Randevuyu Oluştur",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "service": "${form.service}",
+                "stylist": "${form.stylist}",
+                "appointment_date": "${form.appointment_date}",
+                "appointment_time": "${form.appointment_time}",
+                "customer_name": "${form.customer_name}",
+                "customer_phone": "${form.customer_phone}",
+                "notes": "${form.notes}",
+                "action": "create_appointment"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "SUCCESS",
+      "title": "Randevu Oluşturuldu",
+      "terminal": true,
+      "success": true,
+      "data": {
+        "confirmation_message": {
+          "type": "string",
+          "__example__": "Randevunuz başarıyla oluşturuldu!"
+        },
+        "appointment_details": {
+          "type": "string",
+          "__example__": ""
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "✅ Randevunuz Onaylandı!"
+          },
+          {
+            "type": "TextBody",
+            "text": "${data.confirmation_message}"
+          },
+          {
+            "type": "TextBody",
+            "text": "${data.appointment_details}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "Randevu saatinden önce size hatırlatma mesajı göndereceğiz."
+          },
+          {
+            "type": "Footer",
+            "label": "Tamam",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {}
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

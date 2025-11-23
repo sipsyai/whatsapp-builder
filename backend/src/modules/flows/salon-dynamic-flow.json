@@ -1,0 +1,286 @@
+{
+  "version": "7.2",
+  "data_api_version": "3.0",
+  "routing_model": {
+    "MAIN_MENU": ["DATETIME_SCREEN"],
+    "DATETIME_SCREEN": ["CUSTOMER_INFO"],
+    "CUSTOMER_INFO": ["SUCCESS"],
+    "SUCCESS": []
+  },
+  "screens": [
+    {
+      "id": "MAIN_MENU",
+      "title": "Kuaför Randevusu",
+      "terminal": false,
+      "data": {},
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Hoş Geldiniz! 💇‍♀️"
+          },
+          {
+            "type": "TextBody",
+            "text": "Randevu oluşturmak için aşağıdaki bilgileri doldurun."
+          },
+          {
+            "type": "TextSubheading",
+            "text": "Hangi Hizmeti Almak İstersiniz?"
+          },
+          {
+            "type": "RadioButtonsGroup",
+            "name": "service",
+            "label": "Hizmet Seçin",
+            "required": true,
+            "data-source": [
+              {
+                "id": "haircut",
+                "title": "Saç Kesimi",
+                "description": "150 TL - 30 dakika"
+              },
+              {
+                "id": "coloring",
+                "title": "Saç Boyama",
+                "description": "500 TL - 2 saat"
+              },
+              {
+                "id": "blowdry",
+                "title": "Fön",
+                "description": "100 TL - 30 dakika"
+              },
+              {
+                "id": "perm",
+                "title": "Perma",
+                "description": "800 TL - 3 saat"
+              },
+              {
+                "id": "keratin",
+                "title": "Keratin Bakımı",
+                "description": "1200 TL - 3 saat"
+              }
+            ]
+          },
+          {
+            "type": "Dropdown",
+            "name": "stylist",
+            "label": "Kuaför Seçin",
+            "required": true,
+            "on-select-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action": "get_stylist_info",
+                "stylist": "${form.stylist}",
+                "service": "${form.service}"
+              }
+            },
+            "data-source": [
+              {
+                "id": "ali",
+                "title": "Ali Bey"
+              },
+              {
+                "id": "ayse",
+                "title": "Ayşe Hanım"
+              },
+              {
+                "id": "zeynep",
+                "title": "Zeynep Hanım"
+              }
+            ]
+          },
+          {
+            "type": "Footer",
+            "label": "Devam",
+            "on-click-action": {
+              "name": "navigate",
+              "next": {
+                "type": "screen",
+                "name": "DATETIME_SCREEN"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "DATETIME_SCREEN",
+      "title": "Tarih ve Saat",
+      "terminal": false,
+      "data": {
+        "available_dates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "title": { "type": "string" }
+            }
+          },
+          "__example__": [
+            {"id": "2025-01-24", "title": "24 Ocak Cuma"},
+            {"id": "2025-01-25", "title": "25 Ocak Cumartesi"}
+          ]
+        },
+        "available_slots": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "title": { "type": "string" }
+            }
+          },
+          "__example__": [
+            {"id": "09:00", "title": "09:00"},
+            {"id": "10:00", "title": "10:00"}
+          ]
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Ne Zaman?"
+          },
+          {
+            "type": "Dropdown",
+            "name": "appointment_date",
+            "label": "Randevu Tarihi",
+            "required": true,
+            "data-source": "${data.available_dates}",
+            "on-select-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action": "get_available_slots",
+                "stylist": "${screen.MAIN_MENU.form.stylist}",
+                "date": "${form.appointment_date}",
+                "service": "${screen.MAIN_MENU.form.service}"
+              }
+            }
+          },
+          {
+            "type": "Dropdown",
+            "name": "appointment_time",
+            "label": "Randevu Saati",
+            "required": true,
+            "data-source": "${data.available_slots}"
+          },
+          {
+            "type": "Footer",
+            "label": "Devam",
+            "on-click-action": {
+              "name": "navigate",
+              "next": {
+                "type": "screen",
+                "name": "CUSTOMER_INFO"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "CUSTOMER_INFO",
+      "title": "İletişim Bilgileri",
+      "terminal": false,
+      "data": {},
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Bilgileriniz"
+          },
+          {
+            "type": "TextInput",
+            "name": "customer_name",
+            "label": "Adınız Soyadınız",
+            "input-type": "text",
+            "required": true,
+            "helper-text": "Tam adınızı girin"
+          },
+          {
+            "type": "TextInput",
+            "name": "customer_phone",
+            "label": "Telefon Numaranız",
+            "input-type": "phone",
+            "required": true,
+            "helper-text": "Örn: +90 555 123 4567"
+          },
+          {
+            "type": "TextArea",
+            "name": "notes",
+            "label": "Özel Notlar (Opsiyonel)",
+            "required": false,
+            "helper-text": "Varsa özel isteklerinizi yazın",
+            "max-length": 300
+          },
+          {
+            "type": "Footer",
+            "label": "Randevuyu Oluştur",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action": "create_appointment",
+                "service": "${screen.MAIN_MENU.form.service}",
+                "stylist": "${screen.MAIN_MENU.form.stylist}",
+                "appointment_date": "${screen.DATETIME_SCREEN.form.appointment_date}",
+                "appointment_time": "${screen.DATETIME_SCREEN.form.appointment_time}",
+                "customer_name": "${form.customer_name}",
+                "customer_phone": "${form.customer_phone}",
+                "notes": "${form.notes}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "SUCCESS",
+      "title": "Randevu Tamamlandı",
+      "terminal": true,
+      "success": true,
+      "data": {
+        "confirmation_message": {
+          "type": "string",
+          "__example__": "Randevunuz oluşturuldu!"
+        },
+        "appointment_details": {
+          "type": "string",
+          "__example__": ""
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "✅ Başarılı!"
+          },
+          {
+            "type": "TextBody",
+            "text": "${data.confirmation_message}"
+          },
+          {
+            "type": "TextBody",
+            "text": "${data.appointment_details}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "Randevu saatinden önce size hatırlatma mesajı göndereceğiz."
+          },
+          {
+            "type": "Footer",
+            "label": "Tamam",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {}
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
