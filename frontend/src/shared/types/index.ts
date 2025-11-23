@@ -1,4 +1,4 @@
-export type ViewState = "landing" | "builder" | "chat";
+export type ViewState = "landing" | "builder" | "chat" | "settings";
 export type NodeDataType = "start" | "message" | "question" | "condition";
 
 export interface NodeData {

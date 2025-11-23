@@ -1,19 +1,26 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios';
 import { WhatsAppApiException } from '../exceptions/whatsapp-api.exception';
 import { ApiErrorMapper } from '../utils/api-error-mapper.util';
+import { WhatsAppConfig } from '../../../entities/whatsapp-config.entity';
 
 @Injectable()
-export class WhatsAppApiService {
+export class WhatsAppApiService implements OnModuleInit {
   private readonly logger = new Logger(WhatsAppApiService.name);
-  private readonly axiosInstance: AxiosInstance;
+  private axiosInstance: AxiosInstance;
   private readonly baseUrl: string;
-  private readonly accessToken: string;
-  private readonly phoneNumberId: string;
+  private accessToken: string;
+  private phoneNumberId: string;
   private readonly apiVersion: string;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    @InjectRepository(WhatsAppConfig)
+    private readonly configRepository: Repository<WhatsAppConfig>,
+  ) {
     this.apiVersion =
       this.configService.get<string>('whatsapp.apiVersion') || 'v18.0';
     this.baseUrl =
@@ -23,15 +30,56 @@ export class WhatsAppApiService {
       this.configService.get<string>('whatsapp.accessToken') || '';
     this.phoneNumberId =
       this.configService.get<string>('whatsapp.phoneNumberId') || '';
+  }
 
-    // Validate required configuration
-    if (!this.accessToken || !this.phoneNumberId) {
-      throw new Error(
-        'WhatsApp configuration is missing. Please check WHATSAPP_ACCESS_TOKEN and PHONE_NUMBER_ID',
-      );
+  /**
+   * Initialize the service by loading config from database
+   * Falls back to environment variables if no DB config exists
+   */
+  async onModuleInit() {
+    await this.loadConfiguration();
+  }
+
+  /**
+   * Load configuration from database or fallback to environment
+   */
+  private async loadConfiguration() {
+    try {
+      const dbConfig = await this.configRepository.findOne({
+        where: { isActive: true },
+      });
+
+      if (dbConfig) {
+        this.logger.log('Loading WhatsApp configuration from database');
+        this.accessToken = dbConfig.accessToken;
+        this.phoneNumberId = dbConfig.phoneNumberId;
+      } else {
+        this.logger.log(
+          'No database configuration found, using environment variables',
+        );
+      }
+
+      // Validate required configuration
+      if (!this.accessToken || !this.phoneNumberId) {
+        this.logger.warn(
+          'WhatsApp configuration is incomplete. Please configure via API or environment variables.',
+        );
+        // Don't throw error, allow service to start but operations will fail
+      }
+
+      // Initialize or reinitialize axios instance
+      this.initializeAxiosInstance();
+    } catch (error) {
+      this.logger.error('Error loading WhatsApp configuration:', error);
+      // Initialize with env vars as fallback
+      this.initializeAxiosInstance();
     }
+  }
 
-    // Create axios instance with defaults
+  /**
+   * Initialize axios instance with current credentials
+   */
+  private initializeAxiosInstance() {
     this.axiosInstance = axios.create({
       baseURL: `${this.baseUrl}/${this.apiVersion}`,
       timeout: 30000,
@@ -57,6 +105,14 @@ export class WhatsAppApiService {
       (response) => response,
       (error: AxiosError) => this.handleApiError(error),
     );
+  }
+
+  /**
+   * Update credentials at runtime (called after saving new config)
+   */
+  async reloadConfiguration() {
+    this.logger.log('Reloading WhatsApp configuration');
+    await this.loadConfiguration();
   }
 
   /**

@@ -1,37 +1,64 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { whatsappConfigApi, type WhatsAppConfig, type TestConnectionResponse } from "./api";
+import { copyToClipboard } from "../../utils/clipboard"; // utility to copy text
 
 export const WhatsappConfigPage = () => {
-    const [config, setConfig] = useState({
-        phoneNumberId: "",
-        businessAccountId: "",
-        accessToken: "",
-        webhookVerifyToken: "",
-    });
+    const [config, setConfig] = useState<Partial<WhatsAppConfig>>({});
+    const [webhookUrl, setWebhookUrl] = useState<string>('');
 
     const [status, setStatus] = useState<"idle" | "saving" | "testing" | "success" | "error">("idle");
-    const [message, setMessage] = useState("");
+    const [message, setMessage] = useState<string>("");
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setConfig({ ...config, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+        setConfig(prev => ({ ...prev, [name]: value }));
     };
 
     const handleSave = async () => {
         setStatus("saving");
-        // Simulate API call
-        setTimeout(() => {
+        try {
+            await whatsappConfigApi.saveConfig(config as WhatsAppConfig);
             setStatus("success");
             setMessage("Configuration saved successfully!");
-        }, 1000);
+            // Refresh webhook URL after save
+            const webhook = await whatsappConfigApi.getWebhookUrl();
+            setWebhookUrl(webhook.webhookUrl);
+        } catch (err) {
+            setStatus("error");
+            setMessage((err as any).response?.data?.message || "Failed to save configuration");
+        }
     };
 
     const handleTest = async () => {
         setStatus("testing");
-        // Simulate API call
-        setTimeout(() => {
-            setStatus("success");
-            setMessage("Connection successful! Phone number: +1 555 0123");
-        }, 1500);
+        try {
+            const result: TestConnectionResponse = await whatsappConfigApi.testConnection();
+            if (result.success) {
+                setStatus("success");
+                setMessage(result.message);
+            } else {
+                setStatus("error");
+                setMessage(result.message);
+            }
+        } catch (err) {
+            setStatus("error");
+            setMessage((err as any).response?.data?.message || "Connection test failed");
+        }
     };
+
+    useEffect(() => {
+        const load = async () => {
+            try {
+                const cfg = await whatsappConfigApi.getConfig();
+                setConfig(cfg);
+                const webhook = await whatsappConfigApi.getWebhookUrl();
+                setWebhookUrl(webhook.webhookUrl);
+            } catch (err) {
+                console.error('Failed to load config', err);
+            }
+        };
+        load();
+    }, []);
 
     return (
         <div className="flex flex-col h-full w-full max-w-4xl mx-auto p-6 bg-white dark:bg-surface-dark rounded-lg shadow-sm">
@@ -107,10 +134,14 @@ export const WhatsappConfigPage = () => {
                                 <input
                                     type="text"
                                     readOnly
-                                    value="https://api.yourdomain.com/api/webhooks/whatsapp"
+                                    value={webhookUrl}
                                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 font-mono text-sm"
                                 />
-                                <button className="ml-2 p-2 text-gray-500 hover:text-green-600 transition-colors" title="Copy URL">
+                                <button
+                                    className="ml-2 p-2 text-gray-500 hover:text-green-600 transition-colors"
+                                    title="Copy URL"
+                                    onClick={() => copyToClipboard(webhookUrl)}
+                                >
                                     <span className="material-symbols-outlined text-xl">content_copy</span>
                                 </button>
                             </div>

@@ -5,6 +5,7 @@ import { BuilderPage } from "../features/builder";
 import { ChatPage } from "../features/chat/ChatPage";
 import { FlowsListPage } from "../features/flows/components/FlowsListPage";
 import { UsersPage } from "../features/users/components/UsersPage";
+import { WhatsappConfigPage } from "../features/settings/WhatsappConfigPage";
 import { SideBar } from "../shared/components/SideBar";
 import type { ViewState } from "../shared/types";
 import type { Flow } from "../features/flows/api";
@@ -53,6 +54,7 @@ const App = () => {
             }}
           />}
           {view === "users" && <UsersPage />}
+          {view === "settings" && <WhatsappConfigPage />}
         </div>
       </div>
     </ReactFlowProvider>
