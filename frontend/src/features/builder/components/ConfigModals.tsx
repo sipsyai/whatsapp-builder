@@ -5,7 +5,7 @@ export const ConfigMessage = ({ data, onClose, onSave }: any) => {
     const [content, setContent] = useState(data.content || "");
     return (
         <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm fade-in">
-            <div className="w-full max-w-3xl h-full bg-[#F7F8FA] dark:bg-[#102216] shadow-2xl overflow-y-auto flex flex-col">
+            <div className="w-full max-w-3xl h-full bg-white dark:bg-[#102216] shadow-2xl overflow-y-auto flex flex-col border-l border-zinc-200 dark:border-white/10">
                 <div className="p-8 flex-1">
                     <header className="flex justify-between items-center mb-6">
                         <h1 className="text-2xl font-bold dark:text-white">Configure: Send a Message</h1>
@@ -17,8 +17,8 @@ export const ConfigMessage = ({ data, onClose, onSave }: any) => {
                     </label>
                 </div>
                 <div className="p-4 border-t border-gray-200 dark:border-white/10 flex justify-end gap-3">
-                    <button onClick={onClose} className="px-4 py-2 rounded-lg hover:bg-black/5 dark:text-white">Cancel</button>
-                    <button onClick={() => { onSave({ ...data, content }); onClose(); }} className="px-4 py-2 rounded-lg bg-primary-blue text-white">Save</button>
+                    <button onClick={onClose} className="px-4 py-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-white/5 dark:text-white transition-colors">Cancel</button>
+                    <button onClick={() => { onSave({ ...data, content }); onClose(); }} className="px-4 py-2 rounded-lg bg-primary text-[#112217] font-bold hover:bg-primary/90 transition-colors">Save</button>
                 </div>
             </div>
         </div>
@@ -89,7 +89,7 @@ export const ConfigQuestion = ({ data, onClose, onSave }: any) => {
 
     return (
         <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm fade-in">
-            <div className="w-full max-w-md h-full bg-white dark:bg-[#102216] shadow-2xl p-6 flex flex-col border-l dark:border-white/10">
+            <div className="w-full max-w-md h-full bg-white dark:bg-[#102216] shadow-2xl p-6 flex flex-col border-l border-zinc-200 dark:border-white/10">
                 <h2 className="text-xl font-bold mb-4 dark:text-white">Configure {data.label}</h2>
 
                 <div className="space-y-6 flex-1 overflow-y-auto pr-2">
@@ -117,7 +117,7 @@ export const ConfigQuestion = ({ data, onClose, onSave }: any) => {
 
                     {/* Buttons Configuration */}
                     {isButtons && (
-                        <div className="bg-gray-50 dark:bg-white/5 p-4 rounded-lg border dark:border-white/10">
+                        <div className="bg-zinc-50 dark:bg-white/5 p-4 rounded-lg border border-zinc-200 dark:border-white/10">
                             <span className="text-sm font-bold dark:text-white block mb-2">Buttons (Max 3)</span>
                             <div className="space-y-2">
                                 {buttons.map((b, i) => (
@@ -153,7 +153,7 @@ export const ConfigQuestion = ({ data, onClose, onSave }: any) => {
                                 </div>
 
                                 {sections.map((section, sIdx) => (
-                                    <div key={section.id} className="border dark:border-white/10 rounded-lg p-3 bg-gray-50 dark:bg-white/5">
+                                    <div key={section.id} className="border border-zinc-200 dark:border-white/10 rounded-lg p-3 bg-zinc-50 dark:bg-white/5">
                                         <div className="flex items-center gap-2 mb-2">
                                             <input
                                                 className="flex-1 bg-transparent border-b border-dashed border-gray-400 dark:border-gray-500 focus:border-primary outline-none text-sm font-bold dark:text-white py-1"
@@ -198,9 +198,9 @@ export const ConfigQuestion = ({ data, onClose, onSave }: any) => {
                     </label>
                 </div>
 
-                <div className="mt-4 flex justify-end gap-2 pt-4 border-t dark:border-white/10">
-                    <button onClick={onClose} className="px-4 py-2 rounded dark:text-white hover:bg-gray-100 dark:hover:bg-white/5">Cancel</button>
-                    <button onClick={handleSave} className="px-4 py-2 bg-primary text-[#112217] rounded font-bold hover:bg-opacity-90">Save</button>
+                <div className="mt-4 flex justify-end gap-2 pt-4 border-t border-zinc-200 dark:border-white/10">
+                    <button onClick={onClose} className="px-4 py-2 rounded dark:text-white hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors">Cancel</button>
+                    <button onClick={handleSave} className="px-4 py-2 bg-primary text-[#112217] rounded font-bold hover:bg-primary/90 transition-colors">Save</button>
                 </div>
             </div>
         </div>
@@ -211,12 +211,12 @@ export const ConfigCondition = ({ data, onClose, onSave }: any) => {
     // Simplified logic config
     return (
         <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm fade-in">
-            <div className="w-full max-w-md h-full bg-white dark:bg-[#102216] shadow-2xl p-6 flex flex-col border-l dark:border-white/10">
+            <div className="w-full max-w-md h-full bg-white dark:bg-[#102216] shadow-2xl p-6 flex flex-col border-l border-zinc-200 dark:border-white/10">
                 <h2 className="text-xl font-bold mb-4 dark:text-white">Configure Condition</h2>
                 <p className="dark:text-gray-400">Logic configuration here...</p>
                 <div className="mt-auto flex justify-end gap-2">
-                    <button onClick={onClose} className="px-4 py-2 rounded dark:text-white">Cancel</button>
-                    <button onClick={() => { onSave(data); onClose(); }} className="px-4 py-2 bg-primary rounded text-black font-bold">Save</button>
+                    <button onClick={onClose} className="px-4 py-2 rounded dark:text-white hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors">Cancel</button>
+                    <button onClick={() => { onSave(data); onClose(); }} className="px-4 py-2 bg-primary rounded text-[#112217] font-bold hover:bg-primary/90 transition-colors">Save</button>
                 </div>
             </div>
         </div>
