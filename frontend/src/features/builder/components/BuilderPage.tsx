@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useMemo } from "react";
+import React, { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import {
     ReactFlow,
     addEdge,
@@ -16,6 +16,7 @@ import { StartNode, MessageNode, QuestionNode, ConditionNode } from "../../nodes
 import { QuestionTypeModal } from "./QuestionTypeModal";
 import { ConfigMessage, ConfigQuestion, ConfigCondition } from "./ConfigModals";
 import type { NodeDataType } from "../../../shared/types";
+import type { Flow } from "../../flows/api";
 
 const nodeTypes = {
     start: StartNode,
@@ -26,9 +27,16 @@ const nodeTypes = {
 
 interface BuilderPageProps {
     onSwitchToChat?: () => void;
+    initialFlow?: Flow;
+    onFlowSaved?: (flowId: string) => void;
 }
 
-export const BuilderPage = ({ onSwitchToChat }: BuilderPageProps) => {
+export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: BuilderPageProps) => {
+    // Flow State
+    const [currentFlowId, setCurrentFlowId] = useState<string | null>(null);
+    const [currentFlowName, setCurrentFlowName] = useState("My Chatbot");
+    const [currentFlowDescription, setCurrentFlowDescription] = useState("");
+
     const [nodes, setNodes, onNodesChange] = useNodesState<Node>([
         { id: 'start-1', type: 'start', position: { x: 50, y: 50 }, data: { label: 'Start Flow' } }
     ]);
@@ -45,6 +53,21 @@ export const BuilderPage = ({ onSwitchToChat }: BuilderPageProps) => {
     const [showAIModal, setShowAIModal] = useState(false);
     const [aiPrompt, setAiPrompt] = useState("");
     const [isGenerating, setIsGenerating] = useState(false);
+
+    // Load initial flow when provided
+    useEffect(() => {
+        if (initialFlow) {
+            setCurrentFlowId(initialFlow.id);
+            setCurrentFlowName(initialFlow.name);
+            setCurrentFlowDescription(initialFlow.description || "");
+            if (initialFlow.nodes && initialFlow.nodes.length > 0) {
+                setNodes(initialFlow.nodes);
+            }
+            if (initialFlow.edges && initialFlow.edges.length > 0) {
+                setEdges(initialFlow.edges);
+            }
+        }
+    }, [initialFlow]);
 
     const onConnect = useCallback((connection: Connection) => setEdges((eds) => addEdge(connection, eds)), [setEdges]);
 
@@ -212,21 +235,44 @@ export const BuilderPage = ({ onSwitchToChat }: BuilderPageProps) => {
     // NestJS Backend Integration
     const handleSave = async () => {
         const payload = {
-            name: "My Chatbot",
+            name: currentFlowName,
+            description: currentFlowDescription || undefined,
             nodes: nodes.map(n => ({ id: n.id, type: n.type, position: n.position, data: n.data })),
             edges: edges.map(e => ({ source: e.source, target: e.target, sourceHandle: e.sourceHandle }))
         };
 
         try {
-            // Use the API client instead of direct fetch
-            const { createFlow } = await import('../../flows/api');
-            const data = await createFlow(payload);
-            alert(`Flow saved successfully! ID: ${data.id}`);
-            console.log("Saved flow:", data);
+            if (currentFlowId) {
+                // Update existing flow
+                const { updateFlow } = await import('../../flows/api');
+                const data = await updateFlow(currentFlowId, payload);
+                alert(`Flow "${data.name}" updated successfully!`);
+                console.log("Updated flow:", data);
+                if (onFlowSaved) onFlowSaved(data.id);
+            } else {
+                // Create new flow
+                const { createFlow } = await import('../../flows/api');
+                const data = await createFlow(payload);
+                setCurrentFlowId(data.id);
+                alert(`Flow "${data.name}" saved successfully! ID: ${data.id}`);
+                console.log("Created flow:", data);
+                if (onFlowSaved) onFlowSaved(data.id);
+            }
         } catch (error) {
-            console.error("Network error:", error);
-            alert("Could not connect to backend (NestJS). Is it running on port 3000?");
+            console.error("Save error:", error);
+            alert("Could not save flow. Is the backend running on port 3000?");
         }
+    }
+
+    const handleNewFlow = () => {
+        if (currentFlowId && !window.confirm('Start a new flow? Unsaved changes will be lost.')) {
+            return;
+        }
+        setCurrentFlowId(null);
+        setCurrentFlowName("My Chatbot");
+        setCurrentFlowDescription("");
+        setNodes([{ id: 'start-1', type: 'start', position: { x: 50, y: 50 }, data: { label: 'Start Flow' } }]);
+        setEdges([]);
     }
 
     const addNode = (type: NodeDataType) => {
@@ -265,22 +311,59 @@ export const BuilderPage = ({ onSwitchToChat }: BuilderPageProps) => {
                     <div className="size-6 text-primary">
                         <span className="material-symbols-outlined text-primary">smart_toy</span>
                     </div>
-                    <h2 className="text-lg font-bold">ChatBot Builder (React Flow + NestJS)</h2>
+                    <div>
+                        <h2 className="text-lg font-bold">ChatBot Builder (React Flow + NestJS)</h2>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                            {currentFlowId ? `Editing: ${currentFlowName}` : 'New Flow'}
+                        </p>
+                    </div>
                 </div>
                 <div className="flex gap-2">
+                    <button onClick={handleNewFlow} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg flex items-center gap-2 text-sm font-bold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                        <span className="material-symbols-outlined text-sm">add</span> New Flow
+                    </button>
                     <button onClick={onSwitchToChat} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg flex items-center gap-2 text-sm font-bold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
                         <span className="material-symbols-outlined text-sm">chat</span> Preview
                     </button>
                     <button onClick={() => setShowAIModal(true)} className="px-4 py-2 bg-purple-600 text-white rounded-lg flex items-center gap-2 text-sm font-bold">
                         <span className="material-symbols-outlined text-sm">auto_awesome</span> AI Build
                     </button>
-                    <button onClick={handleSave} className="px-4 py-2 bg-primary text-[#112217] rounded-lg text-sm font-bold">Save to Backend</button>
+                    <button onClick={handleSave} className="px-4 py-2 bg-primary text-[#112217] rounded-lg text-sm font-bold">
+                        {currentFlowId ? 'Update Flow' : 'Save Flow'}
+                    </button>
                 </div>
             </header>
 
             <div className="flex flex-1 overflow-hidden">
                 {/* Sidebar */}
-                <aside className="w-72 bg-background-light dark:bg-background-dark border-r border-zinc-200 dark:border-[#23482f] p-4 z-10">
+                <aside className="w-72 bg-background-light dark:bg-background-dark border-r border-zinc-200 dark:border-[#23482f] p-4 z-10 overflow-y-auto">
+                    {/* Flow Info Section */}
+                    <div className="mb-6 pb-4 border-b border-zinc-200 dark:border-zinc-700">
+                        <h3 className="text-sm font-bold text-gray-500 mb-3 uppercase tracking-wider">Flow Details</h3>
+                        <div className="space-y-3">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Flow Name</label>
+                                <input
+                                    type="text"
+                                    value={currentFlowName}
+                                    onChange={(e) => setCurrentFlowName(e.target.value)}
+                                    className="w-full px-3 py-2 bg-white dark:bg-[#23482f] border border-zinc-200 dark:border-transparent rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
+                                    placeholder="Enter flow name..."
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Description (Optional)</label>
+                                <textarea
+                                    value={currentFlowDescription}
+                                    onChange={(e) => setCurrentFlowDescription(e.target.value)}
+                                    className="w-full px-3 py-2 bg-white dark:bg-[#23482f] border border-zinc-200 dark:border-transparent rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+                                    rows={3}
+                                    placeholder="Describe what this flow does..."
+                                />
+                            </div>
+                        </div>
+                    </div>
+
                     <h3 className="text-sm font-bold text-gray-500 mb-4 uppercase tracking-wider">Nodes</h3>
                     <div className="space-y-3">
                         <div className="flex items-center gap-2">

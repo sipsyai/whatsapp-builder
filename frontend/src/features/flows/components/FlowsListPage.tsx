@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getFlows, deleteFlow, type Flow } from '../api';
+import { getFlows, softDeleteFlow, type Flow } from '../api';
 
 interface FlowsListPageProps {
     onNavigate: (path: string) => void;
@@ -8,51 +8,52 @@ interface FlowsListPageProps {
 
 export const FlowsListPage: React.FC<FlowsListPageProps> = ({ onNavigate, onLoadFlow }) => {
     const [flows, setFlows] = useState<Flow[]>([]);
-    const [filteredFlows, setFilteredFlows] = useState<Flow[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize] = useState(12);
+    const [sortBy] = useState<'name' | 'createdAt' | 'updatedAt'>('createdAt');
+    const [sortOrder] = useState<'ASC' | 'DESC'>('DESC');
 
     useEffect(() => {
         loadFlows();
-    }, []);
+    }, [searchQuery, currentPage]);
 
-    useEffect(() => {
-        if (searchQuery.trim() === '') {
-            setFilteredFlows(flows);
-        } else {
-            const query = searchQuery.toLowerCase();
-            setFilteredFlows(flows.filter(f =>
-                f.name.toLowerCase().includes(query) ||
-                f.id.toLowerCase().includes(query)
-            ));
-        }
-    }, [searchQuery, flows]);
+
 
     const loadFlows = async () => {
         try {
             setLoading(true);
-            const data = await getFlows();
-            setFlows(data);
-            setFilteredFlows(data);
+            const data = await getFlows({
+                search: searchQuery || undefined,
+                limit: pageSize,
+                offset: (currentPage - 1) * pageSize,
+                sortBy,
+                sortOrder,
+                isActive: true  // Only show active flows
+            });
+            // Ensure data is always an array
+            setFlows(Array.isArray(data) ? data : []);
             setError(null);
         } catch (err) {
             console.error('Failed to load flows:', err);
             setError('Failed to load flows. Please try again.');
+            setFlows([]);  // Set empty array on error
         } finally {
             setLoading(false);
         }
     };
 
     const handleDelete = async (id: string) => {
-        if (!window.confirm('Are you sure you want to delete this flow?')) return;
+        if (!window.confirm('Archive this flow? You can restore it later.')) return;
 
         try {
-            await deleteFlow(id);
-            setFlows(flows.filter(f => f.id !== id));
+            await softDeleteFlow(id);
+            loadFlows();  // Reload to remove from active list
         } catch (err) {
-            console.error('Failed to delete flow:', err);
-            alert('Failed to delete flow');
+            console.error('Failed to archive flow:', err);
+            alert('Failed to archive flow');
         }
     };
 
@@ -98,9 +99,12 @@ export const FlowsListPage: React.FC<FlowsListPageProps> = ({ onNavigate, onLoad
                         <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400">search</span>
                         <input
                             type="text"
-                            placeholder="Search flows by name or ID..."
+                            placeholder="Search flows by name or description..."
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value);
+                                setCurrentPage(1);  // Reset to first page on search
+                            }}
                             className="w-full pl-12 pr-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-surface-dark text-zinc-900 dark:text-white placeholder-zinc-400 focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                         />
                     </div>
@@ -124,7 +128,7 @@ export const FlowsListPage: React.FC<FlowsListPageProps> = ({ onNavigate, onLoad
                                     <span className="material-symbols-outlined text-white">account_tree</span>
                                 </div>
                                 <div>
-                                    <p className="text-2xl font-bold text-green-900 dark:text-green-100">{flows.reduce((sum, f) => sum + (f.nodes?.length || 0), 0)}</p>
+                                    <p className="text-2xl font-bold text-green-900 dark:text-green-100">{Array.isArray(flows) ? flows.reduce((sum, f) => sum + (f.nodes?.length || 0), 0) : 0}</p>
                                     <p className="text-sm text-green-700 dark:text-green-300">Total Nodes</p>
                                 </div>
                             </div>
@@ -135,7 +139,7 @@ export const FlowsListPage: React.FC<FlowsListPageProps> = ({ onNavigate, onLoad
                                     <span className="material-symbols-outlined text-white">link</span>
                                 </div>
                                 <div>
-                                    <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">{flows.reduce((sum, f) => sum + (f.edges?.length || 0), 0)}</p>
+                                    <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">{Array.isArray(flows) ? flows.reduce((sum, f) => sum + (f.edges?.length || 0), 0) : 0}</p>
                                     <p className="text-sm text-purple-700 dark:text-purple-300">Total Connections</p>
                                 </div>
                             </div>
@@ -150,7 +154,7 @@ export const FlowsListPage: React.FC<FlowsListPageProps> = ({ onNavigate, onLoad
                     </div>
                 )}
 
-                {filteredFlows.length === 0 ? (
+                {flows.length === 0 && !searchQuery ? (
                     <div className="text-center py-20 bg-white dark:bg-surface-dark rounded-2xl border-2 border-dashed border-zinc-300 dark:border-zinc-700">
                         <div className="inline-block p-6 bg-zinc-100 dark:bg-zinc-800 rounded-full mb-6">
                             <span className="material-symbols-outlined text-6xl text-zinc-400 dark:text-zinc-500">account_tree</span>
@@ -173,87 +177,127 @@ export const FlowsListPage: React.FC<FlowsListPageProps> = ({ onNavigate, onLoad
                             </button>
                         )}
                     </div>
+                ) : flows.length === 0 && searchQuery ? (
+                    <div className="text-center py-20 bg-white dark:bg-surface-dark rounded-2xl border-2 border-dashed border-zinc-300 dark:border-zinc-700">
+                        <div className="inline-block p-6 bg-zinc-100 dark:bg-zinc-800 rounded-full mb-6">
+                            <span className="material-symbols-outlined text-6xl text-zinc-400 dark:text-zinc-500">search_off</span>
+                        </div>
+                        <h3 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">No flows found</h3>
+                        <p className="text-zinc-500 dark:text-zinc-400 mb-8 max-w-md mx-auto">
+                            Try adjusting your search query
+                        </p>
+                    </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredFlows.map((flow) => (
-                            <div
-                                key={flow.id}
-                                className="bg-white dark:bg-surface-dark rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden hover:shadow-2xl transition-all duration-300 group hover:scale-105"
-                            >
-                                {/* Flow Preview/Header */}
-                                <div className="h-32 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent relative overflow-hidden">
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <span className="material-symbols-outlined text-6xl text-primary/30">smart_toy</span>
+                    <div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {Array.isArray(flows) && flows.map((flow) => (
+                                <div
+                                    key={flow.id}
+                                    className="bg-white dark:bg-surface-dark rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden hover:shadow-2xl transition-all duration-300 group hover:scale-105"
+                                >
+                                    {/* Flow Preview/Header */}
+                                    <div className="h-32 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent relative overflow-hidden">
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <span className="material-symbols-outlined text-6xl text-primary/30">smart_toy</span>
+                                        </div>
+                                        <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button
+                                                onClick={() => handleLoadFlow(flow)}
+                                                className="p-2 bg-white dark:bg-zinc-800 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors shadow-lg"
+                                                title="Load & Edit"
+                                            >
+                                                <span className="material-symbols-outlined text-xl">edit</span>
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(flow.id)}
+                                                className="p-2 bg-white dark:bg-zinc-800 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors shadow-lg"
+                                                title="Delete"
+                                            >
+                                                <span className="material-symbols-outlined text-xl">delete</span>
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+
+                                    {/* Flow Info */}
+                                    <div className="p-6">
+                                        <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-2 truncate">{flow.name}</h3>
+                                        {flow.description && (
+                                            <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3 line-clamp-2">
+                                                {flow.description}
+                                            </p>
+                                        )}
+
+                                        <div className="flex items-center gap-4 mb-4">
+                                            <div className="flex items-center gap-1 text-sm text-zinc-600 dark:text-zinc-400">
+                                                <span className="material-symbols-outlined text-lg text-blue-500">account_tree</span>
+                                                <span className="font-medium">{flow.nodes?.length || 0}</span>
+                                                <span>nodes</span>
+                                            </div>
+                                            <div className="flex items-center gap-1 text-sm text-zinc-600 dark:text-zinc-400">
+                                                <span className="material-symbols-outlined text-lg text-purple-500">link</span>
+                                                <span className="font-medium">{flow.edges?.length || 0}</span>
+                                                <span>edges</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 space-y-2">
+                                            <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
+                                                <span className="flex items-center gap-1">
+                                                    <span className="material-symbols-outlined text-sm">schedule</span>
+                                                    Created
+                                                </span>
+                                                <span className="font-medium">{new Date(flow.createdAt).toLocaleDateString()}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
+                                                <span className="flex items-center gap-1">
+                                                    <span className="material-symbols-outlined text-sm">update</span>
+                                                    Updated
+                                                </span>
+                                                <span className="font-medium">{new Date(flow.updatedAt).toLocaleDateString()}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
+                                                <span className="flex items-center gap-1">
+                                                    <span className="material-symbols-outlined text-sm">fingerprint</span>
+                                                    ID
+                                                </span>
+                                                <span className="font-mono font-medium">{flow.id.slice(0, 8)}...</span>
+                                            </div>
+                                        </div>
+
                                         <button
                                             onClick={() => handleLoadFlow(flow)}
-                                            className="p-2 bg-white dark:bg-zinc-800 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors shadow-lg"
-                                            title="Load & Edit"
+                                            className="w-full mt-4 px-4 py-2 bg-primary/10 hover:bg-primary text-primary hover:text-[#112217] rounded-lg font-medium transition-all flex items-center justify-center gap-2"
                                         >
-                                            <span className="material-symbols-outlined text-xl">edit</span>
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(flow.id)}
-                                            className="p-2 bg-white dark:bg-zinc-800 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors shadow-lg"
-                                            title="Delete"
-                                        >
-                                            <span className="material-symbols-outlined text-xl">delete</span>
+                                            <span className="material-symbols-outlined text-sm">play_arrow</span>
+                                            Load Flow
                                         </button>
                                     </div>
                                 </div>
+                            ))}
+                        </div>
 
-                                {/* Flow Info */}
-                                <div className="p-6">
-                                    <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-3 truncate">{flow.name}</h3>
-
-                                    <div className="flex items-center gap-4 mb-4">
-                                        <div className="flex items-center gap-1 text-sm text-zinc-600 dark:text-zinc-400">
-                                            <span className="material-symbols-outlined text-lg text-blue-500">account_tree</span>
-                                            <span className="font-medium">{flow.nodes?.length || 0}</span>
-                                            <span>nodes</span>
-                                        </div>
-                                        <div className="flex items-center gap-1 text-sm text-zinc-600 dark:text-zinc-400">
-                                            <span className="material-symbols-outlined text-lg text-purple-500">link</span>
-                                            <span className="font-medium">{flow.edges?.length || 0}</span>
-                                            <span>edges</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 space-y-2">
-                                        <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
-                                            <span className="flex items-center gap-1">
-                                                <span className="material-symbols-outlined text-sm">schedule</span>
-                                                Created
-                                            </span>
-                                            <span className="font-medium">{new Date(flow.createdAt).toLocaleDateString()}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
-                                            <span className="flex items-center gap-1">
-                                                <span className="material-symbols-outlined text-sm">update</span>
-                                                Updated
-                                            </span>
-                                            <span className="font-medium">{new Date(flow.updatedAt).toLocaleDateString()}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
-                                            <span className="flex items-center gap-1">
-                                                <span className="material-symbols-outlined text-sm">fingerprint</span>
-                                                ID
-                                            </span>
-                                            <span className="font-mono font-medium">{flow.id.slice(0, 8)}...</span>
-                                        </div>
-                                    </div>
-
-                                    <button
-                                        onClick={() => handleLoadFlow(flow)}
-                                        className="w-full mt-4 px-4 py-2 bg-primary/10 hover:bg-primary text-primary hover:text-[#112217] rounded-lg font-medium transition-all flex items-center justify-center gap-2"
-                                    >
-                                        <span className="material-symbols-outlined text-sm">play_arrow</span>
-                                        Load Flow
-                                    </button>
-                                </div>
+                        {/* Pagination Controls */}
+                        <div className="flex justify-between items-center mt-8 pt-6 border-t border-zinc-200 dark:border-zinc-800">
+                            <button
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                className="px-6 py-3 bg-white dark:bg-surface-dark border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
+                            >
+                                <span className="material-symbols-outlined text-sm">chevron_left</span>
+                                Previous
+                            </button>
+                            <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                                Page {currentPage} • {flows.length} flow{flows.length !== 1 ? 's' : ''}
                             </div>
-                        ))}
+                            <button
+                                onClick={() => setCurrentPage(p => p + 1)}
+                                disabled={flows.length < pageSize}
+                                className="px-6 py-3 bg-white dark:bg-surface-dark border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
+                            >
+                                Next
+                                <span className="material-symbols-outlined text-sm">chevron_right</span>
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>

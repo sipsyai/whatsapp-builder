@@ -1,4 +1,13 @@
-import { IsString, IsArray, IsOptional } from 'class-validator';
+import {
+  IsString,
+  IsArray,
+  IsOptional,
+  ValidateNested,
+  ArrayMinSize,
+} from 'class-validator';
+import { Type } from 'class-transformer';
+import { FlowNodeDto } from './flow-node.dto';
+import { FlowEdgeDto } from './flow-edge.dto';
 
 export class CreateFlowDto {
   @IsString()
@@ -6,9 +15,13 @@ export class CreateFlowDto {
 
   @IsOptional()
   @IsArray()
-  nodes?: any[];
+  @ValidateNested({ each: true })
+  @Type(() => FlowNodeDto)
+  nodes?: FlowNodeDto[];
 
   @IsOptional()
   @IsArray()
-  edges?: any[];
+  @ValidateNested({ each: true })
+  @Type(() => FlowEdgeDto)
+  edges?: FlowEdgeDto[];
 }
