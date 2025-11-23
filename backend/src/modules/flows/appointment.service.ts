@@ -56,7 +56,11 @@ export class AppointmentService {
   /**
    * Get available time slots for a specific date and stylist
    */
-  getAvailableSlots(date: string, stylist: string, service: string): TimeSlot[] {
+  getAvailableSlots(
+    date: string,
+    stylist: string,
+    service: string,
+  ): TimeSlot[] {
     // Seçilen tarih ve stylist için mevcut randevuları bul
     const bookedSlots = this.appointments
       .filter(
@@ -101,7 +105,9 @@ export class AppointmentService {
     );
 
     if (!isSlotAvailable) {
-      throw new Error('Bu saat artık müsait değil. Lütfen başka bir saat seçin.');
+      throw new Error(
+        'Bu saat artık müsait değil. Lütfen başka bir saat seçin.',
+      );
     }
 
     const appointment: Appointment = {

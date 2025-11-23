@@ -68,7 +68,10 @@ async function publishFlow() {
     const flowId = createResponse.data.id;
     console.log(`✅ Flow created with ID: ${flowId}`);
 
-    if (createResponse.data.validation_errors && createResponse.data.validation_errors.length > 0) {
+    if (
+      createResponse.data.validation_errors &&
+      createResponse.data.validation_errors.length > 0
+    ) {
       console.warn('⚠️  Validation warnings:');
       console.log(
         JSON.stringify(createResponse.data.validation_errors, null, 2),
@@ -93,7 +96,9 @@ async function publishFlow() {
       );
       console.log('✅ Meta App connected\n');
     } else {
-      console.log('⏭️  Step 2: Skipping Meta App connection (APP_ID not provided)\n');
+      console.log(
+        '⏭️  Step 2: Skipping Meta App connection (APP_ID not provided)\n',
+      );
     }
 
     // Step 3: Get Flow Details

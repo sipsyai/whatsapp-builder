@@ -15,10 +15,6 @@ import { TextMessageService } from './services/message-types/text-message.servic
     FlowMessageService,
     TextMessageService,
   ],
-  exports: [
-    WhatsAppApiService,
-    WhatsAppFlowService,
-    WhatsAppMessageService,
-  ],
+  exports: [WhatsAppApiService, WhatsAppFlowService, WhatsAppMessageService],
 })
 export class WhatsAppModule {}

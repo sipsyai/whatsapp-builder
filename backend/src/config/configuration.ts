@@ -19,4 +19,7 @@ export default () => ({
     ttl: 60,
     limit: 100,
   },
+  media: {
+    maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '16777216', 10), // 16MB default
+  },
 });

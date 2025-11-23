@@ -23,7 +23,10 @@ export class PhoneNumberUtil {
   /**
    * Add country code if not present
    */
-  static addCountryCode(phone: string, defaultCountryCode: string = '90'): string {
+  static addCountryCode(
+    phone: string,
+    defaultCountryCode: string = '90',
+  ): string {
     const cleaned = this.format(phone);
 
     // If already has country code, return as is

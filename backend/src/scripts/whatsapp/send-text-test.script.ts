@@ -25,7 +25,9 @@ async function sendTextMessage() {
     // Validate recipient phone
     if (!recipientPhone) {
       console.error('❌ Recipient phone number not provided');
-      console.log('Usage: npm run test:send-text -- --to=PHONE_NUMBER [--message="Your message"]');
+      console.log(
+        'Usage: npm run test:send-text -- --to=PHONE_NUMBER [--message="Your message"]',
+      );
       console.log('Example: npm run test:send-text -- --to=905551234567');
       process.exit(1);
     }

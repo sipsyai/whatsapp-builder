@@ -41,7 +41,9 @@ async function sendTestMessage() {
         console.log(`📋 Using Flow ID from file: ${flowId}`);
       } else {
         console.error('❌ Flow ID not provided and not found in .flow-id file');
-        console.log('Usage: npm run send-test -- --flow-id=FLOW_ID --to=PHONE_NUMBER');
+        console.log(
+          'Usage: npm run send-test -- --flow-id=FLOW_ID --to=PHONE_NUMBER',
+        );
         process.exit(1);
       }
     }
@@ -49,7 +51,9 @@ async function sendTestMessage() {
     // Validate recipient phone
     if (!recipientPhone) {
       console.error('❌ Recipient phone number not provided');
-      console.log('Usage: npm run send-test -- --flow-id=FLOW_ID --to=PHONE_NUMBER');
+      console.log(
+        'Usage: npm run send-test -- --flow-id=FLOW_ID --to=PHONE_NUMBER',
+      );
       console.log('Example: npm run send-test -- --to=905551234567');
       process.exit(1);
     }

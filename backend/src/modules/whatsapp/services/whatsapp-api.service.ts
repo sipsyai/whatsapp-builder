@@ -14,12 +14,15 @@ export class WhatsAppApiService {
   private readonly apiVersion: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.apiVersion = this.configService.get<string>('whatsapp.apiVersion') || 'v18.0';
-    this.baseUrl = this.configService.get<string>('whatsapp.baseUrl') || 'https://graph.facebook.com';
-    this.accessToken = this.configService.get<string>('whatsapp.accessToken') || '';
-    this.phoneNumberId = this.configService.get<string>(
-      'whatsapp.phoneNumberId',
-    ) || '';
+    this.apiVersion =
+      this.configService.get<string>('whatsapp.apiVersion') || 'v18.0';
+    this.baseUrl =
+      this.configService.get<string>('whatsapp.baseUrl') ||
+      'https://graph.facebook.com';
+    this.accessToken =
+      this.configService.get<string>('whatsapp.accessToken') || '';
+    this.phoneNumberId =
+      this.configService.get<string>('whatsapp.phoneNumberId') || '';
 
     // Validate required configuration
     if (!this.accessToken || !this.phoneNumberId) {

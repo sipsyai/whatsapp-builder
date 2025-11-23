@@ -119,3 +119,88 @@ The frontend expects real-time updates for:
 The backend should act as a middleware between this frontend and the WhatsApp Business Cloud API.
 - **Incoming Webhooks**: Receive messages from WhatsApp -> Store in DB -> Emit via Socket -> Frontend.
 - **Outgoing API Calls**: Frontend sends message -> Backend calls WhatsApp API -> Updates DB -> Returns success.
+
+## Builder API Requirements
+
+These endpoints support the React Flow based chatbot builder.
+
+### Data Structures
+
+#### Flow
+Represents a saved chatbot flow.
+
+```typescript
+interface Flow {
+  id: string;
+  name: string;
+  nodes: Node[];
+  edges: Edge[];
+  createdAt: string;
+  updatedAt: string;
+}
+```
+
+#### Node
+Represents a node in the flow.
+
+```typescript
+interface Node {
+  id: string;
+  type: string; // "start", "message", "question", "condition"
+  position: { x: number, y: number };
+  data: any; // Node specific data (label, content, options, etc.)
+}
+```
+
+#### Edge
+Represents a connection between nodes.
+
+```typescript
+interface Edge {
+  source: string; // Source Node ID
+  target: string; // Target Node ID
+  sourceHandle?: string; // Specific handle on source node
+}
+```
+
+### API Endpoints
+
+### 1. Save Flow
+Create or update a flow.
+
+- **Endpoint**: `POST /flows`
+- **Body**:
+  ```json
+  {
+    "name": "My Chatbot",
+    "nodes": [ ... ],
+    "edges": [ ... ]
+  }
+  ```
+- **Response**: `Flow` object (with generated ID)
+
+### 2. Get Flows
+List all saved flows.
+
+- **Endpoint**: `GET /flows`
+- **Response**: `Flow[]` (summary list, maybe without full nodes/edges for performance)
+
+### 3. Get Flow Details
+Load a specific flow into the builder.
+
+- **Endpoint**: `GET /flows/:id`
+- **Response**: `Flow` (full object with nodes and edges)
+
+### 4. Update Flow
+Update an existing flow.
+
+- **Endpoint**: `PUT /flows/:id`
+- **Body**: Same as POST (nodes, edges, name)
+- **Response**: `Flow`
+
+### 5. Delete Flow
+Remove a flow.
+
+- **Endpoint**: `DELETE /flows/:id`
+- **Response**: `{ success: true }`
+

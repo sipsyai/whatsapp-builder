@@ -1,0 +1,509 @@
+{
+  "text_message": {
+    "object": "whatsapp_business_account",
+    "entry": [
+      {
+        "id": "BUSINESS_ACCOUNT_ID",
+        "changes": [
+          {
+            "value": {
+              "messaging_product": "whatsapp",
+              "metadata": {
+                "display_phone_number": "15551234567",
+                "phone_number_id": "PHONE_NUMBER_ID"
+              },
+              "contacts": [
+                {
+                  "profile": {
+                    "name": "John Doe"
+                  },
+                  "wa_id": "15559876543"
+                }
+              ],
+              "messages": [
+                {
+                  "from": "15559876543",
+                  "id": "wamid.HBgNMTU1NTk4NzY1NDMVAgARGBI5QUFBMUM1RjdGNTU3M0VEMDkzRQA=",
+                  "timestamp": "1699564800",
+                  "type": "text",
+                  "text": {
+                    "body": "Hello! I need help with my order."
+                  }
+                }
+              ]
+            },
+            "field": "messages"
+          }
+        ]
+      }
+    ]
+  },
+  "image_message": {
+    "object": "whatsapp_business_account",
+    "entry": [
+      {
+        "id": "BUSINESS_ACCOUNT_ID",
+        "changes": [
+          {
+            "value": {
+              "messaging_product": "whatsapp",
+              "metadata": {
+                "display_phone_number": "15551234567",
+                "phone_number_id": "PHONE_NUMBER_ID"
+              },
+              "contacts": [
+                {
+                  "profile": {
+                    "name": "Jane Smith"
+                  },
+                  "wa_id": "15559876544"
+                }
+              ],
+              "messages": [
+                {
+                  "from": "15559876544",
+                  "id": "wamid.HBgNMTU1NTk4NzY1NDQVAQARGBI5...",
+                  "timestamp": "1699564850",
+                  "type": "image",
+                  "image": {
+                    "id": "1234567890",
+                    "mime_type": "image/jpeg",
+                    "sha256": "abc123def456...",
+                    "caption": "Here's the product photo you requested"
+                  }
+                }
+              ]
+            },
+            "field": "messages"
+          }
+        ]
+      }
+    ]
+  },
+  "video_message": {
+    "object": "whatsapp_business_account",
+    "entry": [
+      {
+        "id": "BUSINESS_ACCOUNT_ID",
+        "changes": [
+          {
+            "value": {
+              "messaging_product": "whatsapp",
+              "metadata": {
+                "display_phone_number": "15551234567",
+                "phone_number_id": "PHONE_NUMBER_ID"
+              },
+              "contacts": [
+                {
+                  "profile": {
+                    "name": "Bob Johnson"
+                  },
+                  "wa_id": "15559876545"
+                }
+              ],
+              "messages": [
+                {
+                  "from": "15559876545",
+                  "id": "wamid.HBgNMTU1NTk4NzY1NDUVAgARGBI5...",
+                  "timestamp": "1699564900",
+                  "type": "video",
+                  "video": {
+                    "id": "2345678901",
+                    "mime_type": "video/mp4",
+                    "sha256": "def456ghi789...",
+                    "caption": "Product demonstration video"
+                  }
+                }
+              ]
+            },
+            "field": "messages"
+          }
+        ]
+      }
+    ]
+  },
+  "document_message": {
+    "object": "whatsapp_business_account",
+    "entry": [
+      {
+        "id": "BUSINESS_ACCOUNT_ID",
+        "changes": [
+          {
+            "value": {
+              "messaging_product": "whatsapp",
+              "metadata": {
+                "display_phone_number": "15551234567",
+                "phone_number_id": "PHONE_NUMBER_ID"
+              },
+              "contacts": [
+                {
+                  "profile": {
+                    "name": "Alice Williams"
+                  },
+                  "wa_id": "15559876546"
+                }
+              ],
+              "messages": [
+                {
+                  "from": "15559876546",
+                  "id": "wamid.HBgNMTU1NTk4NzY1NDYVAQARGBI5...",
+                  "timestamp": "1699564950",
+                  "type": "document",
+                  "document": {
+                    "id": "3456789012",
+                    "mime_type": "application/pdf",
+                    "sha256": "ghi789jkl012...",
+                    "filename": "order_receipt.pdf",
+                    "caption": "My order receipt"
+                  }
+                }
+              ]
+            },
+            "field": "messages"
+          }
+        ]
+      }
+    ]
+  },
+  "audio_message": {
+    "object": "whatsapp_business_account",
+    "entry": [
+      {
+        "id": "BUSINESS_ACCOUNT_ID",
+        "changes": [
+          {
+            "value": {
+              "messaging_product": "whatsapp",
+              "metadata": {
+                "display_phone_number": "15551234567",
+                "phone_number_id": "PHONE_NUMBER_ID"
+              },
+              "contacts": [
+                {
+                  "profile": {
+                    "name": "Charlie Brown"
+                  },
+                  "wa_id": "15559876547"
+                }
+              ],
+              "messages": [
+                {
+                  "from": "15559876547",
+                  "id": "wamid.HBgNMTU1NTk4NzY1NDcVAgARGBI5...",
+                  "timestamp": "1699565000",
+                  "type": "audio",
+                  "audio": {
+                    "id": "4567890123",
+                    "mime_type": "audio/ogg; codecs=opus",
+                    "sha256": "jkl012mno345...",
+                    "voice": true
+                  }
+                }
+              ]
+            },
+            "field": "messages"
+          }
+        ]
+      }
+    ]
+  },
+  "interactive_button_reply": {
+    "object": "whatsapp_business_account",
+    "entry": [
+      {
+        "id": "BUSINESS_ACCOUNT_ID",
+        "changes": [
+          {
+            "value": {
+              "messaging_product": "whatsapp",
+              "metadata": {
+                "display_phone_number": "15551234567",
+                "phone_number_id": "PHONE_NUMBER_ID"
+              },
+              "contacts": [
+                {
+                  "profile": {
+                    "name": "David Lee"
+                  },
+                  "wa_id": "15559876548"
+                }
+              ],
+              "messages": [
+                {
+                  "from": "15559876548",
+                  "id": "wamid.HBgNMTU1NTk4NzY1NDgVAgARGBI5...",
+                  "timestamp": "1699565050",
+                  "type": "interactive",
+                  "interactive": {
+                    "type": "button_reply",
+                    "button_reply": {
+                      "id": "btn_confirm_order",
+                      "title": "Confirm Order"
+                    }
+                  },
+                  "context": {
+                    "from": "15551234567",
+                    "id": "wamid.HBgNMTU1NTEyMzQ1NjcVAgARGBI5..."
+                  }
+                }
+              ]
+            },
+            "field": "messages"
+          }
+        ]
+      }
+    ]
+  },
+  "interactive_list_reply": {
+    "object": "whatsapp_business_account",
+    "entry": [
+      {
+        "id": "BUSINESS_ACCOUNT_ID",
+        "changes": [
+          {
+            "value": {
+              "messaging_product": "whatsapp",
+              "metadata": {
+                "display_phone_number": "15551234567",
+                "phone_number_id": "PHONE_NUMBER_ID"
+              },
+              "contacts": [
+                {
+                  "profile": {
+                    "name": "Emma Davis"
+                  },
+                  "wa_id": "15559876549"
+                }
+              ],
+              "messages": [
+                {
+                  "from": "15559876549",
+                  "id": "wamid.HBgNMTU1NTk4NzY1NDkVAgARGBI5...",
+                  "timestamp": "1699565100",
+                  "type": "interactive",
+                  "interactive": {
+                    "type": "list_reply",
+                    "list_reply": {
+                      "id": "product_laptop_pro",
+                      "title": "Laptop Pro 15\"",
+                      "description": "High-performance laptop"
+                    }
+                  },
+                  "context": {
+                    "from": "15551234567",
+                    "id": "wamid.HBgNMTU1NTEyMzQ1NjcVAgARGBI5..."
+                  }
+                }
+              ]
+            },
+            "field": "messages"
+          }
+        ]
+      }
+    ]
+  },
+  "location_message": {
+    "object": "whatsapp_business_account",
+    "entry": [
+      {
+        "id": "BUSINESS_ACCOUNT_ID",
+        "changes": [
+          {
+            "value": {
+              "messaging_product": "whatsapp",
+              "metadata": {
+                "display_phone_number": "15551234567",
+                "phone_number_id": "PHONE_NUMBER_ID"
+              },
+              "contacts": [
+                {
+                  "profile": {
+                    "name": "Frank Miller"
+                  },
+                  "wa_id": "15559876550"
+                }
+              ],
+              "messages": [
+                {
+                  "from": "15559876550",
+                  "id": "wamid.HBgNMTU1NTk4NzY1NTAVAgARGBI5...",
+                  "timestamp": "1699565150",
+                  "type": "location",
+                  "location": {
+                    "latitude": 37.7749,
+                    "longitude": -122.4194,
+                    "name": "San Francisco Store",
+                    "address": "123 Market St, San Francisco, CA 94103"
+                  }
+                }
+              ]
+            },
+            "field": "messages"
+          }
+        ]
+      }
+    ]
+  },
+  "status_update_delivered": {
+    "object": "whatsapp_business_account",
+    "entry": [
+      {
+        "id": "BUSINESS_ACCOUNT_ID",
+        "changes": [
+          {
+            "value": {
+              "messaging_product": "whatsapp",
+              "metadata": {
+                "display_phone_number": "15551234567",
+                "phone_number_id": "PHONE_NUMBER_ID"
+              },
+              "statuses": [
+                {
+                  "id": "wamid.HBgNMTU1NTk4NzY1NDMVAgARGBI5...",
+                  "status": "delivered",
+                  "timestamp": "1699564805",
+                  "recipient_id": "15559876543",
+                  "conversation": {
+                    "id": "CONVERSATION_ID",
+                    "origin": {
+                      "type": "service"
+                    }
+                  },
+                  "pricing": {
+                    "billable": true,
+                    "pricing_model": "CBP",
+                    "category": "service"
+                  }
+                }
+              ]
+            },
+            "field": "messages"
+          }
+        ]
+      }
+    ]
+  },
+  "status_update_read": {
+    "object": "whatsapp_business_account",
+    "entry": [
+      {
+        "id": "BUSINESS_ACCOUNT_ID",
+        "changes": [
+          {
+            "value": {
+              "messaging_product": "whatsapp",
+              "metadata": {
+                "display_phone_number": "15551234567",
+                "phone_number_id": "PHONE_NUMBER_ID"
+              },
+              "statuses": [
+                {
+                  "id": "wamid.HBgNMTU1NTk4NzY1NDMVAgARGBI5...",
+                  "status": "read",
+                  "timestamp": "1699564810",
+                  "recipient_id": "15559876543"
+                }
+              ]
+            },
+            "field": "messages"
+          }
+        ]
+      }
+    ]
+  },
+  "status_update_failed": {
+    "object": "whatsapp_business_account",
+    "entry": [
+      {
+        "id": "BUSINESS_ACCOUNT_ID",
+        "changes": [
+          {
+            "value": {
+              "messaging_product": "whatsapp",
+              "metadata": {
+                "display_phone_number": "15551234567",
+                "phone_number_id": "PHONE_NUMBER_ID"
+              },
+              "statuses": [
+                {
+                  "id": "wamid.HBgNMTU1NTk4NzY1NDMVAgARGBI5...",
+                  "status": "failed",
+                  "timestamp": "1699564815",
+                  "recipient_id": "15559876543",
+                  "errors": [
+                    {
+                      "code": 131047,
+                      "title": "Re-engagement message",
+                      "message": "Re-engagement message required. The 24-hour customer service window has closed.",
+                      "error_data": {
+                        "details": "Need to send a template message to re-engage the user"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "field": "messages"
+          }
+        ]
+      }
+    ]
+  },
+  "multiple_messages": {
+    "object": "whatsapp_business_account",
+    "entry": [
+      {
+        "id": "BUSINESS_ACCOUNT_ID",
+        "changes": [
+          {
+            "value": {
+              "messaging_product": "whatsapp",
+              "metadata": {
+                "display_phone_number": "15551234567",
+                "phone_number_id": "PHONE_NUMBER_ID"
+              },
+              "contacts": [
+                {
+                  "profile": {
+                    "name": "Grace Taylor"
+                  },
+                  "wa_id": "15559876551"
+                }
+              ],
+              "messages": [
+                {
+                  "from": "15559876551",
+                  "id": "wamid.HBgNMTU1NTk4NzY1NTEVAgARGBI5AAAA...",
+                  "timestamp": "1699565200",
+                  "type": "text",
+                  "text": {
+                    "body": "Hi there!"
+                  }
+                },
+                {
+                  "from": "15559876551",
+                  "id": "wamid.HBgNMTU1NTk4NzY1NTEVAgARGBI5BBBB...",
+                  "timestamp": "1699565202",
+                  "type": "text",
+                  "text": {
+                    "body": "I have a question about shipping"
+                  }
+                },
+                {
+                  "from": "15559876551",
+                  "id": "wamid.HBgNMTU1NTk4NzY1NTEVAgARGBI5CCCC...",
+                  "timestamp": "1699565205",
+                  "type": "text",
+                  "text": {
+                    "body": "When will my order arrive?"
+                  }
+                }
+              ]
+            },
+            "field": "messages"
+          }
+        ]
+      }
+    ]
+  }
+}

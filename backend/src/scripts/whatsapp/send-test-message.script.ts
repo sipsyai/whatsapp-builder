@@ -32,9 +32,7 @@ async function sendTestMessage() {
         flowId = fs.readFileSync(flowIdPath, 'utf-8').trim();
         console.log(`📋 Using Flow ID from file: ${flowId}`);
       } else {
-        console.error(
-          '❌ Flow ID not provided and not found in .flow-id file',
-        );
+        console.error('❌ Flow ID not provided and not found in .flow-id file');
         console.log(
           'Usage: npm run flow:send-test -- --flow-id=FLOW_ID --to=PHONE_NUMBER',
         );

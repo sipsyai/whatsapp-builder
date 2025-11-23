@@ -1,0 +1,119 @@
+/**
+ * Example WebSocket Client for Testing
+ *
+ * This is a simple client to test the WebSocket functionality.
+ * To use this file:
+ *
+ * 1. Install socket.io-client:
+ *    npm install socket.io-client
+ *
+ * 2. Run the backend server:
+ *    npm run start:dev
+ *
+ * 3. Run this test client:
+ *    ts-node -r tsconfig-paths/register src/modules/websocket/test-websocket-client.example.ts
+ */
+
+import * as io from 'socket.io-client';
+
+const SERVER_URL = 'http://localhost:3000/messages';
+const USER_ID = 'test-user-123';
+const CONVERSATION_ID = 'test-conversation-456';
+
+// Connect to WebSocket server
+console.log('Connecting to WebSocket server...');
+const socket = io(SERVER_URL, {
+  query: {
+    userId: USER_ID,
+  },
+});
+
+// Connection events
+socket.on('connect', () => {
+  console.log('✅ Connected to WebSocket server');
+  console.log(`Socket ID: ${socket.id}`);
+
+  // Join a conversation
+  console.log(`\n📥 Joining conversation: ${CONVERSATION_ID}`);
+  socket.emit('conversation:join', {
+    conversationId: CONVERSATION_ID,
+  });
+});
+
+socket.on('disconnect', () => {
+  console.log('❌ Disconnected from WebSocket server');
+});
+
+// Conversation events
+socket.on('conversation:joined', (data) => {
+  console.log('✅ Joined conversation:', data);
+
+  // Test typing indicator
+  setTimeout(() => {
+    console.log('\n⌨️  Sending typing start event...');
+    socket.emit('typing:start', {
+      conversationId: CONVERSATION_ID,
+      userId: USER_ID,
+      isTyping: true,
+    });
+  }, 1000);
+
+  setTimeout(() => {
+    console.log('⌨️  Sending typing stop event...');
+    socket.emit('typing:stop', {
+      conversationId: CONVERSATION_ID,
+      userId: USER_ID,
+      isTyping: false,
+    });
+  }, 3000);
+});
+
+socket.on('conversation:left', (data) => {
+  console.log('✅ Left conversation:', data);
+});
+
+// Message events
+socket.on('message:received', (data) => {
+  console.log('\n📨 New message received:');
+  console.log(JSON.stringify(data, null, 2));
+});
+
+socket.on('message:status', (data) => {
+  console.log('\n📊 Message status update:');
+  console.log(JSON.stringify(data, null, 2));
+});
+
+// Typing events
+socket.on('typing:start', (data) => {
+  console.log(`\n⌨️  ${data.userId} is typing in ${data.conversationId}...`);
+});
+
+socket.on('typing:stop', (data) => {
+  console.log(`\n⌨️  ${data.userId} stopped typing in ${data.conversationId}`);
+});
+
+// User presence events
+socket.on('user:online', (data) => {
+  console.log(`\n🟢 User ${data.userId} is now online`);
+});
+
+socket.on('user:offline', (data) => {
+  console.log(`\n🔴 User ${data.userId} is now offline`);
+});
+
+// Error handling
+socket.on('error', (error) => {
+  console.error('\n❌ WebSocket error:', error);
+});
+
+socket.on('connect_error', (error) => {
+  console.error('\n❌ Connection error:', error.message);
+});
+
+// Keep the process running
+console.log('\n👂 Listening for events... (Press Ctrl+C to exit)\n');
+process.on('SIGINT', () => {
+  console.log('\n\n👋 Disconnecting...');
+  socket.disconnect();
+  process.exit(0);
+});

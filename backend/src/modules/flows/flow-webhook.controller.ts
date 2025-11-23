@@ -55,7 +55,10 @@ export class FlowWebhookController {
         this.privateKey,
       );
 
-      console.log('Decrypted request:', JSON.stringify(decryptedRequest, null, 2));
+      console.log(
+        'Decrypted request:',
+        JSON.stringify(decryptedRequest, null, 2),
+      );
 
       // Extract AES key and IV for response encryption
       const aesKey = Buffer.from(body.encrypted_aes_key, 'base64');
@@ -74,7 +77,8 @@ export class FlowWebhookController {
         };
       } else if (decryptedRequest.action === 'INIT') {
         // Initial screen load
-        const availableDates = this.mockCalendarService.getAvailableDates('ali');
+        const availableDates =
+          this.mockCalendarService.getAvailableDates('ali');
 
         responseData = {
           version: '3.0',

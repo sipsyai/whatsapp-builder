@@ -1,0 +1,64 @@
+import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { User } from '../../entities/user.entity';
+
+@Injectable()
+export class UsersService {
+  constructor(
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+  ) {}
+
+  async findAll(): Promise<User[]> {
+    return await this.userRepository.find({
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async findOne(id: string): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+    return user;
+  }
+
+  async findByPhoneNumber(phoneNumber: string): Promise<User | null> {
+    return await this.userRepository.findOne({ where: { phoneNumber } });
+  }
+
+  async create(userData: Partial<User>): Promise<User> {
+    if (userData.phoneNumber) {
+      const existingUser = await this.findByPhoneNumber(userData.phoneNumber);
+      if (existingUser) {
+        throw new ConflictException('User with this phone number already exists');
+      }
+    }
+
+    const user = this.userRepository.create(userData);
+    return await this.userRepository.save(user);
+  }
+
+  async update(id: string, updateData: Partial<User>): Promise<User> {
+    const user = await this.findOne(id);
+    
+    if (updateData.phoneNumber && updateData.phoneNumber !== user.phoneNumber) {
+      const existingUser = await this.findByPhoneNumber(updateData.phoneNumber);
+      if (existingUser) {
+        throw new ConflictException('User with this phone number already exists');
+      }
+    }
+
+    Object.assign(user, updateData);
+    return await this.userRepository.save(user);
+  }
+
+  async delete(id: string): Promise<{ success: boolean }> {
+    const result = await this.userRepository.delete(id);
+    if (result.affected === 0) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+    return { success: true };
+  }
+}

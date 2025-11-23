@@ -1,0 +1,37 @@
+Media Upload Module Structure
+==============================================
+
+backend/src/modules/media/
+│
+├── dto/
+│   └── upload-media.dto.ts          # Request/Response DTOs
+│
+├── exceptions/
+│   └── media.exception.ts           # Custom exception classes
+│
+├── interfaces/
+│   └── media.interface.ts           # TypeScript interfaces and enums
+│
+├── media.controller.ts              # HTTP endpoints
+├── media.service.ts                 # Business logic
+├── media.module.ts                  # NestJS module definition
+├── index.ts                         # Module exports
+│
+├── README.md                        # Module documentation
+├── EXAMPLES.md                      # Usage examples
+├── IMPLEMENTATION_SUMMARY.md        # Implementation details
+└── STRUCTURE.txt                    # This file
+
+backend/src/scripts/media/
+└── test-media-upload.script.ts      # CLI test script
+
+Configuration Changes:
+├── src/config/configuration.ts      # Added media config
+├── src/app.module.ts               # Registered MediaModule
+└── package.json                    # Added test script & @types/multer
+
+Endpoints:
+├── POST   /api/upload              # Upload media file
+├── GET    /api/upload/config       # Get supported formats
+└── GET    /api/upload/health       # Health check
+

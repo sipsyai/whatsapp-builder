@@ -92,7 +92,9 @@ export class MockCalendarService {
   /**
    * Belirli bir kuaför için müsait tarihleri döndür
    */
-  getAvailableDates(stylist: string): Array<{ id: string; title: string; enabled: boolean }> {
+  getAvailableDates(
+    stylist: string,
+  ): Array<{ id: string; title: string; enabled: boolean }> {
     const dates: Array<{ id: string; title: string; enabled: boolean }> = [];
     const today = new Date();
 

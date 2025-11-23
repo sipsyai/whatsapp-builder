@@ -37,14 +37,10 @@ export class WhatsAppFlowService {
       categories: dto.categories,
       flow_json: JSON.stringify(dto.flowJson),
       endpoint_uri:
-        dto.endpointUri ||
-        this.configService.get('whatsapp.flowEndpointUrl'),
+        dto.endpointUri || this.configService.get('whatsapp.flowEndpointUrl'),
     };
 
-    return this.apiService.post<FlowResponse>(
-      `/${this.wabaId}/flows`,
-      payload,
-    );
+    return this.apiService.post<FlowResponse>(`/${this.wabaId}/flows`, payload);
   }
 
   /**
@@ -59,8 +55,7 @@ export class WhatsAppFlowService {
    * Get Flow details
    */
   async getFlow(flowId: string, fields?: string[]): Promise<FlowDetails> {
-    const fieldsParam =
-      fields?.join(',') || 'id,name,status,validation_errors';
+    const fieldsParam = fields?.join(',') || 'id,name,status,validation_errors';
     return this.apiService.get(`/${flowId}?fields=${fieldsParam}`);
   }
 

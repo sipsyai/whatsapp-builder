@@ -13,9 +13,7 @@ export class FlowMessageService {
   /**
    * Send Flow message
    */
-  async sendFlowMessage(
-    dto: SendFlowMessageDto,
-  ): Promise<MessageResponse> {
+  async sendFlowMessage(dto: SendFlowMessageDto): Promise<MessageResponse> {
     this.logger.log(`Sending Flow message to ${dto.to}`);
 
     // Validate and format phone number

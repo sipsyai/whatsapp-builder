@@ -13,9 +13,7 @@ export class TextMessageService {
   /**
    * Send text message
    */
-  async sendTextMessage(
-    dto: SendTextMessageDto,
-  ): Promise<MessageResponse> {
+  async sendTextMessage(dto: SendTextMessageDto): Promise<MessageResponse> {
     this.logger.log(`Sending text message to ${dto.to}`);
 
     // Validate and format phone number

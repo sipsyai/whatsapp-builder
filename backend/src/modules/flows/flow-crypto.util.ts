@@ -76,7 +76,11 @@ export class FlowCryptoUtil {
       const responseString = JSON.stringify(response);
 
       // Encrypt using AES-GCM
-      const cipher = crypto.createCipheriv('aes-128-gcm', aesKey, initialVector);
+      const cipher = crypto.createCipheriv(
+        'aes-128-gcm',
+        aesKey,
+        initialVector,
+      );
 
       const encryptedData = Buffer.concat([
         cipher.update(responseString, 'utf-8'),
