@@ -89,6 +89,14 @@ export class WhatsAppFlowService {
   }
 
   /**
+   * Deprecate a Flow (required before deletion if published)
+   */
+  async deprecateFlow(flowId: string): Promise<{ success: boolean }> {
+    this.logger.log(`Deprecating flow: ${flowId}`);
+    return this.apiService.post(`/${flowId}`, { status: 'DEPRECATED' });
+  }
+
+  /**
    * Delete a Flow
    */
   async deleteFlow(flowId: string): Promise<{ success: boolean }> {

@@ -139,7 +139,7 @@ export interface ConditionGroup {
 ```typescript
 export interface NodeData {
     label: string;                    // Display label for the node
-    type?: NodeDataType;              // Logical type: "start" | "message" | "question" | "condition"
+    type?: NodeDataType;              // Logical type: "start" | "message" | "question" | "condition" | "whatsapp_flow"
     content?: string;                 // Message content or question text
     variable?: string;                // Variable name to store user response (Question nodes)
 
@@ -158,6 +158,12 @@ export interface NodeData {
     buttons?: ButtonItem[];           // Button options (max 3)
     listButtonText?: string;          // List trigger button text
     listSections?: SectionItem[];     // List sections (max 10)
+
+    // WhatsApp Flow Node Fields
+    whatsappFlowId?: string;          // UUID of the Flow from flows table
+    flowCta?: string;                 // CTA button text (e.g., "Book Appointment")
+    flowMode?: string;                // 'draft' | 'published' - Flow mode
+    flowOutputVariable?: string;      // Variable name to store Flow response data
 
     // Component callbacks
     onConfig?: () => void;            // Open configuration modal
@@ -1259,54 +1265,171 @@ flows/
 
 **Responsibilities**:
 1. **Flow Lifecycle Management**: Create, list, update, publish, and delete WhatsApp Flows
-2. **Flow JSON Editor**: Visual interface for editing Flow JSON structure
+2. **Flow JSON Editor**: Modal-based interface with syntax-highlighted JSON editor
 3. **Publishing**: Publish Flows to WhatsApp Cloud API
 4. **Preview**: Get preview URLs for testing Flows before publishing
 5. **Status Tracking**: Display Flow status (DRAFT, PUBLISHED, DEPRECATED, etc.)
+6. **Category Management**: Support for 8 WhatsApp Flow categories (SIGN_UP, APPOINTMENT_BOOKING, etc.)
 
-**Key Features**:
+**UI/UX Highlights**:
+- **Modern Card Layout**: Responsive grid (1-3 columns) with gradient headers
+- **Status Badges**: Color-coded badges (green=PUBLISHED, gray=DRAFT, red=DEPRECATED)
+- **Hover Interactions**: Action buttons appear on card hover with smooth transitions
+- **Dark Theme Support**: Full dark mode compatibility
+- **Empty State**: Beautiful empty state with CTA to create first Flow
+- **Modal Workflows**: Separate modals for creation and viewing details
+
+**State Management**:
 ```typescript
 const FlowsPage = () => {
   const [flows, setFlows] = useState<WhatsAppFlow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedFlow, setSelectedFlow] = useState<WhatsAppFlow | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
 
-  // API operations
+  // Load flows on mount
+  useEffect(() => {
+    loadFlows();
+  }, []);
+
   const loadFlows = async () => {
-    const data = await flowsApi.getAll();
-    setFlows(data);
+    try {
+      setLoading(true);
+      const data = await flowsApi.getAll();
+      setFlows(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+};
+```
+
+**Flow Card Component**:
+```typescript
+// Each flow rendered as a card with:
+<div className="flow-card">
+  {/* Gradient header with status badge and action buttons */}
+  <div className="flow-header">
+    <span className="status-badge">{flow.status}</span>
+    <div className="action-buttons">
+      {flow.status === 'DRAFT' && <PublishButton />}
+      {flow.previewUrl && <PreviewButton />}
+      <DeleteButton />
+    </div>
+  </div>
+
+  {/* Flow info */}
+  <div className="flow-info">
+    <h3>{flow.name}</h3>
+    <p>{flow.description}</p>
+    <div className="categories">
+      {flow.categories.map(cat => (
+        <span className="category-badge">{cat}</span>
+      ))}
+    </div>
+    <button onClick={() => setSelectedFlow(flow)}>View Details</button>
+  </div>
+</div>
+```
+
+**CreateFlowModal Component**:
+```typescript
+// Modal with comprehensive form
+const CreateFlowModal = ({ onClose, onSuccess }) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    categories: [],
+    flowJson: JSON.stringify(EXAMPLE_FLOW_JSON, null, 2),
+    endpointUri: '',
+  });
+  const [errors, setErrors] = useState({});
+
+  // Validation
+  const validateForm = () => {
+    - Name required
+    - Valid JSON required (parsed to verify)
+    - At least one category required
   };
 
-  const handlePublish = async (flowId: string) => {
-    await flowsApi.publish(flowId);
-    await loadFlows(); // Refresh list
-  };
+  // 8 WhatsApp Flow Categories
+  const categories = [
+    'SIGN_UP', 'SIGN_IN', 'APPOINTMENT_BOOKING',
+    'LEAD_GENERATION', 'CONTACT_US', 'CUSTOMER_SUPPORT',
+    'SURVEY', 'OTHER'
+  ];
 
-  const handlePreview = async (flowId: string) => {
-    const { previewUrl } = await flowsApi.getPreview(flowId);
-    window.open(previewUrl, '_blank');
-  };
+  // Form fields:
+  - Name input (required)
+  - Description textarea
+  - Category checkboxes (grid layout, min 1)
+  - Endpoint URI input (optional)
+  - Flow JSON textarea (15 rows, monospace font, required)
 
+  // Submit creates Flow via API
+  const handleSubmit = async () => {
+    await flowsApi.create(formData);
+    onSuccess();
+  };
+};
+```
+
+**FlowDetailsModal Component**:
+```typescript
+// Read-only modal showing complete Flow details
+const FlowDetailsModal = ({ flow, onClose }) => {
   return (
-    <div className="flows-page">
-      <div className="flows-header">
-        <h1>WhatsApp Flows</h1>
-        <button onClick={() => setIsCreating(true)}>Create Flow</button>
-      </div>
-
-      <div className="flows-list">
-        {flows.map(flow => (
-          <FlowCard
-            key={flow.id}
-            flow={flow}
-            onPublish={handlePublish}
-            onPreview={handlePreview}
-            onEdit={() => setSelectedFlow(flow)}
-          />
-        ))}
+    <div className="modal">
+      <h2>{flow.name}</h2>
+      <div className="details">
+        <div>Status: <StatusBadge status={flow.status} /></div>
+        <div>Description: {flow.description}</div>
+        <div>Categories: {flow.categories.map(...)}</div>
+        <div>WhatsApp Flow ID: {flow.whatsappFlowId}</div>
+        <div>Endpoint URI: {flow.endpointUri}</div>
+        <div>Created: {flow.createdAt}</div>
+        <div>Updated: {flow.updatedAt}</div>
       </div>
     </div>
   );
+};
+```
+
+**Flow Operations**:
+```typescript
+// Publish Flow
+const handlePublish = async (flowId: string) => {
+  try {
+    await flowsApi.publish(flowId);
+    await loadFlows(); // Refresh to show updated status
+  } catch (err) {
+    setError(err.message);
+  }
+};
+
+// Preview Flow
+const handlePreview = async (flowId: string) => {
+  try {
+    const { previewUrl } = await flowsApi.getPreview(flowId);
+    window.open(previewUrl, '_blank'); // Opens WhatsApp preview in new tab
+  } catch (err) {
+    setError(err.message);
+  }
+};
+
+// Delete Flow (backend handles deprecation automatically)
+const handleDelete = async (flowId: string) => {
+  if (!confirm('Are you sure?')) return;
+
+  try {
+    await flowsApi.delete(flowId); // Backend deprecates if PUBLISHED
+    await loadFlows();
+  } catch (err) {
+    setError(err.message);
+  }
 };
 ```
 

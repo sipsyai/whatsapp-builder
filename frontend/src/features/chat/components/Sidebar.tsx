@@ -107,7 +107,11 @@ export const Sidebar = ({ conversations, activeId, onSelect, onBack }: SidebarPr
                                             const lastMsg = conv.messages[conv.messages.length - 1];
                                             const content = lastMsg.content;
                                             if (typeof content === 'string') return content;
-                                            if ('body' in content) return content.body;
+                                            if ('body' in content) {
+                                                return typeof content.body === 'string'
+                                                    ? content.body
+                                                    : (content.body as any)?.text || '';
+                                            }
                                             if ('caption' in content && content.caption) return content.caption;
                                             return lastMsg.type.charAt(0).toUpperCase() + lastMsg.type.slice(1);
                                         })()}

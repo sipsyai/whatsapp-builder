@@ -588,7 +588,15 @@ export class WhatsAppFlow {
 **Flow Lifecycle**:
 ```
 Create (DRAFT) → Publish → whatsappFlowId set → PUBLISHED → Update → DRAFT → Re-publish
+                                                    ↓
+                                                Deprecate → DEPRECATED → Delete (from WhatsApp API and DB)
 ```
+
+**Status Transitions**:
+- **DRAFT → PUBLISHED**: Via `FlowsService.publish()` → WhatsApp API publish endpoint
+- **PUBLISHED → DEPRECATED**: Via `FlowsService.delete()` → WhatsApp API deprecate endpoint (required before deletion)
+- **DEPRECATED → Deleted**: After deprecation, flow can be deleted from WhatsApp API and local database
+- **PUBLISHED → DRAFT**: Via `FlowsService.update()` → Resets status, requires re-publishing
 
 ---
 

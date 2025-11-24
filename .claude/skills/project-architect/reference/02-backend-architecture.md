@@ -313,10 +313,12 @@ async sendTextMessage(dto: SendTextMessageDto): Promise<MessageResponse> {
 - `createFlow(dto)`: Create Flow via WhatsApp API
 - `updateFlow(flowId, dto)`: Update Flow JSON and metadata
 - `publishFlow(flowId)`: Publish Flow (makes it available for use)
+- `deprecateFlow(flowId)`: Deprecate Flow (required before deletion if PUBLISHED)
 - `deleteFlow(flowId)`: Delete Flow from WhatsApp
 - `getFlowDetails(flowId)`: Retrieve Flow information
 - `getPreviewUrl(flowId, invalidate)`: Get preview URL for testing
 - **Error Handling**: Catches and logs WhatsApp API errors
+- **Flow Status Lifecycle**: DRAFT → PUBLISHED → DEPRECATED → DELETED
 
 **FlowEncryptionService** (`services/flow-encryption.service.ts`)
 - **RSA + AES Encryption**: Secure Flow data exchange
@@ -779,11 +781,21 @@ Manages WhatsApp Flows lifecycle: creation, updates, publishing, and deletion. P
 - `update(id, dto)`: Update Flow (resets to DRAFT status)
 - `publish(id)`: Publish Flow to WhatsApp (status → PUBLISHED)
 - `getPreview(id, invalidate)`: Get preview URL from WhatsApp
-- `remove(id)`: Delete Flow from WhatsApp API and local DB
+- `delete(id)`: Delete Flow with automatic deprecation for PUBLISHED flows
+  - **Smart Deletion Logic**:
+    1. If Flow status is PUBLISHED, deprecate it first (WhatsApp requirement)
+    2. Update local status to DEPRECATED
+    3. Attempt deletion from WhatsApp API
+    4. Delete from local database
+    5. Graceful error handling: continues with local deletion even if WhatsApp API fails
+  - **Logging**: Comprehensive logging at each step for troubleshooting
+  - **Error Handling**: Catches deprecation/deletion errors, logs warnings, but continues with local cleanup
 
 **Flow Lifecycle**:
 ```
 Create → DRAFT → Publish → PUBLISHED → Update → DRAFT → Re-publish → PUBLISHED
+                              ↓
+                          Deprecate → DEPRECATED → Delete
 ```
 
 #### Controller

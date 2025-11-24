@@ -4,6 +4,7 @@
 - [Overview](#overview)
 - [WhatsApp Business API Setup](#whatsapp-business-api-setup)
 - [Message Types](#message-types)
+- [WhatsApp Flows API](#whatsapp-flows-api)
 - [Webhook Processing](#webhook-processing)
 - [Message Sending](#message-sending)
 - [Error Handling](#error-handling)
@@ -204,6 +205,249 @@ async sendFlowMessage(dto: SendFlowMessageDto): Promise<MessageResponse> {
 **Flow Modes**:
 - **draft**: Test mode (requires preview URL from WhatsApp)
 - **published**: Production mode (available to all users)
+
+---
+
+## WhatsApp Flows API
+
+WhatsApp Builder integrates with the WhatsApp Cloud API to manage Flow lifecycle: creation, updates, publishing, deprecation, and deletion. This enables building and deploying interactive multi-screen forms directly from the application.
+
+### Flow Management Service
+
+**Service**: `WhatsAppFlowService`
+**File**: `/home/ali/whatsapp-builder/backend/src/modules/whatsapp/services/whatsapp-flow.service.ts`
+
+#### API Methods
+
+```typescript
+export class WhatsAppFlowService {
+  private readonly baseUrl = 'https://graph.facebook.com/v18.0';
+
+  /**
+   * Create a new Flow on WhatsApp Cloud API
+   */
+  async createFlow(dto: CreateFlowDto): Promise<WhatsAppFlowResponse> {
+    const payload = {
+      name: dto.name,
+      categories: dto.categories,  // e.g., ["SIGN_UP", "APPOINTMENT_BOOKING"]
+    };
+
+    const response = await this.apiService.post('/flows', payload);
+    return response; // Returns { id: "flow_id" }
+  }
+
+  /**
+   * Update Flow JSON and metadata
+   */
+  async updateFlow(flowId: string, dto: UpdateFlowDto): Promise<{ success: boolean }> {
+    const payload = {
+      name: dto.name,
+      categories: dto.categories,
+      flow_json: dto.flowJson,      // Complete Flow JSON structure
+      endpoint_uri: dto.endpointUri, // Optional webhook endpoint
+    };
+
+    return await this.apiService.post(`/${flowId}`, payload);
+  }
+
+  /**
+   * Publish Flow (makes it available for use)
+   */
+  async publishFlow(flowId: string): Promise<{ success: boolean }> {
+    return await this.apiService.post(`/${flowId}/publish`, {});
+  }
+
+  /**
+   * Deprecate Flow (required before deletion if PUBLISHED)
+   * WhatsApp requires Flows to be deprecated before deletion
+   */
+  async deprecateFlow(flowId: string): Promise<{ success: boolean }> {
+    this.logger.log(`Deprecating flow: ${flowId}`);
+    return await this.apiService.post(`/${flowId}`, { status: 'DEPRECATED' });
+  }
+
+  /**
+   * Delete Flow from WhatsApp Cloud API
+   * Note: PUBLISHED Flows must be deprecated first
+   */
+  async deleteFlow(flowId: string): Promise<{ success: boolean }> {
+    return await this.apiService.delete(`/${flowId}`);
+  }
+
+  /**
+   * Get Flow details
+   */
+  async getFlowDetails(flowId: string): Promise<WhatsAppFlowDetails> {
+    return await this.apiService.get(`/${flowId}`);
+  }
+
+  /**
+   * Get preview URL for testing draft Flows
+   */
+  async getPreviewUrl(flowId: string, invalidate: boolean = false): Promise<string> {
+    const params = invalidate ? { invalidate_preview: 'true' } : {};
+    const data = await this.apiService.get(`/${flowId}`, { params });
+    return data.preview?.preview_url;
+  }
+}
+```
+
+### Flow Lifecycle Management
+
+**FlowsService** (backend/src/modules/flows/flows.service.ts) orchestrates Flow operations:
+
+```typescript
+export class FlowsService {
+  /**
+   * Create Flow locally and register with WhatsApp API
+   */
+  async create(dto: CreateFlowDto): Promise<WhatsAppFlow> {
+    // 1. Create Flow on WhatsApp API
+    const { id: whatsappFlowId } = await this.whatsappFlowService.createFlow(dto);
+
+    // 2. Update Flow JSON
+    await this.whatsappFlowService.updateFlow(whatsappFlowId, dto);
+
+    // 3. Save to local database
+    const flow = this.flowRepo.create({
+      whatsappFlowId,
+      name: dto.name,
+      description: dto.description,
+      categories: dto.categories,
+      flowJson: dto.flowJson,
+      endpointUri: dto.endpointUri,
+      status: WhatsAppFlowStatus.DRAFT,
+    });
+
+    return await this.flowRepo.save(flow);
+  }
+
+  /**
+   * Publish Flow to production
+   */
+  async publish(id: string): Promise<WhatsAppFlow> {
+    const flow = await this.findOne(id);
+
+    // Publish to WhatsApp API
+    await this.whatsappFlowService.publishFlow(flow.whatsappFlowId);
+
+    // Update local status
+    flow.status = WhatsAppFlowStatus.PUBLISHED;
+    return await this.flowRepo.save(flow);
+  }
+
+  /**
+   * Delete Flow with automatic deprecation
+   * Smart deletion logic:
+   * 1. If PUBLISHED, deprecate first (WhatsApp requirement)
+   * 2. Delete from WhatsApp API
+   * 3. Delete from local database
+   * 4. Graceful error handling at each step
+   */
+  async delete(id: string): Promise<void> {
+    const flow = await this.findOne(id);
+
+    this.logger.log(`Deleting flow: ${id} (status: ${flow.status})`);
+
+    // Step 1: Deprecate if PUBLISHED
+    if (flow.whatsappFlowId && flow.status === WhatsAppFlowStatus.PUBLISHED) {
+      try {
+        this.logger.log(`Flow is PUBLISHED, deprecating before deletion: ${flow.whatsappFlowId}`);
+        await this.whatsappFlowService.deprecateFlow(flow.whatsappFlowId);
+
+        // Update local status
+        flow.status = WhatsAppFlowStatus.DEPRECATED;
+        await this.flowRepo.save(flow);
+      } catch (error) {
+        this.logger.warn(`Could not deprecate Flow: ${error.message}`);
+        // Continue with deletion attempt
+      }
+    }
+
+    // Step 2: Delete from WhatsApp API
+    if (flow.whatsappFlowId) {
+      try {
+        await this.whatsappFlowService.deleteFlow(flow.whatsappFlowId);
+        this.logger.log(`Flow deleted from WhatsApp API: ${flow.whatsappFlowId}`);
+      } catch (error) {
+        this.logger.warn(`Could not delete from WhatsApp API: ${error.message}`);
+        // Continue with local deletion
+      }
+    }
+
+    // Step 3: Delete from local database
+    await this.flowRepo.remove(flow);
+    this.logger.log(`Flow deleted from database: ${id}`);
+  }
+}
+```
+
+### Flow Status Lifecycle
+
+```
+┌─────────┐
+│  DRAFT  │ ─────publish()────► PUBLISHED
+└─────────┘                          │
+     ▲                               │
+     │                               │
+  update()                      delete()
+     │                               │
+     │                               ▼
+     └─────────────────────── DEPRECATED ─────► DELETED
+                                                (from API & DB)
+```
+
+**Status Transitions**:
+1. **DRAFT**: Initial state after creation, Flow is editable
+2. **PUBLISHED**: Flow is live and available to users, immutable on WhatsApp
+3. **DEPRECATED**: Required intermediate state before deletion (WhatsApp API requirement)
+4. **DELETED**: Removed from WhatsApp API and local database
+
+**Key Points**:
+- Published Flows cannot be deleted directly - must be deprecated first
+- Updating a PUBLISHED Flow resets it to DRAFT status
+- Draft Flows can be previewed using temporary preview URLs
+- Graceful degradation: If WhatsApp API fails, local operations continue
+
+### Flow Categories
+
+WhatsApp supports 8 predefined categories for Flows:
+
+```typescript
+export enum WhatsAppFlowCategory {
+  SIGN_UP = 'SIGN_UP',                    // User registration
+  SIGN_IN = 'SIGN_IN',                    // User authentication
+  APPOINTMENT_BOOKING = 'APPOINTMENT_BOOKING',  // Booking system
+  LEAD_GENERATION = 'LEAD_GENERATION',    // Lead capture
+  CONTACT_US = 'CONTACT_US',              // Contact forms
+  CUSTOMER_SUPPORT = 'CUSTOMER_SUPPORT',  // Support tickets
+  SURVEY = 'SURVEY',                      // Surveys & feedback
+  OTHER = 'OTHER',                        // Uncategorized
+}
+```
+
+Multiple categories can be assigned to a single Flow for better organization and discoverability.
+
+### Error Handling
+
+```typescript
+// Common WhatsApp Flows API errors
+try {
+  await this.whatsappFlowService.publishFlow(flowId);
+} catch (error) {
+  if (error.response?.status === 400) {
+    // Invalid Flow JSON structure
+    throw new BadRequestException('Flow JSON validation failed');
+  } else if (error.response?.status === 404) {
+    // Flow not found on WhatsApp
+    throw new NotFoundException('Flow not found on WhatsApp API');
+  } else if (error.response?.status === 403) {
+    // Cannot delete PUBLISHED Flow without deprecation
+    throw new ForbiddenException('Flow must be deprecated before deletion');
+  }
+  throw error;
+}
+```
 
 ---
 

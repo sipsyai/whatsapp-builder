@@ -64,7 +64,9 @@ export const ChatPage = ({ onBack }: ChatPageProps) => {
                 if (typeof message.content === 'string') {
                     lastMessageContent = message.content;
                 } else if ('body' in message.content) {
-                    lastMessageContent = message.content.body;
+                    lastMessageContent = typeof message.content.body === 'string'
+                        ? message.content.body
+                        : (message.content.body as any)?.text || '';
                 } else if ('caption' in message.content && message.content.caption) {
                     lastMessageContent = message.content.caption;
                 } else {
@@ -148,7 +150,9 @@ export const ChatPage = ({ onBack }: ChatPageProps) => {
                         if (typeof sentMessage.content === 'string') {
                             lastMessageContent = sentMessage.content;
                         } else if ('body' in sentMessage.content) {
-                            lastMessageContent = sentMessage.content.body;
+                            lastMessageContent = typeof sentMessage.content.body === 'string'
+                                ? sentMessage.content.body
+                                : (sentMessage.content.body as any)?.text || '';
                         } else {
                             lastMessageContent = sentMessage.type;
                         }

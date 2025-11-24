@@ -173,24 +173,45 @@ export class FlowsService {
   async delete(id: string): Promise<void> {
     const flow = await this.findOne(id);
 
-    this.logger.log(`Deleting flow: ${id}`);
+    this.logger.log(`Deleting flow: ${id} (status: ${flow.status})`);
 
     // Delete from WhatsApp API if published
     if (flow.whatsappFlowId) {
       try {
+        // If Flow is PUBLISHED, deprecate it first
+        if (flow.status === WhatsAppFlowStatus.PUBLISHED) {
+          this.logger.log(`Flow is PUBLISHED, deprecating before deletion: ${flow.whatsappFlowId}`);
+
+          try {
+            await this.whatsappFlowService.deprecateFlow(flow.whatsappFlowId);
+            this.logger.log(`Flow deprecated successfully: ${flow.whatsappFlowId}`);
+
+            // Update local status
+            flow.status = WhatsAppFlowStatus.DEPRECATED;
+            await this.flowRepo.save(flow);
+          } catch (deprecateError) {
+            this.logger.warn(
+              `Could not deprecate Flow in WhatsApp API: ${deprecateError.message}`,
+            );
+            // Continue with deletion attempt anyway
+          }
+        }
+
+        // Attempt to delete from WhatsApp API
         await this.whatsappFlowService.deleteFlow(flow.whatsappFlowId);
+        this.logger.log(`Flow deleted from WhatsApp API: ${flow.whatsappFlowId}`);
       } catch (error) {
         this.logger.warn(
-          `Could not delete Flow from WhatsApp API: ${error.message}`,
+          `Could not delete Flow from WhatsApp API: ${error.message}. Continuing with local deletion.`,
         );
-        // Continue with local deletion
+        // Continue with local deletion even if WhatsApp API deletion fails
       }
     }
 
     // Delete from local database
     await this.flowRepo.remove(flow);
 
-    this.logger.log(`Flow deleted: ${id}`);
+    this.logger.log(`Flow deleted from database: ${id}`);
   }
 
   /**

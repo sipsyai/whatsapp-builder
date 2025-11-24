@@ -57,6 +57,11 @@ export interface NodeData {
         rows: { id: string; title: string; description: string }[];
     }[];
 
+    // WhatsApp Flow Fields
+    whatsappFlowId?: string;
+    flowCta?: string;
+    flowMode?: string;
+
     // Methods to trigger modal or actions from within node component
     onConfig?: () => void;
     onDelete?: () => void;
