@@ -10,6 +10,7 @@ import {
 import { Message } from '../../entities/message.entity';
 import { Conversation } from '../../entities/conversation.entity';
 import { User } from '../../entities/user.entity';
+import { FlowsModule } from '../flows/flows.module';
 
 /**
  * Webhooks Module
@@ -19,6 +20,7 @@ import { User } from '../../entities/user.entity';
   imports: [
     ConfigModule,
     TypeOrmModule.forFeature([Message, Conversation, User]),
+    FlowsModule,
   ],
   controllers: [WebhooksController],
   providers: [

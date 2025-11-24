@@ -6,6 +6,7 @@ import { Conversation } from '../../../entities/conversation.entity';
 import { User } from '../../../entities/user.entity';
 import { ParsedMessageDto, ParsedStatusUpdateDto } from '../dto/parsed-message.dto';
 import { WebhookParserService } from './webhook-parser.service';
+import { FlowExecutionService } from '../../flows/services/flow-execution.service';
 
 /**
  * Webhook Processor Service
@@ -23,6 +24,7 @@ export class WebhookProcessorService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly parserService: WebhookParserService,
+    private readonly flowExecutionService: FlowExecutionService,
   ) {}
 
   /**
@@ -123,6 +125,79 @@ export class WebhookProcessorService {
     await this.conversationRepository.save(conversation);
 
     this.logger.log(`Message ${parsedMessage.whatsappMessageId} processed successfully`);
+
+    // Execute flow logic after message is saved
+    await this.executeFlow(parsedMessage, conversation);
+  }
+
+  /**
+   * Execute flow logic for incoming message
+   */
+  private async executeFlow(
+    parsedMessage: ParsedMessageDto,
+    conversation: Conversation,
+  ): Promise<void> {
+    try {
+      // Check if conversation has active flow context
+      const hasContext = await this.flowExecutionService.hasActiveContext(
+        conversation.id,
+      );
+
+      if (hasContext) {
+        // User is in middle of flow, process their response
+        this.logger.debug(
+          `Active flow context found for conversation ${conversation.id}`,
+        );
+
+        // Extract button/list IDs from interactive messages
+        let buttonId: string | undefined;
+        let listRowId: string | undefined;
+
+        if (parsedMessage.content?.type === 'button_reply') {
+          buttonId = parsedMessage.content.buttonId;
+        } else if (parsedMessage.content?.type === 'list_reply') {
+          listRowId = parsedMessage.content.listId;
+        }
+
+        // Extract message text (handle different message types)
+        const messageText = parsedMessage.content?.body ||
+                           parsedMessage.content?.buttonTitle ||
+                           parsedMessage.content?.listTitle ||
+                           parsedMessage.content?.caption ||
+                           '';
+
+        await this.flowExecutionService.processUserResponse(
+          conversation.id,
+          messageText,
+          buttonId,
+          listRowId,
+        );
+
+        this.logger.debug(
+          `Processed user response for conversation ${conversation.id}`,
+        );
+      } else {
+        // No active flow, start new flow
+        this.logger.debug(
+          `No active flow context for conversation ${conversation.id}, starting new flow`,
+        );
+
+        await this.flowExecutionService.startFlow(
+          conversation.id,
+          parsedMessage.senderPhoneNumber,
+        );
+
+        this.logger.debug(
+          `Started new flow for conversation ${conversation.id}`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `Flow execution error for conversation ${conversation.id}: ${error.message}`,
+        error.stack,
+      );
+      // Don't throw - allow message to be saved even if flow fails
+    }
   }
 
   /**
