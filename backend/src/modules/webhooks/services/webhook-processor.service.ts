@@ -96,10 +96,30 @@ export class WebhookProcessorService {
 
     await this.messageRepository.save(message);
 
-    // 7. Update conversation's last message
+    // 7. Update conversation's last message and 24-hour window tracking
     const messagePreview = this.parserService.getMessagePreview(parsedMessage);
     conversation.lastMessage = messagePreview;
     conversation.lastMessageAt = parsedMessage.timestamp;
+
+    // Update 24-hour window tracking
+    // If message is from customer (not business), update lastCustomerMessageAt
+    if (sender.id !== recipient.id && sender.phoneNumber === parsedMessage.senderPhoneNumber) {
+      conversation.lastCustomerMessageAt = parsedMessage.timestamp;
+      conversation.isWindowOpen = true;
+      this.logger.debug(`24-hour window opened for conversation ${conversation.id}`);
+    }
+
+    // Check and update window status based on time
+    if (conversation.lastCustomerMessageAt) {
+      const windowOpen = conversation.canSendSessionMessage();
+      if (conversation.isWindowOpen !== windowOpen) {
+        conversation.isWindowOpen = windowOpen;
+        this.logger.debug(
+          `24-hour window ${windowOpen ? 'opened' : 'closed'} for conversation ${conversation.id}`
+        );
+      }
+    }
+
     await this.conversationRepository.save(conversation);
 
     this.logger.log(`Message ${parsedMessage.whatsappMessageId} processed successfully`);

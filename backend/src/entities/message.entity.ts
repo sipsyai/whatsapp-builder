@@ -18,6 +18,7 @@ export enum MessageType {
   AUDIO = 'audio',
   STICKER = 'sticker',
   INTERACTIVE = 'interactive',
+  REACTION = 'reaction',
 }
 
 export enum MessageStatus {

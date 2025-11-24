@@ -73,6 +73,7 @@ export class WebhookParserService {
       sticker: MessageType.STICKER,
       interactive: MessageType.INTERACTIVE,
       button: MessageType.INTERACTIVE,
+      reaction: MessageType.REACTION,
     };
 
     return typeMap[whatsappType] || MessageType.TEXT;
@@ -91,6 +92,7 @@ export class WebhookParserService {
       case 'image':
         return {
           id: message.image?.id,
+          url: message.image?.link,
           mimeType: message.image?.mime_type,
           sha256: message.image?.sha256,
           caption: message.image?.caption,
@@ -99,6 +101,7 @@ export class WebhookParserService {
       case 'video':
         return {
           id: message.video?.id,
+          url: message.video?.link,
           mimeType: message.video?.mime_type,
           sha256: message.video?.sha256,
           caption: message.video?.caption,
@@ -107,6 +110,7 @@ export class WebhookParserService {
       case 'document':
         return {
           id: message.document?.id,
+          url: message.document?.link,
           mimeType: message.document?.mime_type,
           sha256: message.document?.sha256,
           filename: message.document?.filename,
@@ -116,6 +120,7 @@ export class WebhookParserService {
       case 'audio':
         return {
           id: message.audio?.id,
+          url: message.audio?.link,
           mimeType: message.audio?.mime_type,
           sha256: message.audio?.sha256,
           voice: message.audio?.voice || false,
@@ -124,9 +129,16 @@ export class WebhookParserService {
       case 'sticker':
         return {
           id: message.sticker?.id,
+          url: message.sticker?.link,
           mimeType: message.sticker?.mime_type,
           sha256: message.sticker?.sha256,
           animated: message.sticker?.animated || false,
+        };
+
+      case 'reaction':
+        return {
+          messageId: message.reaction?.message_id,
+          emoji: message.reaction?.emoji,
         };
 
       case 'interactive':
@@ -253,6 +265,11 @@ export class WebhookParserService {
 
       case MessageType.STICKER:
         return '🎨 Sticker';
+
+      case MessageType.REACTION:
+        return parsedMessage.content?.emoji
+          ? `${parsedMessage.content.emoji} Reaction`
+          : '👍 Reaction';
 
       case MessageType.INTERACTIVE:
         if (parsedMessage.content?.type === 'button_reply') {
