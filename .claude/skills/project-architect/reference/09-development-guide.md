@@ -65,10 +65,75 @@ WHATSAPP_APP_SECRET=your_app_secret
 
 **Frontend** (`.env` in `/frontend` directory):
 ```bash
+# Backend API Configuration
 VITE_API_URL=http://localhost:3000
-VITE_SOCKET_URL=http://localhost:3000
-VITE_API_KEY=your_gemini_api_key  # Optional: for AI flow generation
+VITE_WS_URL=http://localhost:3000
+
+# AI Flow Generation (Optional)
+VITE_API_KEY=your_gemini_api_key
 ```
+
+**Frontend Environment Variables Explained**:
+
+| Variable | Required | Default | Description | Usage |
+|----------|----------|---------|-------------|-------|
+| `VITE_API_URL` | Yes | `http://localhost:3000` | Base URL for backend REST API | Used in `/frontend/src/api/client.ts` for Axios base URL. All HTTP requests (chatbots, conversations, messages) use this URL. |
+| `VITE_WS_URL` | Yes | `http://localhost:3000` | Base URL for WebSocket connection | Used in `/frontend/src/api/socket.ts` for Socket.IO connection. Real-time message updates use this URL. |
+| `VITE_API_KEY` | No | - | Google Gemini API key for AI flow generation | Used in `/frontend/src/features/builder/components/BuilderPage.tsx` (line 221). Required only if using "AI Build" feature. Get from [Google AI Studio](https://makersuite.google.com/app/apikey). |
+
+**Environment Variable Usage in Code**:
+
+1. **VITE_API_URL** - REST API Client:
+```typescript
+// File: frontend/src/api/client.ts
+const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+export const client = axios.create({
+  baseURL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+```
+
+2. **VITE_WS_URL** - WebSocket Connection:
+```typescript
+// File: frontend/src/api/socket.ts
+const URL = import.meta.env.VITE_WS_URL || 'http://localhost:3000';
+
+export const socket = io(`${URL}/messages`, {
+  autoConnect: false,
+  query: {
+    userId: 'user-123',  // TODO: Get from auth context
+  },
+});
+```
+
+3. **VITE_API_KEY** - AI Flow Generation:
+```typescript
+// File: frontend/src/features/builder/components/BuilderPage.tsx
+const apiKey = import.meta.env.VITE_API_KEY;
+if (!apiKey) {
+  alert("Please set VITE_API_KEY in .env file");
+  return;
+}
+
+const ai = new GoogleGenAI({ apiKey });
+```
+
+**Production Configuration**:
+```bash
+# Production example
+VITE_API_URL=https://api.yourdomain.com
+VITE_WS_URL=https://api.yourdomain.com
+VITE_API_KEY=your_production_gemini_key
+```
+
+**Important Notes**:
+- All Vite environment variables must start with `VITE_` prefix to be exposed to client
+- Variables are embedded at build time (not runtime)
+- Sensitive keys (like VITE_API_KEY) are exposed to browser - consider server-side proxy for production
+- Create `.env.local` for local overrides (gitignored by default)
 
 ### 5. Run Database Migrations
 ```bash

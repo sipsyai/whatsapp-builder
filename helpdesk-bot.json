@@ -1,0 +1,327 @@
+{
+  "name": "Helpdesk Bot",
+  "description": "Profesyonel müşteri destek botu - Talep oluşturma, durum sorgulama ve SSS",
+  "isActive": true,
+  "status": "active",
+  "nodes": [
+    {
+      "id": "start-1",
+      "type": "start",
+      "position": { "x": 100, "y": 300 },
+      "data": {
+        "label": "Başlangıç",
+        "type": "start"
+      }
+    },
+    {
+      "id": "msg-welcome",
+      "type": "message",
+      "position": { "x": 300, "y": 300 },
+      "data": {
+        "label": "Hoş Geldiniz",
+        "type": "message",
+        "content": "👋 Merhaba! Destek botuna hoş geldiniz.\n\nSize nasıl yardımcı olabilirim?"
+      }
+    },
+    {
+      "id": "q-main-menu",
+      "type": "question",
+      "position": { "x": 550, "y": 300 },
+      "data": {
+        "label": "Ana Menü",
+        "type": "question",
+        "questionType": "buttons",
+        "content": "Lütfen bir seçenek belirtin:",
+        "variable": "mainMenuChoice",
+        "buttons": ["Yeni Talep", "Talep Durumu", "SSS"]
+      }
+    },
+    {
+      "id": "q-name",
+      "type": "question",
+      "position": { "x": 800, "y": 100 },
+      "data": {
+        "label": "İsim Sor",
+        "type": "question",
+        "questionType": "text",
+        "content": "Yeni bir destek talebi oluşturuyoruz.\n\nLütfen adınızı ve soyadınızı yazın:",
+        "variable": "customerName"
+      }
+    },
+    {
+      "id": "q-department",
+      "type": "question",
+      "position": { "x": 1050, "y": 100 },
+      "data": {
+        "label": "Departman Seç",
+        "type": "question",
+        "questionType": "list",
+        "content": "Hangi departmana ulaşmak istiyorsunuz?",
+        "variable": "department",
+        "listSections": [
+          {
+            "id": "dept-section-1",
+            "title": "Departmanlar",
+            "rows": [
+              {
+                "id": "teknik",
+                "title": "Teknik Destek",
+                "description": "Teknik sorunlar ve hatalar"
+              },
+              {
+                "id": "satis",
+                "title": "Satış",
+                "description": "Ürün ve fiyat bilgisi"
+              },
+              {
+                "id": "finans",
+                "title": "Finans",
+                "description": "Ödeme ve fatura sorunları"
+              },
+              {
+                "id": "genel",
+                "title": "Genel Sorular",
+                "description": "Diğer konular"
+              }
+            ]
+          }
+        ],
+        "headerText": "Departman Seçimi",
+        "footerText": "Size en uygun departmanı seçin"
+      }
+    },
+    {
+      "id": "q-issue",
+      "type": "question",
+      "position": { "x": 1300, "y": 100 },
+      "data": {
+        "label": "Sorun Açıklaması",
+        "type": "question",
+        "questionType": "text",
+        "content": "Lütfen sorununuzu detaylı olarak açıklayın:",
+        "variable": "issueDescription"
+      }
+    },
+    {
+      "id": "q-priority",
+      "type": "question",
+      "position": { "x": 1550, "y": 100 },
+      "data": {
+        "label": "Öncelik",
+        "type": "question",
+        "questionType": "buttons",
+        "content": "Bu konunun önceliği nedir?",
+        "variable": "priority",
+        "buttons": ["Düşük", "Orta", "Yüksek"]
+      }
+    },
+    {
+      "id": "msg-ticket-created",
+      "type": "message",
+      "position": { "x": 1800, "y": 100 },
+      "data": {
+        "label": "Talep Oluşturuldu",
+        "type": "message",
+        "content": "✅ Destek talebiniz başarıyla oluşturuldu!\n\n📋 **Talep Detayları:**\n👤 İsim: {{customerName}}\n🏢 Departman: {{department}}\n📝 Açıklama: {{issueDescription}}\n⚡ Öncelik: {{priority}}\n\nEn kısa sürede size dönüş yapacağız. Teşekkür ederiz!"
+      }
+    },
+    {
+      "id": "q-ticket-id",
+      "type": "question",
+      "position": { "x": 800, "y": 300 },
+      "data": {
+        "label": "Talep No Sor",
+        "type": "question",
+        "questionType": "text",
+        "content": "Talep durumunu sorgulamak için talep numaranızı girin:\n\n(Örnek: #12345)",
+        "variable": "ticketId"
+      }
+    },
+    {
+      "id": "msg-ticket-status",
+      "type": "message",
+      "position": { "x": 1050, "y": 300 },
+      "data": {
+        "label": "Talep Durumu",
+        "type": "message",
+        "content": "🔍 **Talep Durumu**\n\n📌 Talep No: {{ticketId}}\n\nℹ️ Talep durumu sistemimizde sorgulanıyor...\n\n*Not: Gerçek entegrasyon için bu node'a API çağrısı eklenmelidir.*"
+      }
+    },
+    {
+      "id": "q-faq-category",
+      "type": "question",
+      "position": { "x": 800, "y": 500 },
+      "data": {
+        "label": "SSS Kategori",
+        "type": "question",
+        "questionType": "list",
+        "content": "Hangi konuda bilgi almak istersiniz?",
+        "variable": "faqCategory",
+        "listSections": [
+          {
+            "id": "faq-section-1",
+            "title": "Sık Sorulan Sorular",
+            "rows": [
+              {
+                "id": "hesap",
+                "title": "Hesap İşlemleri",
+                "description": "Giriş, şifre, profil"
+              },
+              {
+                "id": "odeme",
+                "title": "Ödeme ve Faturalama",
+                "description": "Ödeme yöntemleri, fatura"
+              },
+              {
+                "id": "urun",
+                "title": "Ürün Özellikleri",
+                "description": "Ürün detayları ve kullanım"
+              },
+              {
+                "id": "teknik",
+                "title": "Teknik Sorunlar",
+                "description": "Bağlantı, hata mesajları"
+              }
+            ]
+          }
+        ],
+        "headerText": "SSS Kategorileri",
+        "footerText": "Kategoriye göre cevaplar"
+      }
+    },
+    {
+      "id": "cond-faq",
+      "type": "condition",
+      "position": { "x": 1050, "y": 500 },
+      "data": {
+        "label": "Kategori Kontrolü",
+        "type": "condition",
+        "conditionVar": "faqCategory",
+        "conditionOp": "==",
+        "conditionVal": "hesap"
+      }
+    },
+    {
+      "id": "msg-faq-hesap",
+      "type": "message",
+      "position": { "x": 1300, "y": 400 },
+      "data": {
+        "label": "Hesap SSS",
+        "type": "message",
+        "content": "💡 **Hesap İşlemleri SSS**\n\n**S: Şifremi unuttum, ne yapmalıyım?**\nC: Giriş ekranında 'Şifremi Unuttum' linkine tıklayarak e-posta adresinize sıfırlama linki gönderebilirsiniz.\n\n**S: Hesabımı nasıl silerim?**\nC: Ayarlar > Hesap > Hesabı Sil seçeneğinden hesabınızı kapatabilirsiniz.\n\n**S: Profilimi nasıl güncellerim?**\nC: Ayarlar > Profil bölümünden bilgilerinizi güncelleyebilirsiniz."
+      }
+    },
+    {
+      "id": "msg-faq-other",
+      "type": "message",
+      "position": { "x": 1300, "y": 600 },
+      "data": {
+        "label": "Diğer SSS",
+        "type": "message",
+        "content": "💡 **{{faqCategory}} - SSS**\n\nBu kategori için bilgiler hazırlanıyor.\n\nDaha fazla yardım için 'Yeni Talep' oluşturabilir veya doğrudan destek ekibimizle iletişime geçebilirsiniz.\n\n📧 destek@sirket.com\n📞 0850 XXX XX XX"
+      }
+    },
+    {
+      "id": "msg-return-menu",
+      "type": "message",
+      "position": { "x": 2050, "y": 300 },
+      "data": {
+        "label": "Ana Menüye Dön",
+        "type": "message",
+        "content": "Ana menüye dönmek için yeni bir mesaj gönderin veya /start yazın."
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-start-welcome",
+      "source": "start-1",
+      "target": "msg-welcome"
+    },
+    {
+      "id": "e-welcome-menu",
+      "source": "msg-welcome",
+      "target": "q-main-menu"
+    },
+    {
+      "id": "e-menu-newticket",
+      "source": "q-main-menu",
+      "sourceHandle": "btn-0",
+      "target": "q-name"
+    },
+    {
+      "id": "e-menu-status",
+      "source": "q-main-menu",
+      "sourceHandle": "btn-1",
+      "target": "q-ticket-id"
+    },
+    {
+      "id": "e-menu-faq",
+      "source": "q-main-menu",
+      "sourceHandle": "btn-2",
+      "target": "q-faq-category"
+    },
+    {
+      "id": "e-name-dept",
+      "source": "q-name",
+      "target": "q-department"
+    },
+    {
+      "id": "e-dept-issue",
+      "source": "q-department",
+      "target": "q-issue"
+    },
+    {
+      "id": "e-issue-priority",
+      "source": "q-issue",
+      "target": "q-priority"
+    },
+    {
+      "id": "e-priority-created",
+      "source": "q-priority",
+      "target": "msg-ticket-created"
+    },
+    {
+      "id": "e-created-return",
+      "source": "msg-ticket-created",
+      "target": "msg-return-menu"
+    },
+    {
+      "id": "e-ticketid-status",
+      "source": "q-ticket-id",
+      "target": "msg-ticket-status"
+    },
+    {
+      "id": "e-status-return",
+      "source": "msg-ticket-status",
+      "target": "msg-return-menu"
+    },
+    {
+      "id": "e-faq-cond",
+      "source": "q-faq-category",
+      "target": "cond-faq"
+    },
+    {
+      "id": "e-cond-hesap",
+      "source": "cond-faq",
+      "sourceHandle": "true",
+      "target": "msg-faq-hesap"
+    },
+    {
+      "id": "e-cond-other",
+      "source": "cond-faq",
+      "sourceHandle": "false",
+      "target": "msg-faq-other"
+    },
+    {
+      "id": "e-faq-hesap-return",
+      "source": "msg-faq-hesap",
+      "target": "msg-return-menu"
+    },
+    {
+      "id": "e-faq-other-return",
+      "source": "msg-faq-other",
+      "target": "msg-return-menu"
+    }
+  ]
+}

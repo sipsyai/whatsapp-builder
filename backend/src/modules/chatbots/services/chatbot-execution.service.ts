@@ -501,7 +501,7 @@ export class ChatBotExecutionService {
     sourceHandle?: string,
   ): any {
     // Find edge where source matches current node
-    const edge = chatbot.edges.find((e) => {
+    let edge = chatbot.edges.find((e) => {
       if (e.source !== currentNodeId) return false;
 
       // If sourceHandle is specified, match it too
@@ -511,6 +511,18 @@ export class ChatBotExecutionService {
 
       return true;
     });
+
+    // If no edge found with specific sourceHandle, try finding a default/fallback edge
+    if (!edge && sourceHandle) {
+      this.logger.log(
+        `No edge found with sourceHandle ${sourceHandle}, looking for default edge`,
+      );
+      edge = chatbot.edges.find((e) => {
+        if (e.source !== currentNodeId) return false;
+        // Look for edge without sourceHandle (default) or with sourceHandle='default'
+        return !e.sourceHandle || e.sourceHandle === 'default';
+      });
+    }
 
     if (!edge) {
       this.logger.log(

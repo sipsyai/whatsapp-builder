@@ -211,43 +211,559 @@ const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | n
 - `generateAIResponse()`: Generate flow from AI prompt
 
 **Validation System**:
+
+The builder includes a comprehensive flow validation system that checks for structural integrity, node configuration completeness, and WhatsApp API compliance before saving.
+
+**Implementation Location**: `/home/ali/whatsapp-builder/frontend/src/features/builder/utils/flowValidation.ts`
+
+**Validation Trigger Points**:
+1. **Manual Validation**: "Validate" button in header
+2. **Pre-Save Validation**: Automatically runs before saving flow
+3. **Real-time Feedback**: Validation panel shows errors/warnings
+
+**Validation Flow**:
 ```typescript
 const handleSave = async () => {
-  // Validate flow before saving
+  // 1. Validate flow before saving
   const errors = validateFlow(nodes, edges);
   setValidationErrors(errors);
 
+  // 2. Check error severity
   const hasErrors = errors.some(e => e.severity === 'error');
   const hasWarnings = errors.some(e => e.severity === 'warning');
 
+  // 3. Block save if errors found
   if (hasErrors) {
+    setShowValidationPanel(true);
     alert('Flow has validation errors. Please fix them before saving.');
     return;
   }
 
-  // Proceed with save
+  // 4. Warn but allow save if only warnings
+  if (hasWarnings) {
+    setShowValidationPanel(true);
+    const confirmed = window.confirm(
+      'There are some warnings in your flow. Do you want to continue saving?'
+    );
+    if (!confirmed) return;
+  }
+
+  // 5. Proceed with save
+  await saveChatBot(payload);
 };
 ```
+
+**Validation Rules** (7 Categories):
+
+### 1. START Node Validation
+```typescript
+// Rule: Exactly one START node required
+const startNodes = nodes.filter(n => n.type === 'start');
+
+if (startNodes.length === 0) {
+  errors.push({
+    nodeId: 'flow',
+    message: 'Flow must start with a START node',
+    severity: 'error'
+  });
+}
+
+if (startNodes.length > 1) {
+  errors.push({
+    nodeId: 'flow',
+    message: 'Flow can only have one START node',
+    severity: 'error'
+  });
+}
+```
+
+### 2. Condition Node Output Validation
+```typescript
+// Rule: Condition nodes must have both TRUE and FALSE outputs
+if (node.type === 'condition') {
+  const trueEdge = outgoingEdges.find(e => e.sourceHandle === 'true');
+  const falseEdge = outgoingEdges.find(e => e.sourceHandle === 'false');
+
+  if (!trueEdge) {
+    errors.push({
+      nodeId: node.id,
+      message: 'Condition node must have a "true" output',
+      severity: 'error'
+    });
+  }
+
+  if (!falseEdge) {
+    errors.push({
+      nodeId: node.id,
+      message: 'Condition node must have a "false" output',
+      severity: 'error'
+    });
+  }
+}
+```
+
+### 3. Button Question Edge Validation
+```typescript
+// Rule: Each button should have a corresponding edge (warning only)
+if (node.type === 'question' && node.data.questionType === 'buttons') {
+  const buttons = node.data.buttons || [];
+
+  buttons.forEach((button: ButtonItem) => {
+    const buttonEdge = outgoingEdges.find(e => e.sourceHandle === button.id);
+    if (!buttonEdge) {
+      errors.push({
+        nodeId: node.id,
+        message: `No edge defined for button "${button.title}"`,
+        severity: 'warning'
+      });
+    }
+  });
+}
+```
+
+### 4. Orphan Node Detection
+```typescript
+// Rule: All nodes (except START) must have incoming connections
+nodes.forEach(node => {
+  if (node.type === 'start') return;
+
+  const hasIncoming = edges.some(e => e.target === node.id);
+  if (!hasIncoming) {
+    errors.push({
+      nodeId: node.id,
+      message: 'This node is not connected to any other node',
+      severity: 'warning'
+    });
+  }
+});
+```
+
+### 5. Question Variable Validation
+```typescript
+// Rule: Question nodes must have a variable name for storing user input
+if (node.type === 'question') {
+  const variable = node.data.variable as string | undefined;
+  if (!variable || variable.trim() === '') {
+    errors.push({
+      nodeId: node.id,
+      message: 'Question node must have a variable name',
+      severity: 'error'
+    });
+  }
+}
+```
+
+### 6. Button/List Content Validation (WhatsApp API Limits)
+```typescript
+// Button validation
+if (node.data.questionType === 'buttons') {
+  const buttons = node.data.buttons || [];
+
+  // At least 1 button required
+  if (buttons.length === 0) {
+    errors.push({
+      nodeId: node.id,
+      message: 'At least one button must be defined',
+      severity: 'error'
+    });
+  }
+
+  // Maximum 3 buttons (WhatsApp API limit)
+  if (buttons.length > 3) {
+    errors.push({
+      nodeId: node.id,
+      message: 'Maximum 3 buttons can be defined',
+      severity: 'error'
+    });
+  }
+
+  // Button text validation
+  buttons.forEach((btn: ButtonItem, i: number) => {
+    if (!btn.title || btn.title.trim() === '') {
+      errors.push({
+        nodeId: node.id,
+        message: `Button ${i + 1} cannot be empty`,
+        severity: 'error'
+      });
+    }
+
+    // WhatsApp API: button title max 20 characters
+    if (btn.title && btn.title.length > 20) {
+      errors.push({
+        nodeId: node.id,
+        message: `Button ${i + 1} can have maximum 20 characters`,
+        severity: 'error'
+      });
+    }
+  });
+}
+
+// List validation
+if (node.data.questionType === 'list') {
+  const sections = node.data.listSections || [];
+
+  // At least 1 section required
+  if (sections.length === 0) {
+    errors.push({
+      nodeId: node.id,
+      message: 'At least one section must be defined',
+      severity: 'error'
+    });
+  }
+
+  // Maximum 10 sections (WhatsApp API limit)
+  if (sections.length > 10) {
+    errors.push({
+      nodeId: node.id,
+      message: 'Maximum 10 sections can be defined',
+      severity: 'error'
+    });
+  }
+
+  // Section validation
+  sections.forEach((section: SectionItem, sectionIndex: number) => {
+    // Section title required
+    if (!section.title || section.title.trim() === '') {
+      errors.push({
+        nodeId: node.id,
+        message: `Section ${sectionIndex + 1} must have a title`,
+        severity: 'error'
+      });
+    }
+
+    // WhatsApp API: section title max 24 characters
+    if (section.title && section.title.length > 24) {
+      errors.push({
+        nodeId: node.id,
+        message: `Section ${sectionIndex + 1} title can have maximum 24 characters`,
+        severity: 'error'
+      });
+    }
+
+    const rows = section.rows || [];
+
+    // At least 1 row required per section
+    if (rows.length === 0) {
+      errors.push({
+        nodeId: node.id,
+        message: `Section ${sectionIndex + 1} must have at least one row`,
+        severity: 'error'
+      });
+    }
+
+    // Maximum 10 rows per section (WhatsApp API limit)
+    if (rows.length > 10) {
+      errors.push({
+        nodeId: node.id,
+        message: `Section ${sectionIndex + 1} can have maximum 10 rows`,
+        severity: 'error'
+      });
+    }
+
+    // Row validation
+    rows.forEach((row, rowIndex) => {
+      // Row title required
+      if (!row.title || row.title.trim() === '') {
+        errors.push({
+          nodeId: node.id,
+          message: `Section ${sectionIndex + 1}, Row ${rowIndex + 1} must have a title`,
+          severity: 'error'
+        });
+      }
+
+      // WhatsApp API: row title max 24 characters
+      if (row.title && row.title.length > 24) {
+        errors.push({
+          nodeId: node.id,
+          message: `Section ${sectionIndex + 1}, Row ${rowIndex + 1} title can have maximum 24 characters`,
+          severity: 'error'
+        });
+      }
+
+      // WhatsApp API: row description max 72 characters
+      if (row.description && row.description.length > 72) {
+        errors.push({
+          nodeId: node.id,
+          message: `Section ${sectionIndex + 1}, Row ${rowIndex + 1} description can have maximum 72 characters`,
+          severity: 'error'
+        });
+      }
+    });
+  });
+}
+```
+
+### 7. Message Content Validation
+```typescript
+// Rule: Message nodes must have content
+if (node.type === 'message') {
+  const content = node.data.content as string | undefined;
+  if (!content || content.trim() === '') {
+    errors.push({
+      nodeId: node.id,
+      message: 'Message node must have content',
+      severity: 'error'
+    });
+  }
+}
+```
+
+### 8. Condition Configuration Validation
+```typescript
+// Rule: Condition nodes must have complete configuration
+if (node.type === 'condition') {
+  const conditionVar = node.data.conditionVar as string | undefined;
+  const conditionOp = node.data.conditionOp as string | undefined;
+  const conditionVal = node.data.conditionVal as string | undefined;
+
+  if (!conditionVar || conditionVar.trim() === '') {
+    errors.push({
+      nodeId: node.id,
+      message: 'Condition node must have a variable to check',
+      severity: 'error'
+    });
+  }
+
+  if (!conditionOp) {
+    errors.push({
+      nodeId: node.id,
+      message: 'Condition node must have an operator',
+      severity: 'error'
+    });
+  }
+
+  if (conditionVal === undefined || conditionVal === null || conditionVal === '') {
+    errors.push({
+      nodeId: node.id,
+      message: 'Condition node must have a value to compare',
+      severity: 'warning'
+    });
+  }
+}
+```
+
+**Validation Error Types**:
+
+```typescript
+export interface ValidationError {
+  nodeId: string;        // Node ID or 'flow' for flow-level errors
+  message: string;       // Human-readable error message
+  severity: 'error' | 'warning';  // Error blocks save, warning allows save
+}
+```
+
+**Error Severity Guidelines**:
+- **error**: Critical issues that break flow execution (missing required fields, API violations)
+- **warning**: Non-critical issues that may affect UX (disconnected buttons, orphan nodes)
+
+**Validation UI**:
+```typescript
+// Validation panel (bottom-right overlay)
+{showValidationPanel && validationErrors.length > 0 && (
+  <div className="validation-panel">
+    <h3>Validation Issues</h3>
+    <div className="errors-list">
+      {validationErrors.map((error, index) => (
+        <div className={`error-item ${error.severity}`}>
+          <span className="icon">{error.severity === 'error' ? 'error' : 'warning'}</span>
+          <p>{error.message}</p>
+          <p className="node-id">Node: {error.nodeId.slice(0, 8)}</p>
+        </div>
+      ))}
+    </div>
+    <div className="summary">
+      {validationErrors.filter(e => e.severity === 'error').length} errors,
+      {validationErrors.filter(e => e.severity === 'warning').length} warnings
+    </div>
+  </div>
+)}
+```
+
+**WhatsApp API Compliance**:
+All validation rules align with WhatsApp Business API limitations:
+- Button titles: max 20 characters, max 3 buttons
+- List section titles: max 24 characters, max 10 sections
+- List row titles: max 24 characters, max 10 rows per section
+- List row descriptions: max 72 characters
+
+**Best Practices**:
+1. Run validation before every save
+2. Fix all errors before deployment
+3. Review warnings for UX improvements
+4. Test flows in Test Mode after validation passes
 
 **AI Integration**:
+
+The builder includes an AI-powered flow generation feature using Google Gemini API. Users can describe their chatbot in natural language, and the AI generates a complete flow structure with nodes and edges.
+
+**Implementation Location**: `/home/ali/whatsapp-builder/frontend/src/features/builder/components/BuilderPage.tsx` (lines 216-262)
+
+**API Configuration**:
+```typescript
+// Environment variable required: VITE_API_KEY
+const apiKey = import.meta.env.VITE_API_KEY;
+const ai = new GoogleGenAI({ apiKey });
+```
+
+**Model Configuration**:
+- **Model**: `gemini-2.0-flash-thinking-exp-1219`
+- **Response Format**: JSON with structured nodes and edges
+- **Input**: Natural language description of chatbot flow
+- **Output**: Complete ReactFlow-compatible graph structure
+
+**Generation Flow**:
 ```typescript
 const generateAIResponse = async () => {
-  const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
+  if (!aiPrompt) return;
+  setIsGenerating(true);
 
-  const response = await ai.models.generateContent({
-    model: "gemini-2.0-flash-thinking-exp-1219",
-    contents: `Create a chatbot flow using React Flow structure. Request: "${aiPrompt}".
-      Return JSON with "nodes" and "edges".`,
-    config: {
-      responseMimeType: "application/json",
-    },
-  });
+  try {
+    // 1. Check API key
+    const apiKey = import.meta.env.VITE_API_KEY;
+    if (!apiKey) {
+      alert("Please set VITE_API_KEY in .env file");
+      return;
+    }
 
-  const result = JSON.parse(response.text);
-  setNodes(result.nodes);
-  setEdges(result.edges);
+    // 2. Initialize Gemini client
+    const ai = new GoogleGenAI({ apiKey });
+
+    // 3. Generate flow from prompt
+    const response = await ai.models.generateContent({
+      model: "gemini-2.0-flash-thinking-exp-1219",
+      contents: `Create a chatbot flow using React Flow structure. Request: "${aiPrompt}".
+        Return JSON with "nodes" and "edges".
+        Node types: "start", "message", "question" (w/ questionType: "text"|"buttons"), "condition".
+        Coordinates should be spaced out (e.g. x: 0, 300, 600).`,
+      config: {
+        responseMimeType: "application/json",
+      },
+    });
+
+    // 4. Parse and apply result
+    const text = response.text;
+    if (text) {
+      const result = JSON.parse(text);
+      if (result.nodes) {
+        // Map AI nodes to internal structure
+        const mappedNodes = result.nodes.map((n: any) => ({
+          ...n,
+          data: { ...n.data, onConfig: () => {} } // handlers re-attached in render
+        }));
+        setNodes(mappedNodes);
+        if (result.edges) setEdges(result.edges);
+        setShowAIModal(false);
+      }
+    }
+  } catch (e) {
+    console.error(e);
+    alert("Error generating flow.");
+  } finally {
+    setIsGenerating(false);
+  }
 };
 ```
+
+**User Interface**:
+```typescript
+// AI Build button in header
+<button onClick={() => setShowAIModal(true)} className="...">
+  <span className="material-symbols-outlined">auto_awesome</span> AI Build
+</button>
+
+// Modal dialog
+{showAIModal && (
+  <div className="modal-overlay">
+    <textarea
+      placeholder="Describe your bot flow..."
+      value={aiPrompt}
+      onChange={(e) => setAiPrompt(e.target.value)}
+    />
+    <button onClick={generateAIResponse} disabled={isGenerating}>
+      {isGenerating ? "Thinking..." : "Generate"}
+    </button>
+  </div>
+)}
+```
+
+**Expected Output Format**:
+```json
+{
+  "nodes": [
+    {
+      "id": "start-1",
+      "type": "start",
+      "position": { "x": 0, "y": 0 },
+      "data": { "label": "Start Flow" }
+    },
+    {
+      "id": "msg-1",
+      "type": "message",
+      "position": { "x": 300, "y": 0 },
+      "data": {
+        "label": "Welcome Message",
+        "content": "Welcome to our chatbot!"
+      }
+    },
+    {
+      "id": "q-1",
+      "type": "question",
+      "position": { "x": 600, "y": 0 },
+      "data": {
+        "label": "User Choice",
+        "questionType": "buttons",
+        "content": "What would you like to do?",
+        "variable": "user_choice",
+        "buttons": ["Option 1", "Option 2"]
+      }
+    }
+  ],
+  "edges": [
+    { "source": "start-1", "target": "msg-1" },
+    { "source": "msg-1", "target": "q-1" }
+  ]
+}
+```
+
+**Prompt Engineering**:
+The prompt explicitly specifies:
+- **Structure**: ReactFlow-compatible JSON format
+- **Node Types**: start, message, question (with questionType), condition
+- **Layout**: Spaced coordinates for visual clarity
+- **Data Requirements**: Each node type's required fields
+
+**Use Cases**:
+1. **Rapid Prototyping**: Quickly generate flow structure from description
+2. **Template Generation**: Create common flow patterns (FAQs, booking, support)
+3. **Learning Tool**: See how flows are structured
+4. **Starting Point**: Generate base flow, then customize in editor
+
+**Limitations**:
+- Requires valid VITE_API_KEY environment variable
+- Network dependency on Google Gemini API
+- Generated flows may need manual refinement
+- Character limits on prompt length
+- No validation of generated output (done after generation)
+
+**Error Handling**:
+```typescript
+// Missing API key
+if (!apiKey) {
+  alert("Please set VITE_API_KEY in .env file");
+  return;
+}
+
+// API/network errors
+catch (e) {
+  console.error(e);
+  alert("Error generating flow.");
+}
+```
+
+**Security Considerations**:
+- API key stored in environment variable (not committed)
+- Client-side API calls (key exposed to browser)
+- For production: Consider server-side proxy for API key protection
 
 ---
 
