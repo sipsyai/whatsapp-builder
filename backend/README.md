@@ -1,98 +1,418 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# WhatsApp Builder - Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
-
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Backend service for WhatsApp Builder platform, built with NestJS, TypeORM, and PostgreSQL.
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+This backend provides a comprehensive API for managing WhatsApp chatbots, handling real-time conversations via Socket.IO, processing WhatsApp webhooks, and executing chatbot logic based on visual flow designs.
 
-## Project setup
+## Features
 
-```bash
-$ npm install
-```
+- **ChatBot Management**: Create, update, and manage chatbot flows with visual node-edge structures
+- **Real-time Communication**: Socket.IO gateway for live message sync and typing indicators
+- **WhatsApp Integration**: Full WhatsApp Business API integration with webhook processing
+- **Conversation Management**: Track conversations, messages, and 24-hour messaging windows
+- **Chatbot Execution**: State-based execution engine with variable storage and conditional logic
+- **Database Migrations**: TypeORM migrations for schema management
+- **User Management**: Automatic user registration from WhatsApp contacts
 
-## Compile and run the project
+## Technology Stack
 
-```bash
-# development
-$ npm run start
+- **Framework**: NestJS 11.x
+- **Language**: TypeScript 5.7.x
+- **Database**: PostgreSQL 14+
+- **ORM**: TypeORM 0.3.x
+- **Real-time**: Socket.IO 4.8.x
+- **HTTP Client**: Axios 1.13.x
 
-# watch mode
-$ npm run start:dev
+## Prerequisites
 
-# production mode
-$ npm run start:prod
-```
+Before you begin, ensure you have the following installed:
 
-## Run tests
+- **Node.js**: 18.x or higher
+- **PostgreSQL**: 14.x or higher
+- **npm**: 9.x or higher
+- **WhatsApp Business API**: Access token and phone number ID
+- **ngrok** (for development): For webhook tunnel
 
-```bash
-# unit tests
-$ npm run test
+## Environment Variables
 
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+Create a `.env` file in the backend directory with the following variables:
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+# Database Configuration
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=postgres
+DB_PASSWORD=your_password
+DB_DATABASE=whatsapp_builder
+
+# Application
+PORT=3000
+NODE_ENV=development
+
+# WhatsApp Business API
+WHATSAPP_API_TOKEN=your_whatsapp_api_token
+WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id
+WHATSAPP_API_VERSION=v21.0
+WHATSAPP_VERIFY_TOKEN=your_webhook_verify_token
+
+# Frontend URL (for CORS)
+FRONTEND_URL=http://localhost:5173
+
+# Optional: Logging
+LOG_LEVEL=debug
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+See `.env.example` for a complete template.
+
+## Installation
+
+```bash
+# Install dependencies
+npm install
+```
+
+## Database Setup
+
+### 1. Create PostgreSQL Database
+
+```bash
+# Using psql
+psql -U postgres
+CREATE DATABASE whatsapp_builder;
+```
+
+### 2. Run Migrations
+
+```bash
+# Run all pending migrations
+npm run migration:run
+
+# Revert last migration (if needed)
+npm run migration:revert
+
+# Generate new migration
+npm run migration:generate -- src/migrations/MigrationName
+```
+
+### Available Migrations
+
+- `CreateWhatsAppConfigTable` - WhatsApp configuration storage
+- `CreateConversationContextTable` - Chatbot execution context
+- `RenameFlowsToChatBots` - Terminology migration from flows to chatbots
+
+## Running the Application
+
+### Development Mode
+
+```bash
+# Standard development mode
+npm run start:dev
+
+# With watch mode (auto-restart on changes)
+npm run start:dev
+```
+
+The server will start on `http://localhost:3000` (or the port specified in `.env`).
+
+### Production Mode
+
+```bash
+# Build the application
+npm run build
+
+# Run production build
+npm run start:prod
+```
+
+## Webhook Development
+
+For local development, WhatsApp requires an HTTPS webhook URL. Use ngrok to create a tunnel:
+
+```bash
+# Terminal 1: Start the backend
+npm run start:dev
+
+# Terminal 2: Start ngrok tunnel
+ngrok http 3000
+
+# Copy the HTTPS URL and configure it in WhatsApp Business API dashboard
+# Webhook URL: https://your-ngrok-url.ngrok.io/api/webhooks/whatsapp
+# Verify Token: Use the value from WHATSAPP_VERIFY_TOKEN in .env
+```
+
+Alternatively, use the monorepo script:
+
+```bash
+# From project root
+npm run webhook:start
+```
+
+## API Documentation
+
+### Base URL
+
+```
+http://localhost:3000/api
+```
+
+### Main Endpoints
+
+#### ChatBots
+- `GET /chatbots` - List all chatbots
+- `POST /chatbots` - Create new chatbot
+- `GET /chatbots/:id` - Get chatbot by ID
+- `GET /chatbots/:id/stats` - Get chatbot statistics
+- `PUT /chatbots/:id` - Update chatbot (full)
+- `PATCH /chatbots/:id` - Update chatbot (partial)
+- `DELETE /chatbots/:id` - Delete chatbot (hard delete)
+- `DELETE /chatbots/:id/soft` - Soft delete chatbot
+- `PATCH /chatbots/:id/status` - Update status
+- `PATCH /chatbots/:id/toggle-active` - Toggle active state
+- `PATCH /chatbots/:id/restore` - Restore soft-deleted chatbot
+
+#### Conversations
+- `GET /conversations` - List conversations
+- `GET /conversations/:id` - Get conversation details
+- `GET /conversations/:id/messages` - Get conversation messages
+- `POST /conversations/:id/messages` - Send message
+
+#### Users
+- `GET /users` - List users
+- `POST /users` - Create user
+- `GET /users/:id` - Get user details
+- `PUT /users/:id` - Update user
+
+#### Webhooks
+- `GET /webhooks/whatsapp` - Verify webhook (WhatsApp)
+- `POST /webhooks/whatsapp` - Receive webhook events
+
+#### WhatsApp Config
+- `GET /whatsapp-config` - Get active configuration
+- `POST /whatsapp-config` - Create configuration
+- `PUT /whatsapp-config/:id` - Update configuration
+
+#### Media
+- `POST /media/upload` - Upload media file
+
+### WebSocket Events
+
+Connect to `http://localhost:3000/messages` namespace.
+
+**Server → Client Events:**
+- `message:received` - New message received
+- `message:sent` - Message sent successfully
+- `message:delivered` - Message delivered to WhatsApp
+- `message:read` - Message read by user
+- `typing:start` - User started typing
+- `typing:stop` - User stopped typing
+- `conversation:updated` - Conversation metadata updated
+
+**Client → Server Events:**
+- `typing:start` - Notify typing started
+- `typing:stop` - Notify typing stopped
+
+## Testing
+
+```bash
+# Unit tests
+npm run test
+
+# End-to-end tests
+npm run test:e2e
+
+# Test coverage
+npm run test:cov
+
+# Watch mode
+npm run test:watch
+```
+
+## Module Structure
+
+```
+backend/src/
+├── app.module.ts           # Root module
+├── main.ts                 # Application entry point
+├── config/                 # Configuration modules
+├── database/               # Database module
+├── entities/               # TypeORM entities
+│   ├── chatbot.entity.ts
+│   ├── conversation.entity.ts
+│   ├── message.entity.ts
+│   ├── user.entity.ts
+│   ├── conversation-context.entity.ts
+│   └── whatsapp-config.entity.ts
+├── modules/
+│   ├── chatbots/          # ChatBot management
+│   ├── conversations/     # Conversation handling
+│   ├── messages/          # Message management
+│   ├── users/             # User management
+│   ├── webhooks/          # Webhook processing
+│   ├── websocket/         # Socket.IO gateway
+│   ├── whatsapp/          # WhatsApp API integration
+│   └── media/             # Media upload
+└── migrations/            # TypeORM migrations
+```
+
+## Key Services
+
+### ChatBotExecutionService
+Executes chatbot logic based on node-edge flow structures:
+- Processes START, MESSAGE, QUESTION, and CONDITION nodes
+- Manages conversation state and variables
+- Handles conditional branching
+- Supports variable substitution with `{{variableName}}`
+
+### WebhookProcessorService
+Processes incoming WhatsApp webhook events:
+- Validates webhook signatures
+- Handles message events (text, interactive, media)
+- Triggers chatbot execution
+- Emits real-time events via Socket.IO
+
+### WhatsAppMessageService
+Sends messages to WhatsApp Business API:
+- Text messages
+- Interactive buttons and lists
+- Media messages (images, videos, documents, audio)
+- Reactions and stickers
+- WhatsApp Flows
+
+### MessagesGateway
+Real-time WebSocket communication:
+- Broadcasts message updates
+- Manages user connections and rooms
+- Emits typing indicators
+- Provides online/offline status
+
+## Architecture Highlights
+
+### Modular Design
+- Each feature module is self-contained
+- Dependency injection for loose coupling
+- Shared entities and services
+
+### Database-Driven
+- TypeORM for type-safe database operations
+- Migration-based schema management
+- UUID primary keys
+- JSONB columns for flexible data (nodes/edges)
+
+### Real-time Communication
+- Socket.IO for bidirectional communication
+- Room-based message isolation
+- Optimistic UI updates support
+
+### WhatsApp Integration
+- Webhook signature verification
+- Retry logic for message delivery
+- Support for all WhatsApp message types
+- 24-hour messaging window tracking
+
+## Troubleshooting
+
+### Database Connection Issues
+
+```bash
+# Verify PostgreSQL is running
+sudo systemctl status postgresql
+
+# Test connection
+psql -U postgres -h localhost -d whatsapp_builder
+
+# Check environment variables
+cat .env | grep DB_
+```
+
+### Migration Errors
+
+```bash
+# Check migration status
+npm run migration:show
+
+# Revert last migration
+npm run migration:revert
+
+# Drop database and recreate (⚠️ destroys data)
+npm run schema:drop
+npm run migration:run
+```
+
+### WhatsApp Webhook Issues
+
+```bash
+# Verify ngrok is running
+curl http://localhost:4040/api/tunnels
+
+# Test webhook endpoint
+curl http://localhost:3000/api/webhooks/whatsapp?hub.verify_token=YOUR_TOKEN&hub.challenge=test
+
+# Check webhook logs
+# Logs appear in console with LOG_LEVEL=debug
+```
+
+### Port Already in Use
+
+```bash
+# Find process using port 3000
+lsof -i :3000
+
+# Kill process
+kill -9 <PID>
+
+# Or use different port in .env
+PORT=3001
+```
+
+## Development Guidelines
+
+### Creating a New Module
+
+```bash
+# Generate module, controller, and service
+nest g module modules/my-feature
+nest g controller modules/my-feature
+nest g service modules/my-feature
+```
+
+### Creating a New Migration
+
+```bash
+# Make changes to entities, then generate migration
+npm run migration:generate -- src/migrations/DescribeYourChanges
+npm run migration:run
+```
+
+### Adding a New API Endpoint
+
+1. Create DTO in `modules/[feature]/dto/`
+2. Add controller method with validation decorators
+3. Implement service logic
+4. Update this README's API documentation
 
 ## Resources
 
-Check out a few resources that may come in handy when working with NestJS:
+- [NestJS Documentation](https://docs.nestjs.com)
+- [TypeORM Documentation](https://typeorm.io)
+- [WhatsApp Business API Documentation](https://developers.facebook.com/docs/whatsapp)
+- [Socket.IO Documentation](https://socket.io/docs)
+- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+## Project Documentation
 
-## Support
+For comprehensive documentation, see:
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+- [Project Overview](../.claude/skills/project-architect/reference/01-project-overview.md)
+- [Backend Architecture](../.claude/skills/project-architect/reference/02-backend-architecture.md)
+- [Database Design](../.claude/skills/project-architect/reference/04-database-design.md)
+- [Development Guide](../.claude/skills/project-architect/reference/09-development-guide.md)
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+This project is proprietary software. All rights reserved.
+
+## Support
+
+For issues, questions, or contributions, please contact the development team.

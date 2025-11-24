@@ -40,7 +40,7 @@ backend/src/
 │   ├── conversation-context.entity.ts
 │   ├── message.entity.ts
 │   ├── user.entity.ts
-│   ├── flow.entity.ts
+│   ├── flow.entity.ts          # Legacy - use chatbot.entity.ts instead
 │   └── whatsapp-config.entity.ts
 ├── modules/                      # Feature modules
 │   ├── chatbots/
@@ -533,7 +533,7 @@ Provides real-time bidirectional communication using Socket.IO.
 ```typescript
 @WebSocketGateway({
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
     credentials: true,
   },
   namespace: '/messages',  // Socket connects to: /messages
@@ -666,9 +666,14 @@ export class MediaController {
 │   ├── GET    /               List chatbots
 │   ├── POST   /               Create chatbot
 │   ├── GET    /:id            Get chatbot
-│   ├── PUT    /:id            Update chatbot
-│   ├── DELETE /:id            Delete chatbot
-│   └── PATCH  /:id/status     Update status
+│   ├── GET    /:id/stats      Get chatbot statistics
+│   ├── PUT    /:id            Update chatbot (full)
+│   ├── PATCH  /:id            Update chatbot (partial)
+│   ├── DELETE /:id            Delete chatbot (hard delete)
+│   ├── DELETE /:id/soft       Soft delete chatbot
+│   ├── PATCH  /:id/status     Update status
+│   ├── PATCH  /:id/toggle-active  Toggle active state
+│   └── PATCH  /:id/restore    Restore soft-deleted chatbot
 │
 ├── /conversations
 │   ├── GET    /               List conversations
