@@ -9,6 +9,10 @@ export class UpdateFlowDto {
   name?: string;
 
   @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => FlowNodeDto)

@@ -181,16 +181,31 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
         }));
     };
 
-    // Add onConfig to data for all nodes (memoized for performance)
+    const deleteNode = useCallback((nodeId: string) => {
+        // Prevent deleting start node
+        if (nodeId === 'start-1') {
+            alert('Cannot delete the Start node');
+            return;
+        }
+
+        setNodes((nds) => nds.filter((node) => node.id !== nodeId));
+        setEdges((eds) => eds.filter((edge) =>
+            edge.source !== nodeId && edge.target !== nodeId
+        ));
+        setConfigNode(null); // Close config if open
+    }, [setNodes, setEdges]);
+
+    // Add onConfig and onDelete to data for all nodes (memoized for performance)
     const nodesWithHandler = useMemo(() => {
         return nodes.map(n => ({
             ...n,
             data: {
                 ...n.data,
-                onConfig: () => setConfigNode(n)
+                onConfig: () => setConfigNode(n),
+                onDelete: () => deleteNode(n.id)
             }
         }));
-    }, [nodes]);
+    }, [nodes, deleteNode]);
 
     // --- AI Generation Logic ---
     const generateAIResponse = async () => {
@@ -271,7 +286,24 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
         const payload = {
             name: currentFlowName,
             description: currentFlowDescription || undefined,
-            nodes: nodes.map(n => ({ id: n.id, type: n.type, position: n.position, data: n.data })),
+            nodes: nodes.map(n => {
+                const buttons = (n.data as any).buttons;
+                return {
+                    id: n.id,
+                    type: n.type,
+                    position: n.position,
+                    data: {
+                        ...n.data,
+                        // Transform buttons from ButtonItem[] to string[] for backend compatibility
+                        buttons: Array.isArray(buttons)
+                            ? buttons.map((btn: any) => typeof btn === 'string' ? btn : btn.title)
+                            : undefined,
+                        // Remove non-serializable functions
+                        onConfig: undefined,
+                        onDelete: undefined
+                    }
+                };
+            }),
             edges: edges.map(e => ({ source: e.source, target: e.target, sourceHandle: e.sourceHandle }))
         };
 

@@ -15,9 +15,14 @@ export const ConditionNode = ({ data }: { data: NodeData }) => {
                         {data.conditionVar ? `${data.conditionVar} ${data.conditionOp} ${data.conditionVal}` : "Click to configure"}
                     </p>
                 </div>
-                <button onClick={(e) => { e.stopPropagation(); data.onConfig?.(); }} className="text-zinc-400 hover:text-white">
-                    <span className="material-symbols-outlined text-lg">settings</span>
-                </button>
+                <div className="flex items-center gap-1">
+                    <button onClick={(e) => { e.stopPropagation(); data.onConfig?.(); }} className="text-zinc-400 hover:text-white">
+                        <span className="material-symbols-outlined text-lg">settings</span>
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); data.onDelete?.(); }} className="text-zinc-400 hover:text-red-500">
+                        <span className="material-symbols-outlined text-lg">delete</span>
+                    </button>
+                </div>
             </div>
 
             {/* True Path */}

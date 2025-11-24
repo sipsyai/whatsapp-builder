@@ -42,6 +42,7 @@ export interface NodeData {
         rows: { id: string; title: string; description: string }[];
     }[];
 
-    // Method to trigger config modal from within node component
+    // Methods to trigger modal or actions from within node component
     onConfig?: () => void;
+    onDelete?: () => void;
 }
