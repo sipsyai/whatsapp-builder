@@ -73,7 +73,12 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
                 setNodes(initialFlow.nodes);
             }
             if (initialFlow.edges && initialFlow.edges.length > 0) {
-                setEdges(initialFlow.edges);
+                // Add id field to edges if missing (required by ReactFlow)
+                const edgesWithIds = initialFlow.edges.map(edge => ({
+                    ...edge,
+                    id: edge.id || `${edge.source}-${edge.target}${edge.sourceHandle ? `-${edge.sourceHandle}` : ''}`
+                }));
+                setEdges(edgesWithIds);
             }
         }
     }, [initialFlow]);
