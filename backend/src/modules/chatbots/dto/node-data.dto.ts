@@ -14,6 +14,7 @@ export enum NodeDataType {
   MESSAGE = 'message',
   QUESTION = 'question',
   CONDITION = 'condition',
+  WHATSAPP_FLOW = 'whatsapp_flow',
 }
 
 export enum QuestionType {
@@ -89,4 +90,28 @@ export class NodeDataDto {
   @ValidateNested({ each: true })
   @Type(() => ListSectionDto)
   listSections?: ListSectionDto[];
+
+  // WhatsApp Flow specific fields
+  @IsOptional()
+  @IsString()
+  whatsappFlowId?: string; // Local database Flow ID
+
+  @IsOptional()
+  @IsString()
+  flowMode?: string; // 'navigate' or 'data_exchange'
+
+  @IsOptional()
+  @IsString()
+  flowCta?: string; // Button text
+
+  @IsOptional()
+  @IsString()
+  flowInitialScreen?: string; // Starting screen ID
+
+  @IsOptional()
+  flowInitialData?: any; // Initial data for the flow
+
+  @IsOptional()
+  @IsString()
+  flowOutputVariable?: string; // Variable name to store flow response
 }

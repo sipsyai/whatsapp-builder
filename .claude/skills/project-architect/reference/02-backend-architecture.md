@@ -40,10 +40,12 @@ backend/src/
 │   ├── conversation-context.entity.ts
 │   ├── message.entity.ts
 │   ├── user.entity.ts
-│   └── whatsapp-config.entity.ts
+│   ├── whatsapp-config.entity.ts
+│   └── whatsapp-flow.entity.ts
 ├── modules/                      # Feature modules
 │   ├── chatbots/
 │   ├── conversations/
+│   ├── flows/
 │   ├── media/
 │   ├── messages/
 │   ├── users/
@@ -96,6 +98,7 @@ async function bootstrap() {
     DatabaseModule,        // TypeORM connection
     WhatsAppModule,        // WhatsApp API integration
     ChatBotsModule,        // Chatbot management & execution
+    FlowsModule,           // WhatsApp Flows management
     MediaModule,           // Media upload/retrieval
     UsersModule,           // User management
     ConversationsModule,   // Conversation management
@@ -125,7 +128,7 @@ Manages chatbot flows (formerly called "flows") and executes conversation logic 
 ```typescript
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ChatBot, ConversationContext, Conversation, User]),
+    TypeOrmModule.forFeature([ChatBot, ConversationContext, Conversation, User, WhatsAppFlow]),
     WhatsAppModule,  // For sending messages
   ],
   controllers: [
@@ -164,6 +167,11 @@ Manages chatbot flows (formerly called "flows") and executes conversation logic 
     - **Frontend Compatibility**: Frontend saves both legacy and new formats for backward compatibility
     - **Future Enhancement**: Add support for `conditionGroup` with multiple conditions and AND/OR logic
     - **Supported Operators**: `==`, `!=`, `>`, `<`, `>=`, `<=`, `contains`, `not_contains`
+  - `processWhatsAppFlowNode()`: Sends WhatsApp Flow message, **waits** for response
+    - Loads Flow from database by `whatsappFlowId`
+    - Generates `flow_token` containing `{contextId}-{nodeId}` for tracking
+    - Sends interactive Flow message via WhatsApp API
+    - Waits for user to complete Flow and webhook to process response
 - **Flow Navigation**: `findNextNode(chatbot, nodeId, sourceHandle)` - traverses edges
 - **Variable System**: `replaceVariables(text, variables)` - replaces `{{varName}}` syntax
 
@@ -213,7 +221,8 @@ export class ChatBotsController {
 - `QueryChatBotsDto`: status?, isActive?
 - `ChatBotNodeDto`: id, type, position, data
 - `ChatBotEdgeDto`: id, source, target, sourceHandle, targetHandle
-- `NodeDataDto`: type, content, variable, questionType, buttons, etc.
+- `NodeDataDto`: type, content, variable, questionType, buttons, whatsappFlowId, flowMode, flowCta, flowOutputVariable, etc.
+  - **WHATSAPP_FLOW type fields**: whatsappFlowId (UUID), flowMode ('draft'|'published'), flowCta (string), flowOutputVariable (string)
 
 ---
 
@@ -228,23 +237,25 @@ Encapsulates all WhatsApp Business API interactions, providing a clean interface
 @Module({
   imports: [
     ConfigModule,
-    TypeOrmModule.forFeature([WhatsAppConfig]),
+    TypeOrmModule.forFeature([WhatsAppConfig, WhatsAppFlow]),
   ],
   providers: [
     WhatsAppApiService,            // Low-level HTTP client
     WhatsAppConfigService,         // Config management
-    WhatsAppFlowService,           // Flow message handling
+    WhatsAppFlowService,           // WhatsApp Flows API operations
     WhatsAppMessageService,        // Message orchestrator
     TextMessageService,            // Text messages
-    InteractiveMessageService,     // Buttons, lists
-    FlowMessageService,            // Flow messages
+    InteractiveMessageService,     // Buttons, lists, Flow messages
+    FlowEncryptionService,         // Flow data encryption/decryption
   ],
   exports: [
     WhatsAppApiService,
     WhatsAppMessageService,
     WhatsAppConfigService,
+    WhatsAppFlowService,
     TextMessageService,
     InteractiveMessageService,
+    FlowEncryptionService,
   ],
 })
 ```
@@ -294,8 +305,29 @@ async sendTextMessage(dto: SendTextMessageDto): Promise<MessageResponse> {
 **WhatsAppMessageService** (`services/whatsapp-message.service.ts`)
 - **Orchestrator**: Routes to appropriate message type service
 - `sendTextMessage(dto)`
-- `sendFlowMessage(dto)`
+- `sendInteractiveMessage(dto)`
 - Future: template messages, media messages, etc.
+
+**WhatsAppFlowService** (`services/whatsapp-flow.service.ts`)
+- **WhatsApp Flows API Client**: Manages Flow lifecycle on WhatsApp servers
+- `createFlow(dto)`: Create Flow via WhatsApp API
+- `updateFlow(flowId, dto)`: Update Flow JSON and metadata
+- `publishFlow(flowId)`: Publish Flow (makes it available for use)
+- `deleteFlow(flowId)`: Delete Flow from WhatsApp
+- `getFlowDetails(flowId)`: Retrieve Flow information
+- `getPreviewUrl(flowId, invalidate)`: Get preview URL for testing
+- **Error Handling**: Catches and logs WhatsApp API errors
+
+**FlowEncryptionService** (`services/flow-encryption.service.ts`)
+- **RSA + AES Encryption**: Secure Flow data exchange
+- `decryptRequest(encryptedBody, encryptedAesKey, iv)`: Decrypt incoming Flow webhook
+  - Uses RSA private key to decrypt AES key
+  - Uses AES-128-GCM to decrypt request body
+- `encryptResponse(response, encryptedAesKey, iv)`: Encrypt outgoing Flow response
+  - Reuses same AES key and IV from request
+  - Returns encrypted response body and authentication tag
+- `verifySignature(signature, body)`: Verify X-Hub-Signature-256 header
+- **Key Management**: Loads RSA private key from environment variable
 
 ---
 
@@ -310,14 +342,20 @@ Receives and processes incoming WhatsApp webhooks for messages and status update
 @Module({
   imports: [
     ConfigModule,
-    TypeOrmModule.forFeature([Message, Conversation, User]),
+    TypeOrmModule.forFeature([Message, Conversation, User, ConversationContext]),
     ChatBotsModule,              // For chatbot execution
+    WhatsAppModule,              // For FlowEncryptionService
     forwardRef(() => WebSocketModule),  // Circular dependency resolution
+  ],
+  controllers: [
+    WebhooksController,          // Main WhatsApp webhook endpoint
+    FlowEndpointController,      // Flow webhook endpoint
   ],
   providers: [
     WebhookSignatureService,     // Signature verification
     WebhookParserService,        // Payload parsing
     WebhookProcessorService,     // Business logic
+    FlowEndpointService,         // Flow webhook processing
   ],
 })
 ```
@@ -377,9 +415,41 @@ async processMessages(messages: ParsedMessageDto[]): Promise<void> {
         msg.listRowId,
       );
     }
+
+    // 6. Process Flow response
+    if (msg.type === 'interactive' && msg.interactiveType === 'nfm_reply') {
+      await this.processFlowResponse(conversation.id, msg);
+    }
   }
 }
+
+async processFlowResponse(conversationId: string, msg: ParsedMessageDto): Promise<void> {
+  // Parse flow_token: "{contextId}-{nodeId}"
+  const [contextId, nodeId] = msg.flowToken.split('-');
+
+  // Load conversation context
+  const context = await this.contextRepo.findOne({ where: { id: contextId } });
+
+  // Save Flow response to context variables
+  const flowData = JSON.parse(msg.flowResponseData);
+  context.variables[context.currentFlowOutputVariable] = flowData;
+  await this.contextRepo.save(context);
+
+  // Resume ChatBot execution
+  await this.executionService.executeCurrentNode(context);
+}
 ```
+
+**FlowEndpointService** (`services/flow-endpoint.service.ts`)
+- **Flow Webhook Handler**: Processes Flow interactions
+- `handleAction(action, flowToken, data)`: Routes Flow actions
+  - **INIT**: Return first screen of Flow
+  - **data_exchange**: Process form submission, validate data
+  - **BACK**: Handle backward navigation
+  - **error_notification**: Log Flow errors
+  - **ping**: Health check response
+- **Response Building**: Constructs Flow JSON responses
+- **Data Validation**: Validates user input based on Flow schema
 
 **Processing Pipeline**:
 ```
@@ -395,7 +465,7 @@ Webhook Received
   → Emit Response Event
 ```
 
-#### Controller
+#### Controllers
 
 **WebhooksController** (`webhooks.controller.ts`)
 ```typescript
@@ -416,6 +486,26 @@ export class WebhooksController {
     @Body() payload: WebhookPayloadDto,
   ): Promise<{ success: boolean }> {
     // Always return 200 OK immediately
+  }
+}
+```
+
+**FlowEndpointController** (`flow-endpoint.controller.ts`)
+```typescript
+@Controller('api/webhooks/flow-endpoint')
+export class FlowEndpointController {
+  @Post()
+  async handleFlowWebhook(
+    @Req() req: RawBodyRequest<Request>,
+    @Headers('x-hub-signature-256') signature: string,
+    @Body() body: any,
+  ): Promise<any> {
+    // 1. Verify signature
+    // 2. Decrypt request (RSA + AES)
+    // 3. Process action (INIT, data_exchange, BACK, etc.)
+    // 4. Build response
+    // 5. Encrypt response
+    // 6. Return encrypted response
   }
 }
 ```
@@ -660,6 +750,65 @@ export class MediaController {
 
 ---
 
+### 8. FlowsModule
+**File**: `/home/ali/whatsapp-builder/backend/src/modules/flows/flows.module.ts`
+
+#### Purpose
+Manages WhatsApp Flows lifecycle: creation, updates, publishing, and deletion. Provides integration with WhatsApp Cloud API for Flow management.
+
+#### Module Configuration
+```typescript
+@Module({
+  imports: [
+    TypeOrmModule.forFeature([WhatsAppFlow]),
+    WhatsAppModule,  // For WhatsAppFlowService
+  ],
+  controllers: [FlowsController],
+  providers: [FlowsService],
+  exports: [FlowsService],
+})
+```
+
+#### Key Service
+
+**FlowsService** (`flows.service.ts`)
+- `create(dto)`: Create Flow and publish to WhatsApp API
+- `findAll()`: List all Flows
+- `getActiveFlows()`: Get published Flows for ChatBot node selection
+- `findOne(id)`: Get Flow by ID
+- `update(id, dto)`: Update Flow (resets to DRAFT status)
+- `publish(id)`: Publish Flow to WhatsApp (status → PUBLISHED)
+- `getPreview(id, invalidate)`: Get preview URL from WhatsApp
+- `remove(id)`: Delete Flow from WhatsApp API and local DB
+
+**Flow Lifecycle**:
+```
+Create → DRAFT → Publish → PUBLISHED → Update → DRAFT → Re-publish → PUBLISHED
+```
+
+#### Controller
+
+**FlowsController** (`flows.controller.ts`)
+```typescript
+@Controller('api/flows')
+export class FlowsController {
+  @Get()                    // List all flows
+  @Get('active')            // List published flows only
+  @Post()                   // Create flow
+  @Get(':id')               // Get flow by ID
+  @Put(':id')               // Update flow
+  @Post(':id/publish')      // Publish to WhatsApp
+  @Get(':id/preview')       // Get preview URL
+  @Delete(':id')            // Delete flow
+}
+```
+
+#### DTOs
+- `CreateFlowDto`: name, description, categories, flowJson, endpointUri
+- `UpdateFlowDto`: Partial update of Flow fields
+
+---
+
 ## Controllers & Routing
 
 ### Routing Structure
@@ -678,6 +827,16 @@ export class MediaController {
 │   ├── PATCH  /:id/toggle-active  Toggle active state
 │   └── PATCH  /:id/restore    Restore soft-deleted chatbot
 │
+├── /flows
+│   ├── GET    /               List flows
+│   ├── GET    /active         List published flows
+│   ├── POST   /               Create flow
+│   ├── GET    /:id            Get flow
+│   ├── PUT    /:id            Update flow
+│   ├── POST   /:id/publish    Publish flow
+│   ├── GET    /:id/preview    Get preview URL
+│   └── DELETE /:id            Delete flow
+│
 ├── /conversations
 │   ├── GET    /               List conversations
 │   ├── GET    /:id            Get conversation
@@ -694,9 +853,11 @@ export class MediaController {
 │   └── POST   /upload         Upload media
 │
 ├── /webhooks
-│   └── /whatsapp
-│       ├── GET  /             Verify webhook
-│       └── POST /             Receive webhook
+│   ├── /whatsapp
+│   │   ├── GET  /             Verify webhook
+│   │   └── POST /             Receive webhook
+│   └── /flow-endpoint
+│       └── POST /             Flow webhook
 │
 └── /whatsapp-config
     ├── GET    /               Get config
@@ -957,14 +1118,20 @@ AppModule
   ├─→ ConfigModule
   ├─→ DatabaseModule
   ├─→ WhatsAppModule
+  │     └─→ TypeOrmModule.forFeature([WhatsAppConfig, WhatsAppFlow])
   ├─→ ChatBotsModule
-  │     └─→ WhatsAppModule
+  │     ├─→ WhatsAppModule
+  │     └─→ TypeOrmModule.forFeature([ChatBot, ConversationContext, Conversation, User, WhatsAppFlow])
+  ├─→ FlowsModule
+  │     ├─→ WhatsAppModule (for WhatsAppFlowService)
+  │     └─→ TypeOrmModule.forFeature([WhatsAppFlow])
   ├─→ ConversationsModule
   │     └─→ WebSocketModule (forwardRef)
   ├─→ WebSocketModule
   │     └─→ ConversationsModule (forwardRef)
   ├─→ WebhooksModule
   │     ├─→ ChatBotsModule
+  │     ├─→ WhatsAppModule (for FlowEncryptionService)
   │     └─→ WebSocketModule (forwardRef)
   ├─→ MessagesModule
   ├─→ MediaModule
@@ -972,14 +1139,15 @@ AppModule
 ```
 
 ### Key Takeaways
-1. **Modular Architecture**: Clear separation of concerns with 8 feature modules
+1. **Modular Architecture**: Clear separation of concerns with 9 feature modules
 2. **Type Safety**: Full TypeScript coverage with DTOs and validation
 3. **Dependency Injection**: Loose coupling through NestJS IoC container
 4. **Real-time**: Socket.IO integration for live updates
 5. **Error Handling**: Consistent exception handling with NestJS filters
 6. **Circular Dependencies**: Resolved with `forwardRef()`
 7. **Database Access**: Repository pattern via TypeORM
-8. **External APIs**: Abstracted through dedicated services
+8. **External APIs**: Abstracted through dedicated services (WhatsApp, Flows)
+9. **Encryption**: RSA + AES encryption for secure Flow data exchange
 
 ---
 

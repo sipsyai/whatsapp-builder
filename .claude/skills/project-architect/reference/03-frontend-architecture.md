@@ -1241,6 +1241,92 @@ chatbots/
 
 ---
 
+### Feature: Flows (WhatsApp Flows Management)
+**Location**: `/home/ali/whatsapp-builder/frontend/src/features/flows/`
+
+#### Structure
+```
+flows/
+├── components/
+│   └── FlowsPage.tsx            # Flows management UI
+├── api/
+│   └── index.ts                 # Flows API client
+└── index.ts                     # Public exports
+```
+
+#### FlowsPage Component
+**File**: `/home/ali/whatsapp-builder/frontend/src/features/flows/components/FlowsPage.tsx`
+
+**Responsibilities**:
+1. **Flow Lifecycle Management**: Create, list, update, publish, and delete WhatsApp Flows
+2. **Flow JSON Editor**: Visual interface for editing Flow JSON structure
+3. **Publishing**: Publish Flows to WhatsApp Cloud API
+4. **Preview**: Get preview URLs for testing Flows before publishing
+5. **Status Tracking**: Display Flow status (DRAFT, PUBLISHED, DEPRECATED, etc.)
+
+**Key Features**:
+```typescript
+const FlowsPage = () => {
+  const [flows, setFlows] = useState<WhatsAppFlow[]>([]);
+  const [selectedFlow, setSelectedFlow] = useState<WhatsAppFlow | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+
+  // API operations
+  const loadFlows = async () => {
+    const data = await flowsApi.getAll();
+    setFlows(data);
+  };
+
+  const handlePublish = async (flowId: string) => {
+    await flowsApi.publish(flowId);
+    await loadFlows(); // Refresh list
+  };
+
+  const handlePreview = async (flowId: string) => {
+    const { previewUrl } = await flowsApi.getPreview(flowId);
+    window.open(previewUrl, '_blank');
+  };
+
+  return (
+    <div className="flows-page">
+      <div className="flows-header">
+        <h1>WhatsApp Flows</h1>
+        <button onClick={() => setIsCreating(true)}>Create Flow</button>
+      </div>
+
+      <div className="flows-list">
+        {flows.map(flow => (
+          <FlowCard
+            key={flow.id}
+            flow={flow}
+            onPublish={handlePublish}
+            onPreview={handlePreview}
+            onEdit={() => setSelectedFlow(flow)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+```
+
+**API Client**:
+```typescript
+// flows/api/index.ts
+export const flowsApi = {
+  getAll: () => axios.get('/api/flows'),
+  getActive: () => axios.get('/api/flows/active'),
+  create: (data) => axios.post('/api/flows', data),
+  update: (id, data) => axios.put(`/api/flows/${id}`, data),
+  publish: (id) => axios.post(`/api/flows/${id}/publish`),
+  getPreview: (id, invalidate = false) =>
+    axios.get(`/api/flows/${id}/preview`, { params: { invalidate } }),
+  delete: (id) => axios.delete(`/api/flows/${id}`),
+};
+```
+
+---
+
 ### Feature: Nodes (Custom ReactFlow Nodes)
 **Location**: `/home/ali/whatsapp-builder/frontend/src/features/nodes/`
 
@@ -1258,6 +1344,10 @@ nodes/
 │   └── index.ts
 ├── ConditionNode/
 │   ├── ConditionNode.tsx
+│   └── index.ts
+├── WhatsAppFlowNode/
+│   ├── WhatsAppFlowNode.tsx
+│   ├── ConfigModal.tsx          # Flow selection and configuration
 │   └── index.ts
 └── index.ts                     # Export all node types
 ```
@@ -1308,6 +1398,10 @@ export const MessageNode = ({ data }: NodeProps) => {
    - Supports multiple conditions (up to 5)
    - Displays human-readable preview of logic
    - Shows logical operator (AND/OR) between conditions
+5. **WhatsAppFlowNode**: Sends interactive WhatsApp Flow, single output
+   - Green-themed node for visual distinction
+   - Displays Flow name, CTA button text, and mode (draft/published)
+   - Configuration modal for Flow selection and settings
 
 **Handle Configuration**:
 ```typescript
@@ -1322,6 +1416,171 @@ export const MessageNode = ({ data }: NodeProps) => {
   />
 ))}
 ```
+
+#### WhatsAppFlowNode Component
+**File**: `/home/ali/whatsapp-builder/frontend/src/features/nodes/WhatsAppFlowNode/WhatsAppFlowNode.tsx`
+
+The WhatsAppFlowNode is a specialized node type that enables sending interactive WhatsApp Flows as part of a chatbot conversation. It integrates with the Flows Management feature to provide a seamless experience for flow-based interactions.
+
+**Visual Design**:
+- **Green Theme**: Distinct green color (#10B981) to differentiate from other nodes
+- **Icon**: "article" Material Symbol icon
+- **Compact Display**: Shows Flow name, CTA, and mode in a concise format
+
+**Component Structure**:
+```typescript
+export const WhatsAppFlowNode = ({ data }: NodeProps) => {
+  return (
+    <div className="node-wrapper whatsapp-flow-node">
+      <Handle type="target" position={Position.Top} />
+
+      <div className="node-content">
+        <div className="node-icon" style={{ backgroundColor: '#10B981' }}>
+          <span className="material-symbols-outlined">article</span>
+        </div>
+        <div className="node-label">{data.label || 'WhatsApp Flow'}</div>
+
+        {/* Display Flow details */}
+        <div className="node-details">
+          {data.flowName && <div className="flow-name">{data.flowName}</div>}
+          {data.flowCta && <div className="flow-cta">CTA: {data.flowCta}</div>}
+          {data.flowMode && (
+            <span className={`flow-mode ${data.flowMode}`}>
+              {data.flowMode.toUpperCase()}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="node-actions">
+        <button onClick={() => data.onConfig?.()}>
+          <span className="material-symbols-outlined">edit</span>
+        </button>
+        <button onClick={() => data.onDelete?.()}>
+          <span className="material-symbols-outlined">delete</span>
+        </button>
+      </div>
+
+      <Handle type="source" position={Position.Bottom} />
+    </div>
+  );
+};
+```
+
+**Configuration Modal**:
+The ConfigModal component provides an interface for:
+1. **Flow Selection**: Dropdown to select from published Flows
+2. **CTA Text**: Button text shown to user (e.g., "Fill Form")
+3. **Flow Mode**: Choose between 'draft' (testing) or 'published' (production)
+4. **Output Variable**: Variable name to store Flow response data
+
+```typescript
+interface FlowNodeConfigProps {
+  nodeId: string;
+  data: NodeData;
+  onSave: (config: Partial<NodeData>) => void;
+  onClose: () => void;
+}
+
+const ConfigModal = ({ data, onSave, onClose }: FlowNodeConfigProps) => {
+  const [flows, setFlows] = useState<WhatsAppFlow[]>([]);
+  const [selectedFlowId, setSelectedFlowId] = useState(data.whatsappFlowId);
+  const [flowCta, setFlowCta] = useState(data.flowCta || 'Fill Form');
+  const [flowMode, setFlowMode] = useState<'draft' | 'published'>(data.flowMode || 'published');
+  const [outputVariable, setOutputVariable] = useState(data.flowOutputVariable || 'flowData');
+
+  useEffect(() => {
+    // Load active (published) flows
+    flowsApi.getActive().then(setFlows);
+  }, []);
+
+  const handleSave = () => {
+    const selectedFlow = flows.find(f => f.id === selectedFlowId);
+    onSave({
+      whatsappFlowId: selectedFlowId,
+      flowName: selectedFlow?.name,
+      flowCta,
+      flowMode,
+      flowOutputVariable: outputVariable,
+    });
+    onClose();
+  };
+
+  return (
+    <div className="config-modal">
+      <h3>Configure WhatsApp Flow</h3>
+
+      <div className="form-group">
+        <label>Select Flow</label>
+        <select value={selectedFlowId} onChange={(e) => setSelectedFlowId(e.target.value)}>
+          <option value="">-- Select a Flow --</option>
+          {flows.map(flow => (
+            <option key={flow.id} value={flow.id}>{flow.name}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="form-group">
+        <label>Button Text (CTA)</label>
+        <input
+          type="text"
+          value={flowCta}
+          onChange={(e) => setFlowCta(e.target.value)}
+          placeholder="e.g., Fill Form"
+        />
+      </div>
+
+      <div className="form-group">
+        <label>Flow Mode</label>
+        <select value={flowMode} onChange={(e) => setFlowMode(e.target.value as any)}>
+          <option value="draft">Draft (Testing)</option>
+          <option value="published">Published (Production)</option>
+        </select>
+      </div>
+
+      <div className="form-group">
+        <label>Output Variable Name</label>
+        <input
+          type="text"
+          value={outputVariable}
+          onChange={(e) => setOutputVariable(e.target.value)}
+          placeholder="e.g., flowData"
+        />
+        <small>Variable name to store Flow response in conversation context</small>
+      </div>
+
+      <div className="modal-actions">
+        <button onClick={handleSave}>Save</button>
+        <button onClick={onClose}>Cancel</button>
+      </div>
+    </div>
+  );
+};
+```
+
+**NodeData Interface Extension**:
+```typescript
+interface NodeData {
+  // ... existing fields ...
+
+  // WhatsApp Flow Node fields
+  whatsappFlowId?: string;           // UUID of Flow from database
+  flowName?: string;                 // Display name
+  flowCta?: string;                  // Button text
+  flowMode?: 'draft' | 'published';  // Testing vs production
+  flowOutputVariable?: string;        // Variable to store response
+}
+```
+
+**Integration with ChatBot Execution**:
+When a user reaches a WhatsAppFlowNode:
+1. Backend loads Flow from database using `whatsappFlowId`
+2. Generates `flow_token` containing `{contextId}-{nodeId}`
+3. Sends Flow message to user via WhatsApp API
+4. Waits for user to complete Flow
+5. WhatsApp sends webhook with Flow response
+6. Backend extracts response data and saves to `flowOutputVariable`
+7. Resumes chatbot execution from next node
 
 ---
 

@@ -6,12 +6,13 @@ import { ChatPage } from "../features/chat/ChatPage";
 import { ChatBotsListPage } from "../features/chatbots/components/ChatBotsListPage";
 import { UsersPage } from "../features/users/components/UsersPage";
 import { WhatsappConfigPage } from "../features/settings/WhatsappConfigPage";
+import { FlowsPage } from "../features/flows";
 import { SideBar } from "../shared/components/SideBar";
 import type { ViewState } from "../shared/types";
 import type { ChatBot } from "../features/chatbots/api";
 
 // Extend ViewState type locally since we can't easily edit shared types without seeing them
-type ExtendedViewState = ViewState | "chatbots" | "users";
+type ExtendedViewState = ViewState | "chatbots" | "users" | "flows";
 
 const App = () => {
   // Start with chatbots page instead of landing to show sidebar immediately
@@ -54,6 +55,7 @@ const App = () => {
             }}
           />}
           {view === "users" && <UsersPage />}
+          {view === "flows" && <FlowsPage />}
           {view === "settings" && <WhatsappConfigPage />}
         </div>
       </div>

@@ -51,6 +51,7 @@
   - `MESSAGE`: Send text messages to users
   - `QUESTION`: Collect user input (text, buttons, lists)
   - `CONDITION`: Branch based on variable values
+  - `WHATSAPP_FLOW`: Send interactive WhatsApp Flows (forms)
 - **Real-time Validation**: Instant feedback on flow structure and node configurations
 - **Flow Testing**: Built-in test interface to simulate conversations before deployment
 
@@ -86,7 +87,17 @@
 - **Conditional Logic**: Branch conversations based on user responses
 - **Node History**: Track conversation path for debugging and analytics
 
-### 5. User & Conversation Management
+### 5. WhatsApp Flows Management
+**Location**: `/frontend/src/features/flows/`, `/backend/src/modules/flows/`
+
+- **Flow Lifecycle Management**: Create, update, publish, and delete WhatsApp Flows
+- **Interactive Forms**: Build multi-screen forms with validation and data collection
+- **Encryption Support**: RSA + AES encryption for secure data exchange
+- **Flow Endpoint**: Server-side endpoint for dynamic data exchange during interactions
+- **ChatBot Integration**: Use Flows as nodes within conversation flows
+- **Preview & Testing**: Test Flows before publishing to production
+
+### 6. User & Conversation Management
 **Location**: `/backend/src/modules/users/`, `/backend/src/modules/conversations/`
 
 - **User Registry**: Automatic user creation from WhatsApp contacts
@@ -172,8 +183,10 @@
 │  │ (ReactFlow)  │  │ (Real-time)  │  │ Management   │      │
 │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘      │
 │         │                  │                  │               │
-│         └──────────────────┴──────────────────┘               │
-│                            │                                  │
+│  ┌──────▼──────────────────┴──────────────────┘               │
+│  │ Flows Management (WhatsApp Flows UI)       │               │
+│  └──────┬──────────────────────────────────────┘               │
+│         │                                                      │
 │                     HTTP + WebSocket                          │
 └────────────────────────────┼──────────────────────────────────┘
                              │
@@ -204,6 +217,7 @@
 │  │   - messages               │                             │
 │  │   - conversation_contexts  │                             │
 │  │   - whatsapp_config        │                             │
+│  │   - whatsapp_flows         │                             │
 │  └────────────────────────────┘                             │
 └──────────────────┬───────────────────────────────────────────┘
                    │
@@ -244,12 +258,12 @@ Backend (message received) → MessagesGateway.emitMessageReceived()
 ## Project Statistics
 
 ### Codebase Metrics
-- **Backend Files**: ~50+ TypeScript files
-- **Frontend Files**: ~40+ TypeScript/TSX files
-- **Database Entities**: 7 main entities
-- **API Endpoints**: ~30+ REST endpoints
+- **Backend Files**: ~60+ TypeScript files
+- **Frontend Files**: ~45+ TypeScript/TSX files
+- **Database Entities**: 8 main entities
+- **API Endpoints**: ~40+ REST endpoints
 - **Socket.IO Events**: 8 real-time events
-- **Custom Node Types**: 4 ReactFlow node components
+- **Custom Node Types**: 5 ReactFlow node components
 
 ### Module Breakdown
 
@@ -260,24 +274,26 @@ Backend (message received) → MessagesGateway.emitMessageReceived()
 4. **WebhooksModule** - WhatsApp webhook processing
 5. **WebSocketModule** - Real-time communication gateway
 6. **WhatsAppModule** - WhatsApp API integration
-7. **MediaModule** - Media upload and retrieval
-8. **UsersModule** - User management
+7. **FlowsModule** - WhatsApp Flows lifecycle management
+8. **MediaModule** - Media upload and retrieval
+9. **UsersModule** - User management
 
 #### Frontend Features
 1. **Builder** - Flow builder interface
 2. **Chat** - Conversation UI
 3. **ChatBots** - Chatbot list and management
-4. **Conversations** - Conversation list
-5. **Nodes** - Custom ReactFlow node components
-6. **Users** - User management interface
+4. **Flows** - WhatsApp Flows management UI
+5. **Conversations** - Conversation list
+6. **Nodes** - Custom ReactFlow node components (including WhatsAppFlowNode)
+7. **Users** - User management interface
 
 ### Database Schema
-- **Tables**: 7 core tables
+- **Tables**: 8 core tables (users, chatbots, conversations, messages, conversation_contexts, whatsapp_config, whatsapp_flows, conversation_participants)
 - **Junction Tables**: 1 (conversation_participants)
-- **JSONB Columns**: 5 columns for flexible data
-- **Indexes**: ~12 indexes (composite, partial, single-column)
+- **JSONB Columns**: 8 columns for flexible data (nodes, edges, content, variables, metadata, flowJson, categories)
+- **Indexes**: ~15 indexes (composite, partial, single-column)
 - **Foreign Keys**: 8 relationships with CASCADE
-- **Migrations**: 10+ migration files
+- **Migrations**: 12+ migration files
 
 ---
 

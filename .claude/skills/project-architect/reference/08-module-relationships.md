@@ -10,11 +10,15 @@ AppModule
   │
   ├─→ WhatsAppModule
   │     ├─→ ConfigModule
-  │     └─→ TypeOrmModule.forFeature([WhatsAppConfig])
+  │     └─→ TypeOrmModule.forFeature([WhatsAppConfig, WhatsAppFlow])
   │
   ├─→ ChatBotsModule
-  │     ├─→ TypeOrmModule.forFeature([ChatBot, ConversationContext, Conversation, User])
+  │     ├─→ TypeOrmModule.forFeature([ChatBot, ConversationContext, Conversation, User, WhatsAppFlow])
   │     └─→ WhatsAppModule (imports for message sending)
+  │
+  ├─→ FlowsModule
+  │     ├─→ TypeOrmModule.forFeature([WhatsAppFlow])
+  │     └─→ WhatsAppModule (imports WhatsAppFlowService)
   │
   ├─→ ConversationsModule
   │     ├─→ TypeOrmModule.forFeature([Conversation, User])
@@ -26,8 +30,9 @@ AppModule
   │
   ├─→ WebhooksModule
   │     ├─→ ConfigModule
-  │     ├─→ TypeOrmModule.forFeature([Message, Conversation, User])
+  │     ├─→ TypeOrmModule.forFeature([Message, Conversation, User, ConversationContext])
   │     ├─→ ChatBotsModule (imports ChatBotExecutionService)
+  │     ├─→ WhatsAppModule (imports FlowEncryptionService)
   │     └─→ WebSocketModule (forwardRef - circular)
   │
   ├─→ MessagesModule
@@ -147,7 +152,48 @@ ChatBotExecutionService.processUserResponse()
         └─→ processConditionNode() → evaluate → branch
 ```
 
-### 4. Real-time Event Flow
+### 4. WhatsApp Flow Execution Flow
+```
+ChatBot reaches WhatsAppFlowNode
+  ↓
+ChatBotExecutionService.processWhatsAppFlowNode()
+  ├─→ WhatsAppFlowRepository.findOne(whatsappFlowId)
+  ├─→ Generate flow_token = `{contextId}-{nodeId}`
+  └─→ InteractiveMessageService.sendFlowMessage()
+        └─→ WhatsAppApiService.sendMessage()
+              └─→ [User receives Flow in WhatsApp]
+
+User opens and interacts with Flow
+  ↓
+WhatsApp Cloud API → FlowEndpointController
+  ↓
+FlowEncryptionService.decryptRequest()
+  ├─→ Decrypt AES key with RSA private key
+  └─→ Decrypt request body with AES
+        ↓
+FlowEndpointService.handleAction()
+  ├─→ INIT → Return first screen
+  ├─→ data_exchange → Process submission
+  └─→ BACK → Return previous screen
+        ↓
+FlowEncryptionService.encryptResponse()
+  └─→ Encrypt response with same AES key
+        └─→ [WhatsApp displays response to user]
+
+User completes Flow
+  ↓
+WhatsApp Cloud API → WebhooksController
+  ↓
+WebhookProcessorService.processMessages()
+  ├─→ Parse nfm_reply (Flow response)
+  ├─→ Extract flow_token → parse `{contextId}-{nodeId}`
+  ├─→ Load ConversationContext
+  ├─→ Save Flow response to context.variables[flowOutputVariable]
+  └─→ ChatBotExecutionService.executeCurrentNode()
+        └─→ Continue ChatBot from next node
+```
+
+### 5. Real-time Event Flow
 ```
 Backend Service
   ↓
@@ -181,11 +227,12 @@ ChatPage Component
 - `ChatBotRepository` - Load chatbot structure
 - `ConversationRepository` - Get conversation details
 - `UserRepository` - Get user/recipient info
+- `WhatsAppFlowRepository` - Load Flow data for WhatsAppFlowNode
 - `TextMessageService` - Send text messages
-- `InteractiveMessageService` - Send interactive messages
+- `InteractiveMessageService` - Send interactive and Flow messages
 
 **Used By**:
-- `WebhookProcessorService` - Process user responses
+- `WebhookProcessorService` - Process user responses and Flow responses
 - `ChatBotWebhookController` - Handle chatbot webhooks
 
 ### WebhookProcessorService
@@ -217,6 +264,29 @@ ChatPage Component
 - `ConversationsService` - Emit message sent
 - Any service needing real-time notifications
 
+### FlowsService
+**Dependencies**:
+- `WhatsAppFlowRepository` - Save/load Flow entities
+- `WhatsAppFlowService` - Create/publish Flows via WhatsApp API
+
+**Used By**:
+- `FlowsController` - CRUD operations for Flows
+- `ChatBotExecutionService` - Load Flow data for WhatsAppFlowNode
+
+### FlowEndpointService
+**Dependencies**:
+- `FlowEncryptionService` - Decrypt/encrypt Flow data
+
+**Used By**:
+- `FlowEndpointController` - Handle Flow webhook callbacks
+
+### FlowEncryptionService
+**Dependencies**: None (uses crypto module)
+
+**Used By**:
+- `FlowEndpointService` - Encrypt/decrypt Flow data
+- `FlowEndpointController` - Signature verification
+
 ---
 
 ## Repository Usage Matrix
@@ -229,6 +299,7 @@ ChatPage Component
 | `ConversationContextRepository` | ChatBotsModule, WebhooksModule |
 | `MessageRepository` | MessagesModule, ConversationsModule, WebhooksModule |
 | `WhatsAppConfigRepository` | WhatsAppModule |
+| `WhatsAppFlowRepository` | FlowsModule, ChatBotsModule, WhatsAppModule |
 
 ---
 
@@ -245,6 +316,14 @@ ChatPage Component
 
 ### Webhooks Endpoints
 - `POST /api/webhooks/whatsapp` → WebhookProcessorService → Multiple repositories + ChatBotExecutionService
+- `POST /api/webhooks/flow-endpoint` → FlowEndpointService → FlowEncryptionService
+
+### Flows Endpoints
+- `POST /api/flows` → FlowsService → WhatsAppFlowRepository + WhatsAppFlowService
+- `GET /api/flows` → FlowsService → WhatsAppFlowRepository
+- `GET /api/flows/active` → FlowsService → WhatsAppFlowRepository
+- `POST /api/flows/:id/publish` → FlowsService → WhatsAppFlowService
+- `GET /api/flows/:id/preview` → FlowsService → WhatsAppFlowService
 
 ---
 
@@ -262,6 +341,10 @@ ChatPage Component
 **Frontend**: `useWebSocket` hook → Socket.IO client
 **Backend**: `MessagesGateway` → Socket.IO server
 
+### Flows Management
+**Frontend**: `FlowsPage` → `features/flows/api/index.ts`
+**Backend**: `FlowsController` → `FlowsService` → `WhatsAppFlowRepository` + `WhatsAppFlowService`
+
 ---
 
 ## Summary
@@ -278,9 +361,11 @@ ChatPage Component
 3. **Frontend → HTTP → Controller → Service → External API**
 
 ### Key Integration Points
-- **Webhooks ↔ ChatBot Execution**: Process user responses
+- **Webhooks ↔ ChatBot Execution**: Process user responses and Flow responses
 - **Services ↔ WebSocket Gateway**: Real-time notifications
-- **ChatBot Execution ↔ WhatsApp API**: Send responses
+- **ChatBot Execution ↔ WhatsApp API**: Send responses (text, interactive, Flow)
+- **Flow Endpoint ↔ WhatsApp API**: Handle Flow interactions (encrypted)
+- **FlowsModule ↔ WhatsApp API**: Manage Flow lifecycle (create, publish, preview)
 - **Frontend ↔ Backend**: HTTP + WebSocket
 
 ---

@@ -50,7 +50,26 @@ export const MessageBubble = ({ message, businessUserId }: MessageBubbleProps) =
 
             case MessageType.INTERACTIVE:
                 const interactiveContent = message.content as any;
-                const { header, body, footer, action } = interactiveContent;
+                const { header, body, footer, action, type, buttonTitle, listTitle } = interactiveContent;
+
+                // Check if this is a user response (button_reply or list_reply)
+                const isUserResponse = type === 'button_reply' || type === 'list_reply';
+
+                if (isUserResponse) {
+                    // Render user's response (button click or list selection)
+                    return (
+                        <div className="flex flex-col gap-1 min-w-[200px]">
+                            <p className="text-sm font-medium">
+                                {type === 'button_reply' ? buttonTitle : listTitle}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                                {type === 'button_reply' ? 'Button selected' : 'List item selected'}
+                            </p>
+                        </div>
+                    );
+                }
+
+                // Render bot's interactive message (buttons or list)
                 return (
                     <div className="flex flex-col gap-1 min-w-[200px]">
                         {header && <p className="text-sm font-bold">{header.text || header}</p>}
@@ -58,11 +77,19 @@ export const MessageBubble = ({ message, businessUserId }: MessageBubbleProps) =
                         {footer && <p className="text-xs text-gray-500">{footer.text || footer}</p>}
 
                         <div className="mt-2 flex flex-col gap-2">
-                            {action?.buttons?.map((btn: any) => (
-                                <button key={btn.id} className="bg-white text-[#00a884] py-2 px-4 rounded shadow-sm text-sm font-medium hover:bg-gray-50 transition-colors border border-gray-200">
-                                    {btn.title}
-                                </button>
-                            ))}
+                            {action?.buttons?.map((btn: any, index: number) => {
+                                // Handle both formats: btn.reply.title (outgoing) and btn.title (legacy)
+                                const buttonId = btn.reply?.id || btn.id || `btn-${index}`;
+                                const buttonTitle = btn.reply?.title || btn.title || 'Button';
+                                return (
+                                    <button
+                                        key={buttonId}
+                                        className="bg-white text-[#00a884] py-2 px-4 rounded shadow-sm text-sm font-medium hover:bg-gray-50 transition-colors border border-gray-200"
+                                    >
+                                        {buttonTitle}
+                                    </button>
+                                );
+                            })}
                             {action?.sections && (
                                 <button className="bg-white text-[#00a884] py-2 px-4 rounded shadow-sm text-sm font-medium hover:bg-gray-50 transition-colors border border-gray-200">
                                     {action.button || "View List"}

@@ -36,11 +36,13 @@ whatsapp-builder/
 │   │   │   ├── conversation.entity.ts
 │   │   │   ├── conversation-context.entity.ts
 │   │   │   ├── message.entity.ts
-│   │   │   └── whatsapp-config.entity.ts
+│   │   │   ├── whatsapp-config.entity.ts
+│   │   │   └── whatsapp-flow.entity.ts
 │   │   │
 │   │   ├── migrations/               # Database migrations
 │   │   │   ├── 1732402800000-CreateWhatsAppConfigTable.ts
 │   │   │   ├── 1732459200000-CreateConversationContextTable.ts
+│   │   │   ├── 1732546800000-CreateWhatsAppFlowsTable.ts
 │   │   │   └── 1763984202000-RenameFlowsToChatBots.ts
 │   │   │
 │   │   └── modules/                  # Feature modules
@@ -77,6 +79,14 @@ whatsapp-builder/
 │   │       │           ├── message.response.dto.ts
 │   │       │           └── success.response.dto.ts
 │   │       │
+│   │       ├── flows/                # WhatsApp Flows management
+│   │       │   ├── flows.module.ts
+│   │       │   ├── flows.controller.ts
+│   │       │   ├── flows.service.ts
+│   │       │   └── dto/
+│   │       │       ├── create-flow.dto.ts
+│   │       │       └── update-flow.dto.ts
+│   │       │
 │   │       ├── media/                # Media upload
 │   │       │   ├── media.module.ts
 │   │       │   ├── media.controller.ts
@@ -97,6 +107,7 @@ whatsapp-builder/
 │   │       ├── webhooks/             # WhatsApp webhooks
 │   │       │   ├── webhooks.module.ts
 │   │       │   ├── webhooks.controller.ts
+│   │       │   ├── flow-endpoint.controller.ts
 │   │       │   ├── dto/
 │   │       │   │   ├── index.ts
 │   │       │   │   ├── parsed-message.dto.ts
@@ -105,7 +116,8 @@ whatsapp-builder/
 │   │       │       ├── index.ts
 │   │       │       ├── webhook-parser.service.ts
 │   │       │       ├── webhook-processor.service.ts
-│   │       │       └── webhook-signature.service.ts
+│   │       │       ├── webhook-signature.service.ts
+│   │       │       └── flow-endpoint.service.ts
 │   │       │
 │   │       ├── websocket/            # Socket.IO gateway
 │   │       │   ├── websocket.module.ts
@@ -138,8 +150,8 @@ whatsapp-builder/
 │   │               ├── whatsapp-config.service.ts
 │   │               ├── whatsapp-flow.service.ts
 │   │               ├── whatsapp-message.service.ts
+│   │               ├── flow-encryption.service.ts
 │   │               └── message-types/
-│   │                   ├── flow-message.service.ts
 │   │                   ├── interactive-message.service.ts
 │   │                   └── text-message.service.ts
 │   │
@@ -200,6 +212,13 @@ whatsapp-builder/
         │   ├── conversations/        # Conversation list
         │   │   └── api.ts
         │   │
+        │   ├── flows/                # WhatsApp Flows management
+        │   │   ├── components/
+        │   │   │   └── FlowsPage.tsx
+        │   │   ├── api/
+        │   │   │   └── index.ts
+        │   │   └── index.ts
+        │   │
         │   ├── nodes/                # ReactFlow custom nodes
         │   │   ├── StartNode/
         │   │   │   ├── StartNode.tsx
@@ -212,6 +231,10 @@ whatsapp-builder/
         │   │   │   └── index.ts
         │   │   ├── ConditionNode/
         │   │   │   ├── ConditionNode.tsx
+        │   │   │   └── index.ts
+        │   │   ├── WhatsAppFlowNode/
+        │   │   │   ├── WhatsAppFlowNode.tsx
+        │   │   │   ├── ConfigModal.tsx
         │   │   │   └── index.ts
         │   │   └── index.ts
         │   │

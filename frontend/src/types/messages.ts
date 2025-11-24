@@ -113,12 +113,42 @@ export interface ReactionMessageContent {
 // Interactive Message
 export interface InteractiveMessageContent {
     whatsappMessageId: string;
-    type: 'button_reply' | 'list_reply';
+    // For incoming messages (user responses)
+    type?: 'button_reply' | 'list_reply' | 'button' | 'list';
     buttonId?: string;
     buttonTitle?: string;
     listId?: string;
     listTitle?: string;
     listDescription?: string;
+    // For outgoing messages (bot sends)
+    header?: {
+        type?: string;
+        text?: string;
+    };
+    body?: {
+        text: string;
+    };
+    footer?: {
+        text?: string;
+    };
+    action?: {
+        buttons?: Array<{
+            type?: string;
+            reply?: {
+                id: string;
+                title: string;
+            };
+        }>;
+        button?: string; // List button text
+        sections?: Array<{
+            title: string;
+            rows: Array<{
+                id: string;
+                title: string;
+                description?: string;
+            }>;
+        }>;
+    };
 }
 
 // Conversation Interface

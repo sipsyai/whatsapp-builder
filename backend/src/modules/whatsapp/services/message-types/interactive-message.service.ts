@@ -19,7 +19,7 @@ export class InteractiveMessageService {
    */
   async sendButtonMessage(
     dto: SendInteractiveButtonDto,
-  ): Promise<MessageResponse> {
+  ): Promise<{ response: MessageResponse; content: any }> {
     this.logger.log(`Sending button message to ${dto.to}`);
 
     // Validate and format phone number
@@ -69,7 +69,12 @@ export class InteractiveMessageService {
       interactive,
     };
 
-    return this.apiService.sendMessage(payload);
+    const response = await this.apiService.sendMessage(payload);
+
+    return {
+      response,
+      content: interactive,
+    };
   }
 
   /**
@@ -78,7 +83,7 @@ export class InteractiveMessageService {
    */
   async sendListMessage(
     dto: SendInteractiveListDto,
-  ): Promise<MessageResponse> {
+  ): Promise<{ response: MessageResponse; content: any }> {
     this.logger.log(`Sending list message to ${dto.to}`);
 
     // Validate and format phone number
@@ -130,6 +135,11 @@ export class InteractiveMessageService {
       interactive,
     };
 
-    return this.apiService.sendMessage(payload);
+    const response = await this.apiService.sendMessage(payload);
+
+    return {
+      response,
+      content: interactive,
+    };
   }
 }

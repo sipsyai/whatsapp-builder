@@ -7,15 +7,24 @@ import { AppointmentService } from './appointment.service';
 import { MockCalendarService } from './mock-calendar.service';
 import { ChatBotExecutionService } from './services/chatbot-execution.service';
 import { WhatsAppModule } from '../whatsapp/whatsapp.module';
+import { MessagesModule } from '../messages/messages.module';
 import { ChatBot } from '../../entities/chatbot.entity';
 import { ConversationContext } from '../../entities/conversation-context.entity';
 import { Conversation } from '../../entities/conversation.entity';
 import { User } from '../../entities/user.entity';
+import { WhatsAppFlow } from '../../entities/whatsapp-flow.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ChatBot, ConversationContext, Conversation, User]),
+    TypeOrmModule.forFeature([
+      ChatBot,
+      ConversationContext,
+      Conversation,
+      User,
+      WhatsAppFlow,
+    ]),
     WhatsAppModule,
+    MessagesModule,
   ],
   controllers: [ChatBotsController, ChatBotWebhookController],
   providers: [

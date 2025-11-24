@@ -139,6 +139,24 @@ export default new DataSource({
 │ createdAt            │
 │ updatedAt            │
 └──────────────────────┘
+
+┌──────────────────────┐
+│  whatsapp_flows      │
+│──────────────────────│
+│ id (UUID) PK         │
+│ whatsappFlowId       │
+│ name                 │
+│ description          │
+│ status ENUM          │
+│ categories JSONB     │
+│ flowJson JSONB       │
+│ endpointUri          │
+│ previewUrl           │
+│ isActive             │
+│ metadata JSONB       │
+│ createdAt            │
+│ updatedAt            │
+└──────────────────────┘
 ```
 
 ---
@@ -172,6 +190,12 @@ CREATE TABLE conversation_participants (
 ### 5. conversations ↔ conversation_contexts (One-to-Many)
 **Foreign Key**: `conversation_contexts.conversationId → conversations.id`
 **Cascade**: ON DELETE CASCADE (delete contexts when conversation deleted)
+
+### 6. chatbots ↔ whatsapp_flows (Soft Reference via JSONB)
+**No Foreign Key**: Referenced via `chatbots.nodes[].data.whatsappFlowId → whatsapp_flows.id`
+**Note**: This is a soft reference stored in JSONB, not a database-level foreign key
+
+**Use Case**: ChatBot nodes can reference WhatsApp Flows for sending interactive forms
 
 ---
 
@@ -484,6 +508,90 @@ export class WhatsAppConfig {
 
 ---
 
+### WhatsAppFlow Entity
+**File**: `/home/ali/whatsapp-builder/backend/src/entities/whatsapp-flow.entity.ts`
+
+```typescript
+export enum WhatsAppFlowStatus {
+  DRAFT = 'DRAFT',
+  PUBLISHED = 'PUBLISHED',
+  DEPRECATED = 'DEPRECATED',
+  THROTTLED = 'THROTTLED',
+  BLOCKED = 'BLOCKED',
+}
+
+export enum WhatsAppFlowCategory {
+  SIGN_UP = 'SIGN_UP',
+  SIGN_IN = 'SIGN_IN',
+  APPOINTMENT_BOOKING = 'APPOINTMENT_BOOKING',
+  LEAD_GENERATION = 'LEAD_GENERATION',
+  CONTACT_US = 'CONTACT_US',
+  CUSTOMER_SUPPORT = 'CUSTOMER_SUPPORT',
+  SURVEY = 'SURVEY',
+  OTHER = 'OTHER',
+}
+
+@Entity('whatsapp_flows')
+export class WhatsAppFlow {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column({ unique: true, nullable: true })
+  whatsappFlowId?: string;  // WhatsApp Cloud API Flow ID
+
+  @Column({ length: 255 })
+  name: string;
+
+  @Column({ type: 'text', nullable: true })
+  description?: string;
+
+  @Column({
+    type: 'enum',
+    enum: WhatsAppFlowStatus,
+    default: WhatsAppFlowStatus.DRAFT,
+  })
+  status: WhatsAppFlowStatus;
+
+  @Column({ type: 'jsonb', default: [] })
+  categories: WhatsAppFlowCategory[];
+
+  @Column({ type: 'jsonb' })
+  flowJson: any;  // Complete Flow JSON structure
+
+  @Column({ type: 'text', nullable: true })
+  endpointUri?: string;  // Optional endpoint for data_exchange
+
+  @Column({ type: 'text', nullable: true })
+  previewUrl?: string;  // Preview URL from WhatsApp
+
+  @Column({ type: 'boolean', default: true })
+  isActive: boolean;
+
+  @Column({ type: 'jsonb', nullable: true })
+  metadata?: Record<string, any>;
+
+  @CreateDateColumn({ type: 'timestamp with time zone' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ type: 'timestamp with time zone' })
+  updatedAt: Date;
+}
+```
+
+**Key Design Decisions**:
+- **whatsappFlowId**: Set after first publish to WhatsApp API, unique identifier from Meta
+- **JSONB for flowJson**: Flexible storage for complete Flow structure (screens, components, validation)
+- **JSONB for categories**: Array of enum values for multi-category support
+- **status**: Reflects WhatsApp API Flow status (synced after publish/deprecate operations)
+- **Soft reference from ChatBots**: `chatbots.nodes[].data.whatsappFlowId` references this entity's `id` field
+
+**Flow Lifecycle**:
+```
+Create (DRAFT) → Publish → whatsappFlowId set → PUBLISHED → Update → DRAFT → Re-publish
+```
+
+---
+
 ## PostgreSQL-Specific Features
 
 ### 1. UUID Primary Keys
@@ -534,7 +642,17 @@ CREATE TYPE "message_type" AS ENUM (
 );
 
 CREATE TYPE "message_status" AS ENUM ('sent', 'delivered', 'read');
+
 CREATE TYPE "chatbot_status" AS ENUM ('active', 'archived', 'draft');
+
+CREATE TYPE "whatsapp_flow_status" AS ENUM (
+  'DRAFT', 'PUBLISHED', 'DEPRECATED', 'THROTTLED', 'BLOCKED'
+);
+
+CREATE TYPE "whatsapp_flow_category" AS ENUM (
+  'SIGN_UP', 'SIGN_IN', 'APPOINTMENT_BOOKING', 'LEAD_GENERATION',
+  'CONTACT_US', 'CUSTOMER_SUPPORT', 'SURVEY', 'OTHER'
+);
 ```
 
 ### 4. TIMESTAMP WITH TIME ZONE
@@ -805,9 +923,9 @@ extra: {
 ## Summary
 
 ### Schema Overview
-- **7 tables**: users, chatbots, conversations, messages, conversation_contexts, whatsapp_config, conversation_participants
-- **5 JSONB columns**: Flexible data storage
-- **3 ENUM types**: Strict type enforcement
+- **8 tables**: users, chatbots, conversations, messages, conversation_contexts, whatsapp_config, whatsapp_flows, conversation_participants
+- **8 JSONB columns**: Flexible data storage (nodes, edges, content, variables, metadata, flowJson, categories)
+- **5 ENUM types**: Strict type enforcement (message_type, message_status, chatbot_status, whatsapp_flow_status, whatsapp_flow_category)
 - **8 foreign keys**: Referential integrity with CASCADE
 - **12+ indexes**: Performance optimization
 

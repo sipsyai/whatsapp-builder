@@ -2,16 +2,21 @@ import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { WebhooksController } from './webhooks.controller';
+import { FlowEndpointController } from './flow-endpoint.controller';
 import {
   WebhookSignatureService,
   WebhookParserService,
   WebhookProcessorService,
 } from './services';
+import { FlowEndpointService } from './services/flow-endpoint.service';
 import { Message } from '../../entities/message.entity';
 import { Conversation } from '../../entities/conversation.entity';
 import { User } from '../../entities/user.entity';
+import { WhatsAppConfig } from '../../entities/whatsapp-config.entity';
+import { ConversationContext } from '../../entities/conversation-context.entity';
 import { ChatBotsModule } from '../chatbots/chatbots.module';
 import { WebSocketModule } from '../websocket/websocket.module';
+import { WhatsAppModule } from '../whatsapp/whatsapp.module';
 
 /**
  * Webhooks Module
@@ -20,15 +25,23 @@ import { WebSocketModule } from '../websocket/websocket.module';
 @Module({
   imports: [
     ConfigModule,
-    TypeOrmModule.forFeature([Message, Conversation, User]),
+    TypeOrmModule.forFeature([
+      Message,
+      Conversation,
+      User,
+      WhatsAppConfig,
+      ConversationContext,
+    ]),
     ChatBotsModule,
+    WhatsAppModule,
     forwardRef(() => WebSocketModule),
   ],
-  controllers: [WebhooksController],
+  controllers: [WebhooksController, FlowEndpointController],
   providers: [
     WebhookSignatureService,
     WebhookParserService,
     WebhookProcessorService,
+    FlowEndpointService,
   ],
   exports: [
     WebhookSignatureService,

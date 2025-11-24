@@ -161,6 +161,50 @@ async sendListMessage(dto: SendListMessageDto): Promise<MessageResponse> {
 - Row title: max 24 characters
 - Row description: max 72 characters
 
+### 4. WhatsApp Flow Messages
+**Service**: `InteractiveMessageService`
+**File**: `/home/ali/whatsapp-builder/backend/src/modules/whatsapp/services/message-types/interactive-message.service.ts`
+
+WhatsApp Flows enable interactive forms with multiple screens, input validation, and data collection.
+
+```typescript
+async sendFlowMessage(dto: SendFlowMessageDto): Promise<MessageResponse> {
+  const payload = {
+    messaging_product: "whatsapp",
+    to: dto.to,
+    type: "interactive",
+    interactive: {
+      type: "flow",
+      header: dto.headerText ? { type: "text", text: dto.headerText } : undefined,
+      body: { text: dto.bodyText },
+      footer: dto.footerText ? { text: dto.footerText } : undefined,
+      action: {
+        name: "flow",
+        parameters: {
+          flow_message_version: "3",
+          flow_token: dto.flowToken,  // "{contextId}-{nodeId}" for tracking
+          flow_id: dto.flowId,        // WhatsApp Flow ID from Meta
+          flow_cta: dto.flowCta,      // Button text (e.g., "Fill Form")
+          flow_action: dto.flowAction, // "navigate" or "data_exchange"
+          mode: dto.mode,             // "draft" or "published"
+        },
+      },
+    },
+  };
+
+  return await this.whatsappApi.sendMessage(payload);
+}
+```
+
+**Flow Token Structure**:
+- Format: `{conversationContextId}-{currentNodeId}`
+- Purpose: Track which ChatBot context and node triggered the Flow
+- Used to resume ChatBot execution after Flow completion
+
+**Flow Modes**:
+- **draft**: Test mode (requires preview URL from WhatsApp)
+- **published**: Production mode (available to all users)
+
 ---
 
 ## Webhook Processing
@@ -249,12 +293,19 @@ parseMessages(value: any): ParsedMessageDto[] {
         break;
 
       case 'interactive':
+        parsed.interactiveType = msg.interactive.type;
+
         if (msg.interactive.type === 'button_reply') {
           parsed.text = msg.interactive.button_reply.title;
           parsed.buttonId = msg.interactive.button_reply.id;
         } else if (msg.interactive.type === 'list_reply') {
           parsed.text = msg.interactive.list_reply.title;
           parsed.listRowId = msg.interactive.list_reply.id;
+        } else if (msg.interactive.type === 'nfm_reply') {
+          // Flow response
+          parsed.text = 'Flow Response';
+          parsed.flowToken = msg.interactive.nfm_reply.response_json.flow_token;
+          parsed.flowResponseData = msg.interactive.nfm_reply.response_json;
         }
         break;
 
@@ -303,16 +354,282 @@ async processMessages(messages: ParsedMessageDto[]): Promise<void> {
 
     // 5. Execute chatbot logic
     if (msg.type === 'text' || msg.type === 'interactive') {
-      await this.executionService.processUserResponse(
-        conversation.id,
-        msg.text,
-        msg.buttonId,
-        msg.listRowId,
-      );
+      // Handle Flow response separately
+      if (msg.interactiveType === 'nfm_reply') {
+        await this.processFlowResponse(conversation.id, msg);
+      } else {
+        await this.executionService.processUserResponse(
+          conversation.id,
+          msg.text,
+          msg.buttonId,
+          msg.listRowId,
+        );
+      }
     }
   }
 }
+
+async processFlowResponse(conversationId: string, msg: ParsedMessageDto): Promise<void> {
+  // Parse flow_token: "{contextId}-{nodeId}"
+  const [contextId, nodeId] = msg.flowToken.split('-');
+
+  // Load conversation context
+  const context = await this.contextRepo.findOne({
+    where: { id: contextId },
+    relations: ['chatbot'],
+  });
+
+  if (!context) {
+    this.logger.error(`Context not found for flow_token: ${msg.flowToken}`);
+    return;
+  }
+
+  // Save Flow response to context variables
+  const flowOutputVariable = context.variables._currentFlowOutputVariable || 'flowData';
+  context.variables[flowOutputVariable] = msg.flowResponseData;
+
+  await this.contextRepo.save(context);
+
+  // Resume ChatBot execution from next node
+  await this.executionService.executeCurrentNode(context);
+}
 ```
+
+---
+
+## Flow Endpoint
+
+WhatsApp Flows support server-side endpoints for dynamic data exchange during user interactions.
+
+### Flow Endpoint Controller
+**File**: `/home/ali/whatsapp-builder/backend/src/modules/webhooks/flow-endpoint.controller.ts`
+
+```typescript
+@Controller('api/webhooks/flow-endpoint')
+export class FlowEndpointController {
+  @Post()
+  async handleFlowWebhook(
+    @Req() req: RawBodyRequest<Request>,
+    @Headers('x-hub-signature-256') signature: string,
+    @Body() body: any,
+  ): Promise<any> {
+    // 1. Verify signature
+    await this.encryptionService.verifySignature(signature, req.rawBody);
+
+    // 2. Decrypt request
+    const decryptedRequest = await this.encryptionService.decryptRequest(
+      body.encrypted_flow_data,
+      body.encrypted_aes_key,
+      body.initial_vector,
+    );
+
+    // 3. Process action
+    const response = await this.flowEndpointService.handleAction(
+      decryptedRequest.action,
+      decryptedRequest.flow_token,
+      decryptedRequest.data,
+    );
+
+    // 4. Encrypt response
+    const encryptedResponse = await this.encryptionService.encryptResponse(
+      response,
+      body.encrypted_aes_key,
+      body.initial_vector,
+    );
+
+    return {
+      version: decryptedRequest.version,
+      data: encryptedResponse.encryptedData,
+      encrypted_flow_data_exchange_tag: encryptedResponse.tag,
+    };
+  }
+}
+```
+
+### Flow Actions
+
+**FlowEndpointService** handles different action types:
+
+```typescript
+async handleAction(action: string, flowToken: string, data: any): Promise<any> {
+  switch (action) {
+    case 'INIT':
+      // Return first screen of Flow
+      return {
+        screen: 'WELCOME_SCREEN',
+        data: {
+          // Pre-populate fields if needed
+        },
+      };
+
+    case 'data_exchange':
+      // Process form submission
+      // Validate data
+      // Return next screen or completion
+      return {
+        screen: 'SUCCESS',
+        data: {
+          message: 'Form submitted successfully',
+        },
+      };
+
+    case 'BACK':
+      // Handle backward navigation
+      return {
+        screen: 'PREVIOUS_SCREEN',
+        data: {},
+      };
+
+    case 'error_notification':
+      // Log error from Flow
+      this.logger.error('Flow error:', data);
+      return {};
+
+    case 'ping':
+      // Health check
+      return { version: '3.0' };
+
+    default:
+      throw new BadRequestException(`Unknown action: ${action}`);
+  }
+}
+```
+
+---
+
+## Flow Encryption & Security
+
+WhatsApp Flows use **RSA + AES encryption** for secure data exchange.
+
+### Encryption Service
+**File**: `/home/ali/whatsapp-builder/backend/src/modules/whatsapp/services/flow-encryption.service.ts`
+
+### Architecture
+```
+                    WhatsApp                          Your Server
+                       │                                    │
+                       │  1. Generate AES key              │
+                       │  2. Encrypt request with AES      │
+                       │  3. Encrypt AES key with RSA      │
+                       │────────────────────────────────>  │
+                       │                                    │
+                       │                                 4. Decrypt AES key with RSA private key
+                       │                                 5. Decrypt request with AES key
+                       │                                 6. Process request
+                       │                                 7. Encrypt response with same AES key
+                       │  <────────────────────────────────│
+                       │  8. Decrypt response with AES key │
+```
+
+### Decryption (Incoming Requests)
+
+```typescript
+async decryptRequest(
+  encryptedFlowData: string,
+  encryptedAesKey: string,
+  initialVector: string,
+): Promise<any> {
+  // 1. Decrypt AES key using RSA private key
+  const aesKeyBuffer = crypto.privateDecrypt(
+    {
+      key: this.privateKey,
+      padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+      oaepHash: 'sha256',
+    },
+    Buffer.from(encryptedAesKey, 'base64'),
+  );
+
+  // 2. Decrypt request body using AES-128-GCM
+  const decipher = crypto.createDecipheriv(
+    'aes-128-gcm',
+    aesKeyBuffer,
+    Buffer.from(initialVector, 'base64'),
+  );
+
+  const encryptedBuffer = Buffer.from(encryptedFlowData, 'base64');
+  const authTag = encryptedBuffer.slice(-16);  // Last 16 bytes
+  const ciphertext = encryptedBuffer.slice(0, -16);
+
+  decipher.setAuthTag(authTag);
+
+  const decrypted = Buffer.concat([
+    decipher.update(ciphertext),
+    decipher.final(),
+  ]);
+
+  return JSON.parse(decrypted.toString('utf-8'));
+}
+```
+
+### Encryption (Outgoing Responses)
+
+```typescript
+async encryptResponse(
+  response: any,
+  encryptedAesKey: string,
+  initialVector: string,
+): Promise<{ encryptedData: string; tag: string }> {
+  // 1. Decrypt AES key (same as above)
+  const aesKeyBuffer = crypto.privateDecrypt(/* ... */);
+
+  // 2. Encrypt response using AES-128-GCM
+  const cipher = crypto.createCipheriv(
+    'aes-128-gcm',
+    aesKeyBuffer,
+    Buffer.from(initialVector, 'base64'),
+  );
+
+  const encrypted = Buffer.concat([
+    cipher.update(JSON.stringify(response), 'utf-8'),
+    cipher.final(),
+  ]);
+
+  const authTag = cipher.getAuthTag();
+
+  return {
+    encryptedData: Buffer.concat([encrypted, authTag]).toString('base64'),
+    tag: authTag.toString('base64'),
+  };
+}
+```
+
+### Signature Verification
+
+```typescript
+async verifySignature(signature: string, rawBody: Buffer): Promise<void> {
+  const expectedSignature = crypto
+    .createHmac('sha256', this.appSecret)
+    .update(rawBody)
+    .digest('hex');
+
+  const receivedSignature = signature?.replace('sha256=', '');
+
+  if (expectedSignature !== receivedSignature) {
+    throw new UnauthorizedException('Invalid Flow endpoint signature');
+  }
+}
+```
+
+### RSA Key Pair Management
+
+**Generate Keys**:
+```bash
+# Generate private key
+openssl genrsa -out private.pem 2048
+
+# Extract public key
+openssl rsa -in private.pem -pubout -out public.pem
+```
+
+**Environment Configuration**:
+```bash
+WHATSAPP_FLOW_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
+```
+
+**Upload Public Key to WhatsApp**:
+- Navigate to WhatsApp Manager → Flows → Settings
+- Upload `public.pem`
+- WhatsApp will use this to encrypt AES keys
 
 ---
 
@@ -448,10 +765,18 @@ try {
 4. **Signature Verification**: `WebhookSignatureService` validates webhook authenticity
 5. **Message Parsing**: `WebhookParserService` transforms webhook payloads
 6. **Chatbot Execution**: `ChatBotExecutionService` processes user responses
+7. **Flow Management**: `FlowsModule` manages WhatsApp Flows lifecycle
+8. **Flow Endpoint**: `FlowEndpointController` handles Flow data exchange
+9. **Flow Encryption**: `FlowEncryptionService` handles RSA + AES encryption
 
 ### Message Flow
 **Outbound**: ChatBot → WhatsAppMessageService → WhatsAppApiService → WhatsApp API
 **Inbound**: WhatsApp → Webhook → WebhookProcessor → ChatBotExecution → Response
+
+### Flow Execution Flow
+**Send Flow**: ChatBot (WhatsAppFlowNode) → Generate flow_token → Send Flow message → Wait
+**User Interaction**: User opens Flow → WhatsApp calls Flow Endpoint → Decrypt → Process → Encrypt → Return
+**Flow Completion**: User submits → WhatsApp sends webhook → Parse flow_token → Extract data → Resume ChatBot
 
 ---
 

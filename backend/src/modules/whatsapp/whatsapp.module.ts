@@ -6,6 +6,7 @@ import { WhatsAppApiService } from './services/whatsapp-api.service';
 import { WhatsAppFlowService } from './services/whatsapp-flow.service';
 import { WhatsAppMessageService } from './services/whatsapp-message.service';
 import { WhatsAppConfigService } from './services/whatsapp-config.service';
+import { FlowEncryptionService } from './services/flow-encryption.service';
 import { FlowMessageService } from './services/message-types/flow-message.service';
 import { TextMessageService } from './services/message-types/text-message.service';
 import { InteractiveMessageService } from './services/message-types/interactive-message.service';
@@ -19,6 +20,7 @@ import { WhatsAppConfigController } from './whatsapp-config.controller';
     WhatsAppFlowService,
     WhatsAppMessageService,
     WhatsAppConfigService,
+    FlowEncryptionService,
     FlowMessageService,
     TextMessageService,
     InteractiveMessageService,
@@ -28,6 +30,8 @@ import { WhatsAppConfigController } from './whatsapp-config.controller';
     WhatsAppFlowService,
     WhatsAppMessageService,
     WhatsAppConfigService,
+    FlowEncryptionService,
+    FlowMessageService,
     TextMessageService,
     InteractiveMessageService,
   ],

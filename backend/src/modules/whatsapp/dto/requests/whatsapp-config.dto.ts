@@ -27,6 +27,7 @@ export class WhatsAppConfigResponseDto {
   phoneNumberId: string;
   businessAccountId: string;
   webhookVerifyToken: string;
+  appSecret?: string;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;

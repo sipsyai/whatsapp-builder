@@ -5,9 +5,14 @@ import { ConversationContext } from '../../../entities/conversation-context.enti
 import { ChatBot } from '../../../entities/chatbot.entity';
 import { Conversation } from '../../../entities/conversation.entity';
 import { User } from '../../../entities/user.entity';
+import { Message, MessageType, MessageStatus } from '../../../entities/message.entity';
 import { TextMessageService } from '../../whatsapp/services/message-types/text-message.service';
 import { InteractiveMessageService } from '../../whatsapp/services/message-types/interactive-message.service';
+import { FlowMessageService } from '../../whatsapp/services/message-types/flow-message.service';
+import { FlowMode } from '../../whatsapp/dto/requests/send-flow-message.dto';
+import { MessagesService } from '../../messages/messages.service';
 import { NodeDataType, QuestionType } from '../dto/node-data.dto';
+import { WhatsAppFlow } from '../../../entities/whatsapp-flow.entity';
 
 @Injectable()
 export class ChatBotExecutionService {
@@ -22,8 +27,12 @@ export class ChatBotExecutionService {
     private readonly conversationRepo: Repository<Conversation>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    @InjectRepository(WhatsAppFlow)
+    private readonly flowRepo: Repository<WhatsAppFlow>,
     private readonly textMessageService: TextMessageService,
     private readonly interactiveMessageService: InteractiveMessageService,
+    private readonly flowMessageService: FlowMessageService,
+    private readonly messagesService: MessagesService,
   ) {}
 
   /**
@@ -134,6 +143,9 @@ export class ChatBotExecutionService {
         break;
       case NodeDataType.CONDITION:
         await this.processConditionNode(context, currentNode);
+        break;
+      case NodeDataType.WHATSAPP_FLOW:
+        await this.processWhatsAppFlowNode(context, currentNode);
         break;
       default:
         this.logger.error(`Unknown node type: ${nodeType}`);
@@ -261,12 +273,26 @@ export class ChatBotExecutionService {
             title: buttonText.substring(0, 20), // Max 20 chars
           }));
 
-          await this.interactiveMessageService.sendButtonMessage({
+          const buttonResult = await this.interactiveMessageService.sendButtonMessage({
             to: recipientPhone,
             bodyText: message,
             headerText: node.data?.headerText,
             footerText: node.data?.footerText,
             buttons: buttonItems,
+          });
+
+          // Save button message to database
+          const businessUser = await this.getBusinessUser(context.conversation);
+          await this.messagesService.create({
+            conversationId: context.conversation.id,
+            senderId: businessUser.id,
+            type: MessageType.INTERACTIVE,
+            content: {
+              whatsappMessageId: buttonResult.response.messages[0].id,
+              ...buttonResult.content,
+            },
+            status: MessageStatus.SENT,
+            timestamp: new Date(),
           });
 
           this.logger.log(`Sent button question to ${recipientPhone}`);
@@ -284,13 +310,27 @@ export class ChatBotExecutionService {
             })),
           }));
 
-          await this.interactiveMessageService.sendListMessage({
+          const listResult = await this.interactiveMessageService.sendListMessage({
             to: recipientPhone,
             bodyText: message,
             listButtonText: node.data?.listButtonText || 'Choose',
             headerText: node.data?.headerText,
             footerText: node.data?.footerText,
             sections,
+          });
+
+          // Save list message to database
+          const businessUserForList = await this.getBusinessUser(context.conversation);
+          await this.messagesService.create({
+            conversationId: context.conversation.id,
+            senderId: businessUserForList.id,
+            type: MessageType.INTERACTIVE,
+            content: {
+              whatsappMessageId: listResult.response.messages[0].id,
+              ...listResult.content,
+            },
+            status: MessageStatus.SENT,
+            timestamp: new Date(),
           });
 
           this.logger.log(`Sent list question to ${recipientPhone}`);
@@ -397,6 +437,159 @@ export class ChatBotExecutionService {
     await this.contextRepo.save(context);
 
     // Execute next node recursively
+    await this.executeCurrentNode(context.id);
+  }
+
+  /**
+   * Process WHATSAPP_FLOW node - send WhatsApp Flow and WAIT for completion
+   */
+  private async processWhatsAppFlowNode(
+    context: ConversationContext,
+    node: any,
+  ): Promise<void> {
+    this.logger.log(`Processing WHATSAPP_FLOW node ${node.id}`);
+
+    const flowId = node.data?.whatsappFlowId;
+    const flowMode = (node.data?.flowMode || FlowMode.NAVIGATE) as FlowMode;
+    const flowCta = node.data?.flowCta || 'Start';
+    const flowOutputVariable = node.data?.flowOutputVariable;
+
+    if (!flowId) {
+      this.logger.error('WhatsApp Flow ID not specified in node data');
+      throw new Error('WhatsApp Flow ID required');
+    }
+
+    // Load Flow from database
+    const flow = await this.flowRepo.findOne({
+      where: { id: flowId },
+    });
+
+    if (!flow) {
+      this.logger.error(`WhatsApp Flow ${flowId} not found`);
+      throw new NotFoundException(`WhatsApp Flow ${flowId} not found`);
+    }
+
+    if (!flow.whatsappFlowId) {
+      this.logger.error(`Flow ${flowId} has not been published to WhatsApp yet`);
+      throw new Error('Flow must be published before use');
+    }
+
+    // Get recipient phone number
+    const recipientPhone = await this.getRecipientPhone(context.conversation);
+
+    // Prepare initial data with variable replacement
+    let initialData = node.data?.flowInitialData || {};
+    if (typeof initialData === 'object') {
+      initialData = JSON.parse(
+        this.replaceVariables(JSON.stringify(initialData), context.variables),
+      );
+    }
+
+    // Create flow_token: {contextId}-{nodeId}
+    const flowToken = `${context.id}-${node.id}`;
+
+    try {
+      // Send Flow message
+      const content = node.data?.content || 'Please complete this form';
+      const message = this.replaceVariables(content, context.variables);
+
+      await this.flowMessageService.sendFlowMessage({
+        to: recipientPhone,
+        flowId: flow.whatsappFlowId,
+        body: message,
+        ctaText: flowCta,
+        header: node.data?.headerText,
+        footer: node.data?.footerText,
+        flowToken,
+        mode: flowMode,
+        initialScreen: node.data?.flowInitialScreen,
+        initialData,
+      });
+
+      this.logger.log(
+        `Sent WhatsApp Flow ${flow.whatsappFlowId} to ${recipientPhone}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to send Flow to ${recipientPhone}: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+
+    // DO NOT move to next node - wait for Flow completion
+    // Save the output variable name for later use when Flow completes
+    if (flowOutputVariable) {
+      context.variables['__awaiting_flow_response__'] = flowOutputVariable;
+    }
+    await this.contextRepo.save(context);
+
+    this.logger.log(
+      `Waiting for Flow completion to save in variable: ${flowOutputVariable || 'none'}`,
+    );
+  }
+
+  /**
+   * Process Flow completion response
+   * Called when Flow completes (from webhook or Flow endpoint)
+   */
+  async processFlowResponse(
+    flowToken: string,
+    flowResponse: any,
+  ): Promise<void> {
+    this.logger.log(`Processing Flow response for token: ${flowToken}`);
+
+    // Parse flow_token: {contextId}-{nodeId}
+    const parts = flowToken.split('-');
+    if (parts.length < 2) {
+      this.logger.error(`Invalid flow_token format: ${flowToken}`);
+      return;
+    }
+
+    const contextId = parts[0];
+    const nodeId = parts.slice(1).join('-'); // In case nodeId contains dashes
+
+    // Load context
+    const context = await this.contextRepo.findOne({
+      where: { id: contextId, isActive: true },
+      relations: ['conversation', 'chatbot'],
+    });
+
+    if (!context) {
+      this.logger.warn(`Context ${contextId} not found or inactive`);
+      return;
+    }
+
+    // Save Flow response to variables
+    const outputVariable = context.variables['__awaiting_flow_response__'];
+    if (outputVariable) {
+      context.variables[outputVariable] = flowResponse;
+      delete context.variables['__awaiting_flow_response__'];
+
+      this.logger.log(
+        `Saved Flow response to variable '${outputVariable}': ${JSON.stringify(flowResponse)}`,
+      );
+    }
+
+    // Add node to history
+    context.nodeHistory.push(nodeId);
+
+    // Find next node
+    const nextNode = this.findNextNode(context.chatbot, nodeId);
+
+    if (!nextNode) {
+      this.logger.log('No next node after Flow. ChatBot ended.');
+      context.isActive = false;
+      await this.contextRepo.save(context);
+      return;
+    }
+
+    // Update context to next node
+    context.currentNodeId = nextNode.id;
+    await this.contextRepo.save(context);
+
+    // Execute next node
+    this.logger.log(`Moving to next node: ${nextNode.id}`);
     await this.executeCurrentNode(context.id);
   }
 
@@ -600,6 +793,39 @@ export class ChatBotExecutionService {
     }
 
     return customer.phoneNumber;
+  }
+
+  /**
+   * Get business user from conversation
+   */
+  private async getBusinessUser(conversation: Conversation): Promise<User> {
+    // Load conversation with participants if not loaded
+    if (!conversation.participants) {
+      const loadedConversation = await this.conversationRepo.findOne({
+        where: { id: conversation.id },
+        relations: ['participants'],
+      });
+
+      if (!loadedConversation) {
+        throw new NotFoundException('Conversation not found');
+      }
+
+      conversation = loadedConversation;
+    }
+
+    if (!conversation.participants || conversation.participants.length === 0) {
+      throw new NotFoundException('Conversation has no participants');
+    }
+
+    // Find the business user (the one with name "Business")
+    let businessUser = conversation.participants.find((p) => p.name === 'Business');
+
+    if (!businessUser) {
+      // If no user named "Business", use the first participant as fallback
+      businessUser = conversation.participants[0];
+    }
+
+    return businessUser;
   }
 
   /**
