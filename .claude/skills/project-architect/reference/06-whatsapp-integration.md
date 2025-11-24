@@ -292,6 +292,92 @@ export class WhatsAppFlowService {
 }
 ```
 
+### Flow Sync from Meta API (NEW)
+
+The application supports syncing Flows directly from Meta/Facebook API to import flows created in Meta Business Manager.
+
+#### Fetch All Flows with Pagination
+```typescript
+async fetchAllFlows(): Promise<MetaFlowItem[]> {
+  const fields = 'id,name,status,categories,validation_errors,updated_at,endpoint_uri,preview';
+  let hasMore = true;
+  let afterCursor: string | undefined;
+  const allFlows: MetaFlowItem[] = [];
+
+  while (hasMore) {
+    const endpoint = afterCursor
+      ? `/${wabaId}/flows?fields=${fields}&after=${afterCursor}`
+      : `/${wabaId}/flows?fields=${fields}`;
+
+    const response = await this.apiService.get<MetaFlowsListResponse>(endpoint);
+    allFlows.push(...response.data);
+
+    // Handle pagination
+    afterCursor = response.paging?.cursors?.after;
+    hasMore = !!afterCursor;
+  }
+
+  return allFlows;
+}
+```
+
+#### Download Flow JSON Content
+```typescript
+async getFlowJson(flowId: string): Promise<any> {
+  // Step 1: Get assets list
+  const assetsResponse = await this.getFlowAssets(flowId);
+
+  // Step 2: Find FLOW_JSON asset
+  const flowJsonAsset = assetsResponse.data?.find(
+    asset => asset.asset_type === 'FLOW_JSON'
+  );
+
+  if (!flowJsonAsset?.download_url) {
+    return null;
+  }
+
+  // Step 3: Download from URL
+  const response = await axios.get(flowJsonAsset.download_url);
+  return response.data;
+}
+```
+
+#### Meta API Response Types
+```typescript
+interface MetaFlowsListResponse {
+  data: MetaFlowItem[];
+  paging?: {
+    cursors?: {
+      after?: string;
+      before?: string;
+    };
+  };
+}
+
+interface MetaFlowItem {
+  id: string;
+  name: string;
+  status: string;
+  categories?: string[];
+  validation_errors?: any[];
+  endpoint_uri?: string;
+  preview?: {
+    preview_url: string;
+    expires_at: string;
+  };
+}
+
+interface FlowAssetsResponse {
+  data: FlowAsset[];
+}
+
+interface FlowAsset {
+  name: string;
+  asset_type: 'FLOW_JSON';
+  download_url: string;
+}
+```
+
 ### Flow Lifecycle Management
 
 **FlowsService** (backend/src/modules/flows/flows.service.ts) orchestrates Flow operations:

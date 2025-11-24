@@ -10,7 +10,7 @@ import {
   HttpStatus,
   Query,
 } from '@nestjs/common';
-import { FlowsService } from './flows.service';
+import { FlowsService, SyncResult } from './flows.service';
 import { CreateFlowDto } from './dto/create-flow.dto';
 import { UpdateFlowDto } from './dto/update-flow.dto';
 import { WhatsAppFlow } from '../../entities/whatsapp-flow.entity';
@@ -26,6 +26,16 @@ export class FlowsController {
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() dto: CreateFlowDto): Promise<WhatsAppFlow> {
     return this.flowsService.create(dto);
+  }
+
+  /**
+   * Sync flows from Meta/Facebook API
+   * Fetches all flows from WABA and creates/updates local database
+   */
+  @Post('sync')
+  @HttpCode(HttpStatus.OK)
+  async syncFromMeta(): Promise<SyncResult> {
+    return this.flowsService.syncFromMeta();
   }
 
   /**

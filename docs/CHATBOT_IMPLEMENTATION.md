@@ -56,6 +56,20 @@ WhatsApp Chatbot Builder sistemi, kullanıcıların görsel bir arayüzle (React
 | **QUESTION (buttons)** | Interactive buton sorusu (max 3) | ✅ Backend |
 | **QUESTION (list)** | Interactive liste sorusu | ✅ Backend |
 | **CONDITION** | Koşullu dallanma | ✅ Backend |
+| **WHATSAPP_FLOW** | WhatsApp Flows entegrasyonu | ✅ Backend + Frontend |
+
+### WhatsApp Flow Node Hakkında
+
+WhatsApp Flow node'u, ChatBot içinde interaktif WhatsApp Flows kullanmanızı sağlar. Flow'lar iki şekilde elde edilebilir:
+
+1. **Yerel Oluşturma**: Flows sayfasından manuel olarak Flow JSON ile oluşturma
+2. **Meta'dan Senkronize Etme**: "Sync from Meta" butonu ile Meta Business Manager'dan mevcut Flow'ları içe aktarma
+
+**Sync from Meta Özelliği:**
+- `POST /api/flows/sync` endpoint'i ile tüm Flow'lar Meta API'den çekilir
+- Yeni Flow'lar oluşturulur, mevcut olanlar güncellenir
+- Flow JSON içeriği otomatik olarak indirilir
+- Senkronize edilen Flow'lar `metadata.synced_from_meta: true` ile işaretlenir
 
 ---
 

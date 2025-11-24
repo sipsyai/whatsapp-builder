@@ -790,12 +790,34 @@ Manages WhatsApp Flows lifecycle: creation, updates, publishing, and deletion. P
     5. Graceful error handling: continues with local deletion even if WhatsApp API fails
   - **Logging**: Comprehensive logging at each step for troubleshooting
   - **Error Handling**: Catches deprecation/deletion errors, logs warnings, but continues with local cleanup
+- `syncFromMeta()`: **NEW** - Sync all flows from Meta/Facebook API
+  - Fetches flows with pagination support via `WhatsAppFlowService.fetchAllFlows()`
+  - Downloads flow JSON content from Meta assets via `WhatsAppFlowService.getFlowJson()`
+  - Creates new flows or updates existing ones based on `whatsappFlowId`
+  - Returns `SyncResult` with statistics (created/updated/unchanged/total)
+  - **Private Methods**:
+    - `syncSingleFlow(metaFlow)`: Process single flow from Meta
+    - `isFlowChanged(existingFlow, metaFlow)`: Detect if flow needs update
+    - `mapCategories(categories)`: Map Meta categories to enum
+
+**SyncResult Interface**:
+```typescript
+interface SyncResult {
+  created: number;    // Newly created flows
+  updated: number;    // Updated existing flows
+  unchanged: number;  // Flows with no changes
+  total: number;      // Total flows fetched from Meta
+  flows: WhatsAppFlow[];  // All synced flow records
+}
+```
 
 **Flow Lifecycle**:
 ```
 Create → DRAFT → Publish → PUBLISHED → Update → DRAFT → Re-publish → PUBLISHED
                               ↓
                           Deprecate → DEPRECATED → Delete
+
+Sync from Meta → Creates/Updates local records with synced_from_meta: true
 ```
 
 #### Controller
@@ -807,6 +829,7 @@ export class FlowsController {
   @Get()                    // List all flows
   @Get('active')            // List published flows only
   @Post()                   // Create flow
+  @Post('sync')             // NEW - Sync from Meta API
   @Get(':id')               // Get flow by ID
   @Put(':id')               // Update flow
   @Post(':id/publish')      // Publish to WhatsApp

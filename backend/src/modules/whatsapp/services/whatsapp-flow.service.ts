@@ -6,7 +6,11 @@ import {
   FlowResponse,
   FlowHealthStatus,
   FlowDetails,
+  MetaFlowsListResponse,
+  MetaFlowItem,
+  FlowAssetsResponse,
 } from '../interfaces/flow.interface';
+import axios from 'axios';
 
 @Injectable()
 export class WhatsAppFlowService {
@@ -120,5 +124,90 @@ export class WhatsAppFlowService {
     if (dto.endpointUri) payload.endpoint_uri = dto.endpointUri;
 
     return this.apiService.post<FlowResponse>(`/${flowId}`, payload);
+  }
+
+  /**
+   * Fetch all Flows from Meta/Facebook API
+   * Returns all flows associated with the WABA
+   */
+  async fetchAllFlows(): Promise<MetaFlowItem[]> {
+    this.logger.log('Fetching all flows from Meta API');
+
+    const fields = 'id,name,status,categories,validation_errors,updated_at,endpoint_uri,preview';
+    const allFlows: MetaFlowItem[] = [];
+    let hasMore = true;
+    let afterCursor: string | undefined;
+
+    while (hasMore) {
+      const endpoint = afterCursor
+        ? `/${this.wabaId}/flows?fields=${fields}&after=${afterCursor}`
+        : `/${this.wabaId}/flows?fields=${fields}`;
+
+      const response = await this.apiService.get<MetaFlowsListResponse>(endpoint);
+
+      if (response.data && response.data.length > 0) {
+        allFlows.push(...response.data);
+        this.logger.log(`Fetched ${response.data.length} flows (total: ${allFlows.length})`);
+      }
+
+      // Check for pagination
+      if (response.paging?.cursors?.after) {
+        afterCursor = response.paging.cursors.after;
+      } else {
+        hasMore = false;
+      }
+    }
+
+    this.logger.log(`Total flows fetched from Meta: ${allFlows.length}`);
+    return allFlows;
+  }
+
+  /**
+   * Get single flow with full details from Meta API
+   */
+  async getFlowFromMeta(flowId: string): Promise<MetaFlowItem> {
+    this.logger.log(`Fetching flow ${flowId} from Meta API`);
+    const fields = 'id,name,status,categories,validation_errors,updated_at,endpoint_uri,preview';
+    return this.apiService.get<MetaFlowItem>(`/${flowId}?fields=${fields}`);
+  }
+
+  /**
+   * Get Flow assets (contains download URL for flow.json)
+   */
+  async getFlowAssets(flowId: string): Promise<FlowAssetsResponse> {
+    this.logger.log(`Fetching assets for flow ${flowId}`);
+    return this.apiService.get<FlowAssetsResponse>(`/${flowId}/assets`);
+  }
+
+  /**
+   * Get Flow JSON content by downloading from assets
+   * Returns the actual flow.json content
+   */
+  async getFlowJson(flowId: string): Promise<any> {
+    this.logger.log(`Fetching flow JSON for flow ${flowId}`);
+
+    try {
+      // Step 1: Get assets list
+      const assetsResponse = await this.getFlowAssets(flowId);
+
+      // Step 2: Find the FLOW_JSON asset
+      const flowJsonAsset = assetsResponse.data?.find(
+        (asset) => asset.asset_type === 'FLOW_JSON',
+      );
+
+      if (!flowJsonAsset || !flowJsonAsset.download_url) {
+        this.logger.warn(`No FLOW_JSON asset found for flow ${flowId}`);
+        return null;
+      }
+
+      // Step 3: Download the actual flow JSON content
+      this.logger.log(`Downloading flow JSON from: ${flowJsonAsset.download_url}`);
+      const response = await axios.get(flowJsonAsset.download_url);
+
+      return response.data;
+    } catch (error) {
+      this.logger.error(`Failed to fetch flow JSON for ${flowId}: ${error.message}`);
+      return null;
+    }
   }
 }

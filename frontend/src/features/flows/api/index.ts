@@ -33,6 +33,14 @@ export type UpdateFlowDto = {
   isActive?: boolean;
 };
 
+export type SyncResult = {
+  created: number;
+  updated: number;
+  unchanged: number;
+  total: number;
+  flows: WhatsAppFlow[];
+};
+
 export const flowsApi = {
   // Get all Flows
   async getAll(): Promise<WhatsAppFlow[]> {
@@ -102,5 +110,14 @@ export const flowsApi = {
       method: 'DELETE',
     });
     if (!response.ok) throw new Error('Failed to delete flow');
+  },
+
+  // Sync flows from Meta/Facebook API
+  async syncFromMeta(): Promise<SyncResult> {
+    const response = await fetch(`${API_BASE_URL}/flows/sync`, {
+      method: 'POST',
+    });
+    if (!response.ok) throw new Error('Failed to sync flows from Meta');
+    return response.json();
   },
 };

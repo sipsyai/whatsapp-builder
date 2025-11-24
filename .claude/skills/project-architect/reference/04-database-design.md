@@ -585,6 +585,20 @@ export class WhatsAppFlow {
 - **status**: Reflects WhatsApp API Flow status (synced after publish/deprecate operations)
 - **Soft reference from ChatBots**: `chatbots.nodes[].data.whatsappFlowId` references this entity's `id` field
 
+**Metadata Fields (JSONB)**:
+```typescript
+metadata: {
+  validation_errors?: FlowValidationError[];  // Errors from WhatsApp API
+  synced_at?: string;                         // ISO timestamp of last sync
+  synced_from_meta?: boolean;                 // True if imported via sync
+}
+```
+
+**Sync from Meta Behavior**:
+- When a flow is synced from Meta API, `synced_from_meta: true` and `synced_at` timestamp are set
+- Flows created locally do not have these metadata fields
+- On subsequent syncs, `synced_at` is updated if the flow is modified
+
 **Flow Lifecycle**:
 ```
 Create (DRAFT) → Publish → whatsappFlowId set → PUBLISHED → Update → DRAFT → Re-publish

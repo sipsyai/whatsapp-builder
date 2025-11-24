@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { flowsApi, type WhatsAppFlow } from '../api';
+import { flowsApi, type WhatsAppFlow, type SyncResult } from '../api';
 
 export const FlowsPage = () => {
   const [flows, setFlows] = useState<WhatsAppFlow[]>([]);
@@ -7,6 +7,8 @@ export const FlowsPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedFlow, setSelectedFlow] = useState<WhatsAppFlow | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
 
   useEffect(() => {
     loadFlows();
@@ -55,6 +57,20 @@ export const FlowsPage = () => {
     }
   };
 
+  const handleSyncFromMeta = async () => {
+    try {
+      setSyncing(true);
+      setSyncResult(null);
+      const result = await flowsApi.syncFromMeta();
+      setSyncResult(result);
+      await loadFlows();
+    } catch (err: any) {
+      setError(`Failed to sync: ${err.message}`);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case 'PUBLISHED':
@@ -80,14 +96,56 @@ export const FlowsPage = () => {
               <h1 className="text-4xl font-bold text-zinc-900 dark:text-white mb-2">WhatsApp Flows</h1>
               <p className="text-zinc-500 dark:text-zinc-400">Create and manage interactive WhatsApp Flows</p>
             </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="px-6 py-3 bg-primary text-[#112217] rounded-xl font-bold flex items-center gap-2 hover:bg-primary/90 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
-            >
-              <span className="material-symbols-outlined">add_circle</span>
-              Create Flow
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={handleSyncFromMeta}
+                disabled={syncing}
+                className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              >
+                {syncing ? (
+                  <>
+                    <span className="animate-spin material-symbols-outlined">sync</span>
+                    Syncing...
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined">cloud_download</span>
+                    Sync from Meta
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="px-6 py-3 bg-primary text-[#112217] rounded-xl font-bold flex items-center gap-2 hover:bg-primary/90 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+              >
+                <span className="material-symbols-outlined">add_circle</span>
+                Create Flow
+              </button>
+            </div>
           </div>
+
+          {/* Sync Result Banner */}
+          {syncResult && (
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-blue-600 dark:text-blue-400">check_circle</span>
+                <div>
+                  <p className="font-medium text-blue-900 dark:text-blue-100">
+                    Sync completed successfully!
+                  </p>
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    {syncResult.total} flows found: {syncResult.created} created, {syncResult.updated} updated, {syncResult.unchanged} unchanged
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSyncResult(null)}
+                className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Content */}

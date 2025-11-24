@@ -1431,6 +1431,33 @@ const handleDelete = async (flowId: string) => {
     setError(err.message);
   }
 };
+
+// Sync from Meta API (NEW)
+const handleSyncFromMeta = async () => {
+  setSyncing(true);
+  try {
+    const result = await flowsApi.syncFromMeta();
+    setSyncResult(result);
+    await loadFlows(); // Refresh list with synced flows
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setSyncing(false);
+  }
+};
+```
+
+**Sync Result Display (NEW)**:
+```typescript
+// After sync, display summary banner
+{syncResult && (
+  <div className="sync-result-banner">
+    <span className="success-icon">✓</span>
+    <span>Sync completed: {syncResult.total} flows found</span>
+    <span>{syncResult.created} created, {syncResult.updated} updated, {syncResult.unchanged} unchanged</span>
+    <button onClick={() => setSyncResult(null)}>×</button>
+  </div>
+)}
 ```
 
 **API Client**:
@@ -1445,6 +1472,16 @@ export const flowsApi = {
   getPreview: (id, invalidate = false) =>
     axios.get(`/api/flows/${id}/preview`, { params: { invalidate } }),
   delete: (id) => axios.delete(`/api/flows/${id}`),
+  syncFromMeta: () => axios.post('/api/flows/sync'),  // NEW
+};
+
+// SyncResult Type (NEW)
+export type SyncResult = {
+  created: number;
+  updated: number;
+  unchanged: number;
+  total: number;
+  flows: WhatsAppFlow[];
 };
 ```
 

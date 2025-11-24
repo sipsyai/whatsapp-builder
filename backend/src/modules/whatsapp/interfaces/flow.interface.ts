@@ -42,3 +42,57 @@ export interface FlowHealthError {
   error_description: string;
   possible_solution?: string;
 }
+
+/**
+ * Response from Meta API when listing flows
+ */
+export interface MetaFlowsListResponse {
+  data: MetaFlowItem[];
+  paging?: {
+    cursors?: {
+      before?: string;
+      after?: string;
+    };
+    next?: string;
+  };
+}
+
+/**
+ * Single flow item from Meta API
+ */
+export interface MetaFlowItem {
+  id: string;
+  name: string;
+  status: 'DRAFT' | 'PUBLISHED' | 'DEPRECATED' | 'BLOCKED' | 'THROTTLED';
+  categories: string[];
+  validation_errors?: FlowValidationError[];
+  updated_at?: string;
+  json_version?: string;
+  endpoint_uri?: string;
+  preview?: {
+    preview_url: string;
+    expires_at: string;
+  };
+}
+
+/**
+ * Response from Meta API when fetching flow assets
+ */
+export interface FlowAssetsResponse {
+  data: FlowAsset[];
+  paging?: {
+    cursors?: {
+      before?: string;
+      after?: string;
+    };
+  };
+}
+
+/**
+ * Single flow asset from Meta API
+ */
+export interface FlowAsset {
+  name: string;
+  asset_type: 'FLOW_JSON' | string;
+  download_url: string;
+}
