@@ -6,6 +6,12 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
+export enum FlowStatus {
+  ACTIVE = 'active',
+  ARCHIVED = 'archived',
+  DRAFT = 'draft',
+}
+
 @Entity('flows')
 export class Flow {
   @PrimaryGeneratedColumn('uuid')
@@ -25,6 +31,13 @@ export class Flow {
 
   @Column({ type: 'boolean', default: true })
   isActive: boolean;
+
+  @Column({
+    type: 'enum',
+    enum: FlowStatus,
+    default: FlowStatus.ACTIVE,
+  })
+  status: FlowStatus;
 
   @Column({ type: 'jsonb', nullable: true })
   metadata?: Record<string, any>;

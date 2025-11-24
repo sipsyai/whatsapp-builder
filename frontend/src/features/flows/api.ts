@@ -1,5 +1,11 @@
 import { client } from '../../api/client';
 
+export enum FlowStatus {
+    ACTIVE = 'active',
+    ARCHIVED = 'archived',
+    DRAFT = 'draft',
+}
+
 export interface Flow {
     id: string;
     name: string;
@@ -7,6 +13,7 @@ export interface Flow {
     nodes: any[];
     edges: any[];
     isActive: boolean;
+    status: FlowStatus;
     metadata?: Record<string, any>;
     createdAt: string;
     updatedAt: string;
@@ -25,6 +32,7 @@ export interface QueryFlowsParams {
     sortBy?: 'name' | 'createdAt' | 'updatedAt';
     sortOrder?: 'ASC' | 'DESC';
     isActive?: boolean;
+    status?: FlowStatus;
 }
 
 export const getFlows = async (params?: QueryFlowsParams) => {

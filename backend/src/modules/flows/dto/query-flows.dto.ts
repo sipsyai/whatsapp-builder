@@ -1,5 +1,6 @@
 import { IsOptional, IsString, IsNumber, Min, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
+import { FlowStatus } from '../../../entities/flow.entity';
 
 export enum FlowSortField {
   NAME = 'name',
@@ -40,4 +41,8 @@ export class QueryFlowsDto {
   @IsOptional()
   @Type(() => Boolean)
   isActive?: boolean;
+
+  @IsOptional()
+  @IsEnum(FlowStatus)
+  status?: FlowStatus;
 }

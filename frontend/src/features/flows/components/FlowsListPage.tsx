@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { getFlows, softDeleteFlow, updateFlow, type Flow } from '../api';
+import { getFlows, softDeleteFlow, updateFlow, type Flow, FlowStatus } from '../api';
 
 interface FlowsListPageProps {
     onNavigate: (path: string) => void;
     onLoadFlow?: (flow: Flow) => void;
 }
 
-type FilterType = 'all' | 'active' | 'inactive';
+type FilterType = 'all' | 'active' | 'archived';
 
 export const FlowsListPage: React.FC<FlowsListPageProps> = ({ onNavigate, onLoadFlow }) => {
     const [flows, setFlows] = useState<Flow[]>([]);
@@ -17,7 +17,7 @@ export const FlowsListPage: React.FC<FlowsListPageProps> = ({ onNavigate, onLoad
     const [pageSize] = useState(12);
     const [sortBy] = useState<'name' | 'createdAt' | 'updatedAt'>('createdAt');
     const [sortOrder] = useState<'ASC' | 'DESC'>('DESC');
-    const [filter, setFilter] = useState<FilterType>('all');
+    const [filter, setFilter] = useState<FilterType>('active');
     const [togglingFlowId, setTogglingFlowId] = useState<string | null>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -42,7 +42,7 @@ export const FlowsListPage: React.FC<FlowsListPageProps> = ({ onNavigate, onLoad
                 offset: (currentPage - 1) * pageSize,
                 sortBy,
                 sortOrder,
-                isActive: filter === 'all' ? undefined : filter === 'active'
+                status: filter === 'all' ? undefined : filter === 'active' ? FlowStatus.ACTIVE : FlowStatus.ARCHIVED
             });
             // Ensure data is always an array
             setFlows(Array.isArray(data) ? data : []);
@@ -168,7 +168,7 @@ export const FlowsListPage: React.FC<FlowsListPageProps> = ({ onNavigate, onLoad
                             >
                                 <option value="all">All Flows</option>
                                 <option value="active">Active Only</option>
-                                <option value="inactive">Inactive Only</option>
+                                <option value="archived">Archived Only</option>
                             </select>
                             <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none">
                                 filter_list

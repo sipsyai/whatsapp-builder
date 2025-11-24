@@ -1,10 +1,18 @@
 import { useState, useRef, useEffect } from "react";
-import type { Conversation } from "../../../types/messages";
+import type { Conversation, User } from "../../../types/messages";
 import { MessageBubble } from "./MessageBubble";
 
 interface ChatWindowProps {
     conversation: Conversation;
     onSendMessage: (content: any, type?: "text" | "image" | "document") => void;
+}
+
+// Helper function to extract customer from participants
+const getCustomerFromParticipants = (participants: User[]): User | null => {
+    if (!participants || participants.length === 0) return null;
+    // Find the participant that is NOT the business user
+    const customer = participants.find(p => p.name !== "Business");
+    return customer || null;
 }
 
 export const ChatWindow = ({ conversation, onSendMessage }: ChatWindowProps) => {
@@ -32,6 +40,11 @@ export const ChatWindow = ({ conversation, onSendMessage }: ChatWindowProps) => 
         }
     };
 
+    const customer = getCustomerFromParticipants(conversation.participants);
+    const displayName = customer?.name || conversation.name || conversation.title || 'Unknown User';
+    const displayAvatar = customer?.avatar || conversation.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=random`;
+    const displayPhone = customer?.phoneNumber || '';
+
     return (
         <div className="flex flex-col h-full z-10">
             {/* Header */}
@@ -39,16 +52,16 @@ export const ChatWindow = ({ conversation, onSendMessage }: ChatWindowProps) => 
                 <div className="flex items-center cursor-pointer">
                     <div className="w-10 h-10 rounded-full overflow-hidden mr-3">
                         <img
-                            src={conversation.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(conversation.name || conversation.title || 'Unknown')}&background=random`}
-                            alt={conversation.name || conversation.title}
+                            src={displayAvatar}
+                            alt={displayName}
                             className="w-full h-full object-cover"
                         />
                     </div>
                     <div>
                         <h3 className="text-base font-normal text-gray-900 dark:text-gray-100">
-                            {conversation.name || conversation.title || 'Unknown User'}
+                            {displayName}
                         </h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">click here for contact info</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{displayPhone || 'No phone number'}</p>
                     </div>
                 </div>
                 <div className="flex gap-4 text-gray-600 dark:text-gray-300">

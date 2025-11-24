@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like, FindManyOptions } from 'typeorm';
-import { Flow } from '../../entities/flow.entity';
+import { Flow, FlowStatus } from '../../entities/flow.entity';
 import { QueryFlowsDto, FlowSortField, SortOrder } from './dto/query-flows.dto';
 import { CreateFlowDto } from './dto/create-flow.dto';
 import { UpdateFlowDto } from './dto/update-flow.dto';
@@ -41,6 +41,7 @@ export class FlowsService {
       sortBy = FlowSortField.CREATED_AT,
       sortOrder = SortOrder.DESC,
       isActive,
+      status,
     } = queryDto || {};
 
     const options: FindManyOptions<Flow> = {
@@ -65,6 +66,17 @@ export class FlowsService {
         }));
       } else {
         options.where = { ...options.where, isActive };
+      }
+    }
+
+    if (status !== undefined) {
+      if (Array.isArray(options.where)) {
+        options.where = options.where.map((condition) => ({
+          ...condition,
+          status,
+        }));
+      } else {
+        options.where = { ...options.where, status };
       }
     }
 
@@ -146,12 +158,14 @@ export class FlowsService {
   async softDelete(id: string): Promise<Flow> {
     const flow = await this.findOne(id);
     flow.isActive = false;
+    flow.status = FlowStatus.ARCHIVED;
     return await this.flowRepository.save(flow);
   }
 
   async restore(id: string): Promise<Flow> {
     const flow = await this.findOne(id);
     flow.isActive = true;
+    flow.status = FlowStatus.ACTIVE;
     return await this.flowRepository.save(flow);
   }
 
