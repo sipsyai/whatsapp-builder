@@ -4,6 +4,7 @@ import { ChatWindow } from "./components/ChatWindow";
 import { ConversationsService } from "../../api/conversations.service";
 import { MessagesService } from "../../api/messages.service";
 import { useWebSocket } from "../../hooks/useWebSocket";
+import { socket } from "../../api/socket";
 import type { Conversation, Message } from "../../types/messages";
 
 interface ChatPageProps {
@@ -93,7 +94,17 @@ export const ChatPage = ({ onBack }: ChatPageProps) => {
     };
 
     const handleSelectConversation = async (id: string) => {
+        // Leave previous conversation room if any
+        if (activeConversationId) {
+            socket.emit('conversation:leave', { conversationId: activeConversationId });
+            console.log(`Left conversation room: ${activeConversationId}`);
+        }
+
         setActiveConversationId(id);
+
+        // Join new conversation room for real-time updates
+        socket.emit('conversation:join', { conversationId: id });
+        console.log(`Joined conversation room: ${id}`);
 
         // Load messages if not already loaded or if we want to refresh
         try {
@@ -120,14 +131,38 @@ export const ChatPage = ({ onBack }: ChatPageProps) => {
         if (!activeConversationId) return;
 
         try {
-            // Currently only text is fully supported via this simple interface
-            // For other types we might need to upload first or change the API
             if (type === 'text') {
-                await MessagesService.sendTextMessage(activeConversationId, content);
-                // The new message will come back via WebSocket or we can optimistically add it here
-                // For now relying on WebSocket or re-fetch if needed, but optimistic is better.
-                // However, the previous implementation had optimistic updates. 
-                // Let's keep it simple for now and rely on the response/websocket.
+                // Send message and immediately add it to the UI
+                const sentMessage = await MessagesService.sendTextMessage(activeConversationId, content);
+
+                // Optimistically add the message to the conversation
+                setConversations(prev => prev.map(c => {
+                    if (c.id === activeConversationId) {
+                        // Check if message already exists to prevent duplicates
+                        if (c.messages?.some(m => m.id === sentMessage.id)) return c;
+
+                        const updatedMessages = [...(c.messages || []), sentMessage];
+
+                        // Determine last message content for preview
+                        let lastMessageContent = '';
+                        if (typeof sentMessage.content === 'string') {
+                            lastMessageContent = sentMessage.content;
+                        } else if ('body' in sentMessage.content) {
+                            lastMessageContent = sentMessage.content.body;
+                        } else {
+                            lastMessageContent = sentMessage.type;
+                        }
+
+                        return {
+                            ...c,
+                            messages: updatedMessages,
+                            lastMessage: lastMessageContent,
+                            lastMessageAt: sentMessage.createdAt,
+                            updatedAt: sentMessage.createdAt,
+                        };
+                    }
+                    return c;
+                }).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()));
             }
         } catch (error) {
             console.error("Failed to send message:", error);

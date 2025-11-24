@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Message, MessageStatus } from '../../../entities/message.entity';
@@ -7,6 +7,7 @@ import { User } from '../../../entities/user.entity';
 import { ParsedMessageDto, ParsedStatusUpdateDto } from '../dto/parsed-message.dto';
 import { WebhookParserService } from './webhook-parser.service';
 import { FlowExecutionService } from '../../flows/services/flow-execution.service';
+import { MessagesGateway } from '../../websocket/messages.gateway';
 
 /**
  * Webhook Processor Service
@@ -25,6 +26,8 @@ export class WebhookProcessorService {
     private readonly userRepository: Repository<User>,
     private readonly parserService: WebhookParserService,
     private readonly flowExecutionService: FlowExecutionService,
+    @Inject(forwardRef(() => MessagesGateway))
+    private readonly messagesGateway: MessagesGateway,
   ) {}
 
   /**
@@ -96,7 +99,25 @@ export class WebhookProcessorService {
       timestamp: parsedMessage.timestamp,
     });
 
-    await this.messageRepository.save(message);
+    const savedMessage = await this.messageRepository.save(message);
+
+    // 6.5. Emit WebSocket event to notify connected clients
+    this.messagesGateway.emitMessageReceived({
+      messageId: savedMessage.id,
+      conversationId: conversation.id,
+      senderId: sender.id,
+      type: savedMessage.type,
+      content: savedMessage.content,
+      status: savedMessage.status,
+      timestamp: savedMessage.timestamp,
+      sender: {
+        id: sender.id,
+        name: sender.name,
+        phoneNumber: sender.phoneNumber,
+        avatar: sender.avatar,
+      },
+    });
+    this.logger.debug(`Emitted message:received event for conversation ${conversation.id}`);
 
     // 7. Update conversation's last message and 24-hour window tracking
     const messagePreview = this.parserService.getMessagePreview(parsedMessage);
@@ -253,7 +274,15 @@ export class WebhookProcessorService {
         };
       }
 
-      await this.messageRepository.save(message);
+      const updatedMessage = await this.messageRepository.save(message);
+
+      // Emit WebSocket event for status update
+      this.messagesGateway.emitMessageStatus({
+        conversationId: updatedMessage.conversationId,
+        messageId: updatedMessage.id,
+        status: newStatus,
+        updatedAt: new Date().toISOString(),
+      });
       this.logger.log(`Updated message ${statusUpdate.whatsappMessageId} status to ${newStatus}`);
     } else if (statusUpdate.status === 'failed') {
       // Handle failed status

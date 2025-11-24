@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { WebhooksController } from './webhooks.controller';
@@ -11,6 +11,7 @@ import { Message } from '../../entities/message.entity';
 import { Conversation } from '../../entities/conversation.entity';
 import { User } from '../../entities/user.entity';
 import { FlowsModule } from '../flows/flows.module';
+import { WebSocketModule } from '../websocket/websocket.module';
 
 /**
  * Webhooks Module
@@ -21,6 +22,7 @@ import { FlowsModule } from '../flows/flows.module';
     ConfigModule,
     TypeOrmModule.forFeature([Message, Conversation, User]),
     FlowsModule,
+    forwardRef(() => WebSocketModule),
   ],
   controllers: [WebhooksController],
   providers: [

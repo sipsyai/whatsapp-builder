@@ -26,7 +26,10 @@
     "migration:generate": "npm run typeorm -- migration:generate -d ormconfig.ts",
     "migration:run": "npm run typeorm -- migration:run -d ormconfig.ts",
     "migration:revert": "npm run typeorm -- migration:revert -d ormconfig.ts",
-    "migration:create": "npm run typeorm -- migration:create"
+    "migration:create": "npm run typeorm -- migration:create",
+    "webhook:start": "../scripts/start-webhook-dev.sh",
+    "webhook:stop": "../scripts/stop-webhook.sh",
+    "webhook:url": "../scripts/get-webhook-url.sh"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

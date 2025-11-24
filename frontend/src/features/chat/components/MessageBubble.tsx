@@ -5,11 +5,14 @@ import { ReactionMessage } from './messages/ReactionMessage';
 
 interface MessageBubbleProps {
     message: Message;
+    businessUserId?: string;
 }
 
-export const MessageBubble = ({ message }: MessageBubbleProps) => {
-    // Determine if message is from me
-    const isMe = message.senderId === 'me' || message.role === 'user';
+export const MessageBubble = ({ message, businessUserId }: MessageBubbleProps) => {
+    // Determine if message is from me (the business/bot)
+    // Messages from business should appear on the right (as "us")
+    // Messages from customers should appear on the left (as "them")
+    const isMe = businessUserId ? message.senderId === businessUserId : false;
 
     const formatTime = (date: Date | string) => {
         const d = new Date(date);

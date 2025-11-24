@@ -23,7 +23,7 @@ export class MessagesService {
       .createQueryBuilder('message')
       .where('message.conversationId = :conversationId', { conversationId })
       .leftJoinAndSelect('message.sender', 'sender')
-      .orderBy('message.timestamp', 'DESC')
+      .orderBy('message.timestamp', 'ASC')  // ASC = oldest first (WhatsApp Web style)
       .limit(limit);
 
     if (before) {

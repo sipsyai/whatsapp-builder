@@ -1,0 +1,29 @@
+{
+  "name": "whatsapp-builder",
+  "version": "1.0.0",
+  "description": "WhatsApp Builder - Flow builder and chatbot platform",
+  "private": true,
+  "scripts": {
+    "webhook:start": "bash scripts/start-webhook-dev.sh",
+    "webhook:stop": "bash scripts/stop-webhook.sh",
+    "webhook:url": "bash scripts/get-webhook-url.sh",
+    "backend:install": "cd backend && npm install",
+    "frontend:install": "cd frontend && npm install",
+    "install:all": "npm run backend:install && npm run frontend:install",
+    "backend:dev": "cd backend && npm run start:dev",
+    "frontend:dev": "cd frontend && npm run dev",
+    "migration:run": "cd backend && npm run migration:run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/whatsapp-builder.git"
+  },
+  "keywords": [
+    "whatsapp",
+    "chatbot",
+    "flow-builder",
+    "reactflow"
+  ],
+  "author": "",
+  "license": "ISC"
+}

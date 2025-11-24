@@ -45,6 +45,10 @@ export const ChatWindow = ({ conversation, onSendMessage }: ChatWindowProps) => 
     const displayAvatar = customer?.avatar || conversation.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=random`;
     const displayPhone = customer?.phoneNumber || '';
 
+    // Get business user ID for message direction (right/left alignment)
+    const businessUser = conversation.participants.find(p => p.name === 'Business');
+    const businessUserId = businessUser?.id || '';
+
     return (
         <div className="flex flex-col h-full z-10">
             {/* Header */}
@@ -77,7 +81,7 @@ export const ChatWindow = ({ conversation, onSendMessage }: ChatWindowProps) => 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
                 {(conversation.messages || []).map((msg) => (
-                    <MessageBubble key={msg.id} message={msg} />
+                    <MessageBubble key={msg.id} message={msg} businessUserId={businessUserId} />
                 ))}
                 <div ref={messagesEndRef} />
             </div>

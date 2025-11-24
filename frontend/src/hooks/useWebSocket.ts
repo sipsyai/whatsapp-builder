@@ -35,8 +35,22 @@ export function useWebSocket(): UseWebSocketReturn {
         });
 
         // Message events
-        socket.on('message:new', (message: Message) => {
-            console.log('New message received:', message);
+        socket.on('message:received', (data: any) => {
+            console.log('New message received:', data);
+
+            // Transform MessageReceivedDto from backend to Message interface
+            const message: Message = {
+                id: data.messageId,              // Backend sends 'messageId', we need 'id'
+                conversationId: data.conversationId,
+                senderId: data.senderId,
+                type: data.type,
+                content: data.content,
+                status: data.status,
+                timestamp: data.timestamp,
+                createdAt: data.timestamp,       // Use timestamp for createdAt
+                updatedAt: data.timestamp,       // Use timestamp for updatedAt
+            };
+
             setNewMessage(message);
         });
 
@@ -49,7 +63,7 @@ export function useWebSocket(): UseWebSocketReturn {
         return () => {
             socket.off('connect');
             socket.off('disconnect');
-            socket.off('message:new');
+            socket.off('message:received');
             socket.off('message:status');
             socket.disconnect();
         };
