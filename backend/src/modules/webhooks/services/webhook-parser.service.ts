@@ -50,7 +50,7 @@ export class WebhookParserService {
       whatsappMessageId: message.id,
       senderPhoneNumber: message.from,
       senderName: senderName,
-      recipientPhoneNumber: value.metadata.phone_number_id,
+      recipientPhoneNumber: value.metadata.display_phone_number,
       type: this.mapMessageType(message.type),
       content: this.parseMessageContent(message),
       timestamp: new Date(parseInt(message.timestamp) * 1000),

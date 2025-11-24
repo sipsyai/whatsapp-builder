@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getChatBots, softDeleteChatBot, updateChatBot, type ChatBot, ChatBotStatus } from '../api';
+import { getChatBots, softDeleteChatBot, toggleActiveChatBot, type ChatBot, ChatBotStatus } from '../api';
 
 interface ChatBotsListPageProps {
     onNavigate: (path: string) => void;
@@ -56,15 +56,18 @@ export const ChatBotsListPage: React.FC<ChatBotsListPageProps> = ({ onNavigate, 
         }
     };
 
-    const toggleChatBotStatus = async (chatbotId: string, currentStatus: boolean) => {
+    const toggleChatBotStatus = async (chatbotId: string) => {
         try {
             setTogglingChatBotId(chatbotId);
-            await updateChatBot(chatbotId, { isActive: !currentStatus });
+
+            // Activate this chatbot (automatically deactivates all others)
+            await toggleActiveChatBot(chatbotId);
             setToast({
-                message: `ChatBot ${!currentStatus ? 'activated' : 'deactivated'} successfully`,
+                message: 'ChatBot activated successfully. All other chatbots have been deactivated.',
                 type: 'success'
             });
-            // Reload chatbots to reflect the change
+
+            // Reload chatbots to reflect the changes
             await loadChatBots();
         } catch (err) {
             console.error('Failed to toggle chatbot status:', err);
@@ -354,17 +357,17 @@ export const ChatBotsListPage: React.FC<ChatBotsListPageProps> = ({ onNavigate, 
                                         {/* Activation Toggle */}
                                         <div className="flex items-center justify-between pt-4 border-t border-zinc-100 dark:border-zinc-800">
                                             <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                                                Status
+                                                Set as Active
                                             </span>
                                             <button
-                                                onClick={() => toggleChatBotStatus(chatbot.id, chatbot.isActive)}
-                                                disabled={togglingChatBotId === chatbot.id}
+                                                onClick={() => !chatbot.isActive && toggleChatBotStatus(chatbot.id)}
+                                                disabled={togglingChatBotId === chatbot.id || chatbot.isActive}
                                                 className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
                                                     chatbot.isActive
                                                         ? 'bg-green-500 focus:ring-green-500'
-                                                        : 'bg-zinc-300 dark:bg-zinc-700 focus:ring-zinc-400'
+                                                        : 'bg-zinc-300 dark:bg-zinc-700 focus:ring-zinc-400 hover:bg-zinc-400 dark:hover:bg-zinc-600'
                                                 }`}
-                                                title={chatbot.isActive ? 'Click to deactivate' : 'Click to activate'}
+                                                title={chatbot.isActive ? 'Currently active' : 'Click to activate (deactivates all others)'}
                                             >
                                                 <span
                                                     className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${

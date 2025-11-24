@@ -188,4 +188,19 @@ export class ChatBotsService {
       nodeTypes,
     };
   }
+
+  async toggleActive(id: string): Promise<ChatBot> {
+    const chatbot = await this.findOne(id);
+
+    // Deactivate all other chatbots
+    await this.chatbotRepository.update(
+      { isActive: true },
+      { isActive: false }
+    );
+
+    // Activate this chatbot
+    chatbot.isActive = true;
+    chatbot.status = ChatBotStatus.ACTIVE;
+    return await this.chatbotRepository.save(chatbot);
+  }
 }

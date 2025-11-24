@@ -47,12 +47,17 @@ export class ChatBotExecutionService {
       throw new NotFoundException('No active chatbot found');
     }
 
+    this.logger.debug(`Found chatbot ${chatbot.id}, nodes: ${JSON.stringify(chatbot.nodes)}`);
+
     // Find START node
     const startNode = chatbot.nodes.find(
-      (node) => node.data?.type === NodeDataType.START,
+      (node) => node.type === 'start' || node.data?.type === NodeDataType.START,
     );
 
+    this.logger.debug(`START node search result: ${startNode ? startNode.id : 'NOT FOUND'}`);
+
     if (!startNode) {
+      this.logger.error(`Failed to find START node. Chatbot nodes: ${JSON.stringify(chatbot.nodes)}`);
       throw new NotFoundException('START node not found in chatbot');
     }
 
@@ -108,12 +113,14 @@ export class ChatBotExecutionService {
       return;
     }
 
+    // Check node type - can be at root level or in data object
+    const nodeType = currentNode.type || currentNode.data?.type;
+
     this.logger.log(
-      `Executing node ${currentNode.id} of type ${currentNode.data?.type}`,
+      `Executing node ${currentNode.id} of type ${nodeType}`,
     );
 
     // Route to appropriate handler based on node type
-    const nodeType = currentNode.data?.type;
 
     switch (nodeType) {
       case NodeDataType.START:

@@ -81,3 +81,8 @@ export const restoreChatBot = async (id: string) => {
     const response = await client.patch(`/api/chatbots/${id}/restore`);
     return response.data;
 };
+
+export const toggleActiveChatBot = async (id: string) => {
+    const response = await client.patch<ChatBot>(`/api/chatbots/${id}/toggle-active`);
+    return response.data;
+};

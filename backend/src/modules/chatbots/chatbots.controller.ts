@@ -62,6 +62,11 @@ export class ChatBotsController {
     return this.chatbotsService.restore(id);
   }
 
+  @Patch(':id/toggle-active')
+  async toggleActive(@Param('id') id: string) {
+    return this.chatbotsService.toggleActive(id);
+  }
+
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   async delete(@Param('id') id: string) {
