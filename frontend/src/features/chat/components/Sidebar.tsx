@@ -1,4 +1,4 @@
-import type { Conversation } from "../../conversations/api";
+import type { Conversation } from "../../../types/messages";
 
 interface SidebarProps {
     conversations: Conversation[];
@@ -8,9 +8,9 @@ interface SidebarProps {
 }
 
 export const Sidebar = ({ conversations, activeId, onSelect, onBack }: SidebarProps) => {
-    const formatTime = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const formatTime = (date: Date | string) => {
+        const d = new Date(date);
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
     return (
@@ -64,12 +64,16 @@ export const Sidebar = ({ conversations, activeId, onSelect, onBack }: SidebarPr
                         className={`flex items-center p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-[#202c33] transition-colors ${activeId === conv.id ? "bg-gray-100 dark:bg-[#2a3942]" : ""
                             }`}
                     >
-                        <div className="w-12 h-12 rounded-full overflow-hidden mr-3 shrink-0">
+                        <div className="w-12 h-12 rounded-full overflow-hidden mr-3 shrink-0 relative">
                             <img
                                 src={conv.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(conv.name || conv.title || 'Unknown')}&background=random`}
                                 alt={conv.name || conv.title}
                                 className="w-full h-full object-cover"
                             />
+                            {/* 24-Hour Window Indicator */}
+                            {conv.isWindowOpen && (
+                                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-[#202c33]" title="24-hour window open"></div>
+                            )}
                         </div>
                         <div className="flex-1 min-w-0 border-b border-gray-100 dark:border-gray-800 pb-3">
                             <div className="flex justify-between items-baseline mb-1">
@@ -82,7 +86,16 @@ export const Sidebar = ({ conversations, activeId, onSelect, onBack }: SidebarPr
                             </div>
                             <div className="flex justify-between items-center">
                                 <p className="text-sm text-gray-600 dark:text-gray-400 truncate pr-2">
-                                    {conv.lastMessage || (conv.messages && conv.messages.length > 0 ? conv.messages[conv.messages.length - 1].content : 'No messages')}
+                                    {(() => {
+                                        if (conv.lastMessage) return conv.lastMessage;
+                                        if (!conv.messages || conv.messages.length === 0) return 'No messages';
+                                        const lastMsg = conv.messages[conv.messages.length - 1];
+                                        const content = lastMsg.content;
+                                        if (typeof content === 'string') return content;
+                                        if ('body' in content) return content.body;
+                                        if ('caption' in content && content.caption) return content.caption;
+                                        return lastMsg.type.charAt(0).toUpperCase() + lastMsg.type.slice(1);
+                                    })()}
                                 </p>
                                 {(conv.unreadCount || 0) > 0 && (
                                     <span className="bg-[#25D366] text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
@@ -97,3 +110,4 @@ export const Sidebar = ({ conversations, activeId, onSelect, onBack }: SidebarPr
         </div>
     );
 };
+

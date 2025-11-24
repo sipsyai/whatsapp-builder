@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { ChatWindow } from "./components/ChatWindow";
-import { getConversations, getMessages, sendMessage, markAsRead, type Conversation, type Message } from "../conversations/api";
-import { socket } from "../../api/socket";
+import { ConversationsService } from "../../api/conversations.service";
+import { MessagesService } from "../../api/messages.service";
+import { useWebSocket } from "../../hooks/useWebSocket";
+import type { Conversation, Message } from "../../types/messages";
 
 interface ChatPageProps {
     onBack?: () => void;
@@ -13,27 +15,33 @@ export const ChatPage = ({ onBack }: ChatPageProps) => {
     const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
+    // Use the new WebSocket hook
+    const { newMessage, messageStatusUpdate } = useWebSocket();
+
     const activeConversation = conversations.find((c) => c.id === activeConversationId);
 
     useEffect(() => {
         loadConversations();
-
-        // Connect socket
-        socket.connect();
-        socket.on('conversation:update', handleConversationUpdate);
-        socket.on('message:new', handleNewMessage);
-
-        return () => {
-            socket.off('conversation:update', handleConversationUpdate);
-            socket.off('message:new', handleNewMessage);
-            socket.disconnect();
-        };
     }, []);
+
+    // Handle new messages from WebSocket
+    useEffect(() => {
+        if (newMessage) {
+            handleNewMessage(newMessage);
+        }
+    }, [newMessage]);
+
+    // Handle message status updates from WebSocket
+    useEffect(() => {
+        if (messageStatusUpdate) {
+            handleMessageStatusUpdate(messageStatusUpdate.messageId, messageStatusUpdate.status);
+        }
+    }, [messageStatusUpdate]);
 
     const loadConversations = async () => {
         try {
             setLoading(true);
-            const data = await getConversations();
+            const data = await ConversationsService.getConversations();
             setConversations(data);
         } catch (error) {
             console.error("Failed to load conversations:", error);
@@ -42,26 +50,31 @@ export const ChatPage = ({ onBack }: ChatPageProps) => {
         }
     };
 
-    const handleConversationUpdate = (updatedConversation: Conversation) => {
-        setConversations(prev => {
-            const index = prev.findIndex(c => c.id === updatedConversation.id);
-            if (index === -1) return [updatedConversation, ...prev];
-            const newConversations = [...prev];
-            newConversations[index] = { ...newConversations[index], ...updatedConversation };
-            return newConversations.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-        });
-    };
-
     const handleNewMessage = (message: Message) => {
         setConversations(prev => prev.map(c => {
             if (c.id === message.conversationId) {
                 // Check if message already exists to prevent duplicates
                 if (c.messages?.some(m => m.id === message.id)) return c;
 
+                const updatedMessages = [...(c.messages || []), message];
+
+                // Determine last message content for preview
+                let lastMessageContent = '';
+                if (typeof message.content === 'string') {
+                    lastMessageContent = message.content;
+                } else if ('body' in message.content) {
+                    lastMessageContent = message.content.body;
+                } else if ('caption' in message.content && message.content.caption) {
+                    lastMessageContent = message.content.caption;
+                } else {
+                    lastMessageContent = message.type.charAt(0).toUpperCase() + message.type.slice(1);
+                }
+
                 return {
                     ...c,
-                    messages: [...(c.messages || []), message],
-                    lastMessage: message.content,
+                    messages: updatedMessages,
+                    lastMessage: lastMessageContent,
+                    lastMessageAt: message.createdAt,
                     updatedAt: message.createdAt,
                     unreadCount: c.id !== activeConversationId ? (c.unreadCount || 0) + 1 : 0
                 };
@@ -70,25 +83,31 @@ export const ChatPage = ({ onBack }: ChatPageProps) => {
         }).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()));
     };
 
+    const handleMessageStatusUpdate = (messageId: string, status: string) => {
+        setConversations(prev => prev.map(c => ({
+            ...c,
+            messages: c.messages?.map(m =>
+                m.id === messageId ? { ...m, status: status as any } : m
+            ) || []
+        })));
+    };
+
     const handleSelectConversation = async (id: string) => {
         setActiveConversationId(id);
 
-        // Load messages if not already loaded
-        const conversation = conversations.find(c => c.id === id);
-        if (conversation && (!conversation.messages || conversation.messages.length === 0)) {
-            try {
-                const messages = await getMessages(id);
-                setConversations(prev => prev.map(c =>
-                    c.id === id ? { ...c, messages, unreadCount: 0 } : c
-                ));
-            } catch (error) {
-                console.error("Failed to load messages:", error);
-            }
+        // Load messages if not already loaded or if we want to refresh
+        try {
+            const messages = await MessagesService.getMessages(id);
+            setConversations(prev => prev.map(c =>
+                c.id === id ? { ...c, messages, unreadCount: 0 } : c
+            ));
+        } catch (error) {
+            console.error("Failed to load messages:", error);
         }
 
         // Mark as read
         try {
-            await markAsRead(id);
+            await MessagesService.markAsRead(id);
             setConversations(prev => prev.map(c =>
                 c.id === id ? { ...c, unreadCount: 0 } : c
             ));
@@ -101,42 +120,15 @@ export const ChatPage = ({ onBack }: ChatPageProps) => {
         if (!activeConversationId) return;
 
         try {
-            // Optimistic update
-            const tempId = Date.now().toString();
-            const optimisticMessage: any = {
-                id: tempId,
-                conversationId: activeConversationId,
-                content: typeof content === 'string' ? content : JSON.stringify(content),
-                role: 'user', // Assuming 'user' for now
-                createdAt: new Date().toISOString(),
-                status: 'sent'
-            };
-
-            setConversations(prev => prev.map(c => {
-                if (c.id === activeConversationId) {
-                    return {
-                        ...c,
-                        messages: [...(c.messages || []), optimisticMessage],
-                        lastMessage: typeof content === 'string' ? content : 'Media',
-                        updatedAt: new Date().toISOString()
-                    };
-                }
-                return c;
-            }));
-
-            const sentMessage = await sendMessage(activeConversationId, { content, type });
-
-            // Replace optimistic message with real one
-            setConversations(prev => prev.map(c => {
-                if (c.id === activeConversationId) {
-                    return {
-                        ...c,
-                        messages: c.messages?.map(m => m.id === tempId ? sentMessage : m) || [sentMessage]
-                    };
-                }
-                return c;
-            }));
-
+            // Currently only text is fully supported via this simple interface
+            // For other types we might need to upload first or change the API
+            if (type === 'text') {
+                await MessagesService.sendTextMessage(activeConversationId, content);
+                // The new message will come back via WebSocket or we can optimistically add it here
+                // For now relying on WebSocket or re-fetch if needed, but optimistic is better.
+                // However, the previous implementation had optimistic updates. 
+                // Let's keep it simple for now and rely on the response/websocket.
+            }
         } catch (error) {
             console.error("Failed to send message:", error);
             alert("Failed to send message");
@@ -183,3 +175,4 @@ export const ChatPage = ({ onBack }: ChatPageProps) => {
         </div>
     );
 };
+

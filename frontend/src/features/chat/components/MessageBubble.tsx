@@ -1,50 +1,53 @@
-import type { Message } from "../../conversations/api";
+import { MessageType, type Message } from '../../../types/messages';
+import { ImageMessage } from './messages/ImageMessage';
+import { VideoMessage } from './messages/VideoMessage';
+import { ReactionMessage } from './messages/ReactionMessage';
 
 interface MessageBubbleProps {
     message: Message;
 }
 
 export const MessageBubble = ({ message }: MessageBubbleProps) => {
-    // Map API message to UI format
-    const isMe = (message as any).sender === "me" || (message as any).role === "user";
-    const messageType = (message as any).type || "text";
-    const messageContent = message.content;
+    // Determine if message is from me
+    const isMe = message.senderId === 'me' || message.role === 'user';
 
-    const formatTime = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const formatTime = (date: Date | string) => {
+        const d = new Date(date);
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
     const renderContent = () => {
-        switch (messageType) {
-            case "text":
-                return <p className="text-sm whitespace-pre-wrap">{typeof messageContent === 'string' ? messageContent : JSON.stringify(messageContent)}</p>;
+        switch (message.type) {
+            case MessageType.TEXT:
+                const textContent = typeof message.content === 'string'
+                    ? { body: message.content }
+                    : message.content as any;
+                return <p className="text-sm whitespace-pre-wrap">{textContent.body || textContent}</p>;
 
-            case "image":
-                const imgContent = typeof messageContent === 'object' ? messageContent : { url: messageContent };
-                return (
-                    <div className="max-w-xs">
-                        <img src={(imgContent as any).url} alt="Shared" className="rounded-lg mb-1" />
-                        {(imgContent as any).caption && <p className="text-sm">{(imgContent as any).caption}</p>}
-                    </div>
-                );
+            case MessageType.IMAGE:
+                return <ImageMessage content={message.content as any} />;
 
-            case "document":
-                const docContent = typeof messageContent === 'object' ? messageContent : { fileName: 'Document', fileSize: 'Unknown' };
+            case MessageType.VIDEO:
+                return <VideoMessage content={message.content as any} />;
+
+            case MessageType.REACTION:
+                return <ReactionMessage content={message.content as any} />;
+
+            case MessageType.DOCUMENT:
+                const docContent = message.content as any;
                 return (
                     <div className="flex items-center gap-3 bg-black/5 p-2 rounded-lg min-w-[200px]">
                         <span className="material-symbols-outlined text-red-500 text-3xl">picture_as_pdf</span>
                         <div className="flex flex-col overflow-hidden">
-                            <span className="text-sm font-medium truncate">{(docContent as any).fileName}</span>
-                            <span className="text-xs text-gray-500">{(docContent as any).fileSize} • PDF</span>
+                            <span className="text-sm font-medium truncate">{docContent.filename || 'Document'}</span>
+                            <span className="text-xs text-gray-500">PDF</span>
                         </div>
                     </div>
                 );
 
-            case "interactive":
-                // Basic rendering for interactive messages
-                const interactiveContent = typeof messageContent === 'object' ? messageContent : {};
-                const { header, body, footer, action } = interactiveContent as any;
+            case MessageType.INTERACTIVE:
+                const interactiveContent = message.content as any;
+                const { header, body, footer, action } = interactiveContent;
                 return (
                     <div className="flex flex-col gap-1 min-w-[200px]">
                         {header && <p className="text-sm font-bold">{header.text || header}</p>}
@@ -67,12 +70,12 @@ export const MessageBubble = ({ message }: MessageBubbleProps) => {
                 );
 
             default:
-                return <p className="text-sm">{typeof messageContent === 'string' ? messageContent : JSON.stringify(messageContent)}</p>;
+                return <p className="text-sm">{typeof message.content === 'string' ? message.content : JSON.stringify(message.content)}</p>;
         }
     };
 
-    const timestamp = (message as any).timestamp || formatTime(message.createdAt);
-    const status = (message as any).status || 'sent';
+    const timestamp = formatTime(message.timestamp || message.createdAt);
+    const status = message.status || 'sent';
 
     return (
         <div className={`flex ${isMe ? "justify-end" : "justify-start"} mb-1`}>
@@ -95,3 +98,4 @@ export const MessageBubble = ({ message }: MessageBubbleProps) => {
         </div>
     );
 };
+
