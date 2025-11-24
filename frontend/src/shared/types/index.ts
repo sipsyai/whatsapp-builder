@@ -18,15 +18,30 @@ export interface SectionItem {
   rows: RowItem[];   // Max 10 rows
 }
 
+export interface Condition {
+    id: string;
+    variable: string;
+    operator: string;
+    value: string;
+}
+
+export interface ConditionGroup {
+    conditions: Condition[];
+    logicalOperator: 'AND' | 'OR';
+}
+
 export interface NodeData {
     label: string;
     type?: NodeDataType; // Keep track of logical type inside data
     content?: string;
     variable?: string;
     options?: string[];
+    // Legacy condition fields (for backward compatibility)
     conditionVar?: string;
     conditionOp?: string;
     conditionVal?: string;
+    // New condition structure
+    conditionGroup?: ConditionGroup;
     messageType?: string;
     questionType?: "text" | "buttons" | "list";
 

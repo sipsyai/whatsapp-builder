@@ -1,5 +1,6 @@
-import { useState } from "react";
-import type { ButtonItem } from "@/shared/types";
+import { useState, useMemo } from "react";
+import type { ButtonItem, Condition, ConditionGroup } from "@/shared/types";
+import { useReactFlow } from "@xyflow/react";
 
 // ... Config Components ...
 export const ConfigMessage = ({ data, onClose, onSave }: any) => {
@@ -272,17 +273,323 @@ export const ConfigQuestion = ({ data, onClose, onSave }: any) => {
 };
 
 export const ConfigCondition = ({ data, onClose, onSave }: any) => {
-    // Simplified logic config
+    const reactFlowInstance = useReactFlow();
+
+    // Operators available
+    const operators = [
+        { value: "==", label: "Equal To (==)" },
+        { value: "!=", label: "Not Equal To (!=)" },
+        { value: ">", label: "Greater Than (>)" },
+        { value: "<", label: "Less Than (<)" },
+        { value: ">=", label: "Greater Than or Equal (>=)" },
+        { value: "<=", label: "Less Than or Equal (<=)" },
+        { value: "contains", label: "Contains" },
+        { value: "not_contains", label: "Does Not Contain" },
+    ];
+
+    // Extract available variables from question nodes in the flow
+    const availableVariables = useMemo(() => {
+        const nodes = reactFlowInstance.getNodes();
+        const vars: string[] = [];
+
+        nodes.forEach(node => {
+            if (node.type === 'question' && node.data?.variable && typeof node.data.variable === 'string') {
+                vars.push(node.data.variable as string);
+            }
+        });
+
+        return vars;
+    }, [reactFlowInstance]);
+
+    // Initialize conditions from data
+    const initConditions = (): Condition[] => {
+        // Check if new structure exists
+        if (data.conditionGroup && data.conditionGroup.conditions.length > 0) {
+            return data.conditionGroup.conditions;
+        }
+        // Check legacy structure
+        if (data.conditionVar) {
+            return [{
+                id: 'cond-0',
+                variable: data.conditionVar,
+                operator: data.conditionOp || '==',
+                value: data.conditionVal || ''
+            }];
+        }
+        // Default empty condition
+        return [{
+            id: 'cond-0',
+            variable: availableVariables[0] || '',
+            operator: '==',
+            value: ''
+        }];
+    };
+
+    const [label, setLabel] = useState(data.label || "Condition");
+    const [conditions, setConditions] = useState<Condition[]>(initConditions());
+    const [logicalOperator, setLogicalOperator] = useState<'AND' | 'OR'>(
+        data.conditionGroup?.logicalOperator || 'AND'
+    );
+
+    const addCondition = () => {
+        if (conditions.length >= 5) return; // Max 5 conditions
+        setConditions([
+            ...conditions,
+            {
+                id: `cond-${conditions.length}`,
+                variable: availableVariables[0] || '',
+                operator: '==',
+                value: ''
+            }
+        ]);
+    };
+
+    const removeCondition = (index: number) => {
+        if (conditions.length === 1) return; // Must have at least one condition
+        const newConditions = conditions.filter((_, i) => i !== index);
+        // Re-index
+        newConditions.forEach((cond, i) => { cond.id = `cond-${i}`; });
+        setConditions(newConditions);
+    };
+
+    const updateCondition = (index: number, field: keyof Condition, value: string) => {
+        const newConditions = [...conditions];
+        newConditions[index] = { ...newConditions[index], [field]: value };
+        setConditions(newConditions);
+    };
+
+    const handleSave = () => {
+        // Validation: ensure all conditions have required fields
+        const isValid = conditions.every(c => c.variable && c.operator && c.value);
+        if (!isValid) {
+            alert("Please fill all condition fields");
+            return;
+        }
+
+        const conditionGroup: ConditionGroup = {
+            conditions,
+            logicalOperator
+        };
+
+        onSave({
+            ...data,
+            label,
+            conditionGroup,
+            // Keep legacy fields for backward compatibility
+            conditionVar: conditions[0]?.variable,
+            conditionOp: conditions[0]?.operator,
+            conditionVal: conditions[0]?.value,
+        });
+        onClose();
+    };
+
+    // Generate preview text
+    const previewText = useMemo(() => {
+        if (conditions.length === 0) return "No conditions defined";
+
+        return conditions.map((cond, idx) => {
+            const op = operators.find(o => o.value === cond.operator)?.label || cond.operator;
+            const condText = `${cond.variable} ${op} "${cond.value}"`;
+
+            if (idx === conditions.length - 1) return condText;
+            return `${condText} ${logicalOperator}`;
+        }).join(' ');
+    }, [conditions, logicalOperator]);
+
     return (
         <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm fade-in">
-            <div className="w-full max-w-md h-full bg-white dark:bg-[#102216] shadow-2xl p-6 flex flex-col border-l border-zinc-200 dark:border-white/10">
-                <h2 className="text-xl font-bold mb-4 dark:text-white">Configure Condition</h2>
-                <p className="dark:text-gray-400">Logic configuration here...</p>
-                <div className="mt-auto flex justify-end gap-2">
-                    <button onClick={onClose} className="px-4 py-2 rounded dark:text-white hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors">Cancel</button>
-                    <button onClick={() => { onSave(data); onClose(); }} className="px-4 py-2 bg-primary rounded text-[#112217] font-bold hover:bg-primary/90 transition-colors">Save</button>
+            <div className="w-full max-w-2xl h-full bg-white dark:bg-[#102216] shadow-2xl overflow-y-auto flex flex-col border-l border-zinc-200 dark:border-white/10">
+                <div className="p-8 flex-1">
+                    <header className="flex justify-between items-center mb-6">
+                        <h1 className="text-2xl font-bold dark:text-white">Configure: Condition</h1>
+                        <button onClick={onClose}>
+                            <span className="material-symbols-outlined dark:text-white">close</span>
+                        </button>
+                    </header>
+
+                    <div className="space-y-6">
+                        {/* Label */}
+                        <label className="block">
+                            <span className="text-sm font-medium dark:text-white">Label</span>
+                            <input
+                                className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+                                value={label}
+                                onChange={e => setLabel(e.target.value)}
+                                placeholder="e.g. Check Age"
+                            />
+                        </label>
+
+                        {/* Available Variables Info */}
+                        {availableVariables.length === 0 && (
+                            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                                <div className="flex items-start gap-2">
+                                    <span className="material-symbols-outlined text-amber-600 dark:text-amber-400 text-lg">warning</span>
+                                    <div className="flex-1">
+                                        <p className="text-sm font-medium text-amber-800 dark:text-amber-300">No variables available</p>
+                                        <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                                            Add Question nodes with variable names before this condition node to make them available for comparison.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Conditions */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-bold dark:text-white">Conditions {conditions.length > 1 && `(${conditions.length})`}</span>
+                                {conditions.length < 5 && (
+                                    <button
+                                        onClick={addCondition}
+                                        className="text-xs text-primary hover:underline flex items-center gap-1"
+                                        disabled={availableVariables.length === 0}
+                                    >
+                                        <span className="material-symbols-outlined text-sm">add</span>
+                                        Add Condition
+                                    </button>
+                                )}
+                            </div>
+
+                            {conditions.map((condition, index) => (
+                                <div key={condition.id} className="bg-zinc-50 dark:bg-white/5 p-4 rounded-lg border border-zinc-200 dark:border-white/10">
+                                    <div className="flex items-start justify-between mb-3">
+                                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                            Condition {index + 1}
+                                        </span>
+                                        {conditions.length > 1 && (
+                                            <button
+                                                onClick={() => removeCondition(index)}
+                                                className="text-red-500 hover:text-red-400"
+                                            >
+                                                <span className="material-symbols-outlined text-lg">delete</span>
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        {/* Variable Selection */}
+                                        <label className="block">
+                                            <span className="text-xs font-medium dark:text-gray-300">Variable</span>
+                                            <select
+                                                className="w-full mt-1 p-2 rounded border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+                                                value={condition.variable}
+                                                onChange={e => updateCondition(index, 'variable', e.target.value)}
+                                                disabled={availableVariables.length === 0}
+                                            >
+                                                {availableVariables.length === 0 ? (
+                                                    <option value="">No variables available</option>
+                                                ) : (
+                                                    <>
+                                                        <option value="">Select variable...</option>
+                                                        {availableVariables.map(v => (
+                                                            <option key={v} value={v}>{v}</option>
+                                                        ))}
+                                                    </>
+                                                )}
+                                            </select>
+                                        </label>
+
+                                        {/* Operator Selection */}
+                                        <label className="block">
+                                            <span className="text-xs font-medium dark:text-gray-300">Operator</span>
+                                            <select
+                                                className="w-full mt-1 p-2 rounded border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+                                                value={condition.operator}
+                                                onChange={e => updateCondition(index, 'operator', e.target.value)}
+                                            >
+                                                {operators.map(op => (
+                                                    <option key={op.value} value={op.value}>{op.label}</option>
+                                                ))}
+                                            </select>
+                                        </label>
+
+                                        {/* Value Input */}
+                                        <label className="block">
+                                            <span className="text-xs font-medium dark:text-gray-300">Value</span>
+                                            <input
+                                                className="w-full mt-1 p-2 rounded border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+                                                value={condition.value}
+                                                onChange={e => updateCondition(index, 'value', e.target.value)}
+                                                placeholder="Enter comparison value..."
+                                            />
+                                        </label>
+                                    </div>
+
+                                    {/* Logical operator between conditions */}
+                                    {index < conditions.length - 1 && (
+                                        <div className="mt-3 pt-3 border-t border-zinc-300 dark:border-white/10">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <button
+                                                    onClick={() => setLogicalOperator('AND')}
+                                                    className={`px-3 py-1 rounded text-xs font-bold transition-colors ${
+                                                        logicalOperator === 'AND'
+                                                            ? 'bg-primary text-[#112217]'
+                                                            : 'bg-white dark:bg-black/20 dark:text-gray-400 border dark:border-white/10'
+                                                    }`}
+                                                >
+                                                    AND
+                                                </button>
+                                                <button
+                                                    onClick={() => setLogicalOperator('OR')}
+                                                    className={`px-3 py-1 rounded text-xs font-bold transition-colors ${
+                                                        logicalOperator === 'OR'
+                                                            ? 'bg-primary text-[#112217]'
+                                                            : 'bg-white dark:bg-black/20 dark:text-gray-400 border dark:border-white/10'
+                                                    }`}
+                                                >
+                                                    OR
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+
+                            {conditions.length >= 5 && (
+                                <div className="text-xs text-amber-600 dark:text-amber-400">
+                                    Maximum 5 conditions reached
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Preview */}
+                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                            <div className="flex items-start gap-2">
+                                <span className="material-symbols-outlined text-blue-600 dark:text-blue-400 text-lg">visibility</span>
+                                <div className="flex-1">
+                                    <p className="text-xs font-medium text-blue-800 dark:text-blue-300 mb-1">Condition Preview</p>
+                                    <p className="text-sm text-blue-700 dark:text-blue-400 font-mono">
+                                        {previewText}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Help Text */}
+                        <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                            <p>• Variables come from previous Question nodes in your flow</p>
+                            <p>• Use AND when all conditions must be true</p>
+                            <p>• Use OR when any condition can be true</p>
+                            <p>• String comparisons are case-sensitive</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="p-4 border-t border-gray-200 dark:border-white/10 flex justify-end gap-3">
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-white/5 dark:text-white transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={handleSave}
+                        className="px-4 py-2 rounded-lg bg-primary text-[#112217] font-bold hover:bg-primary/90 transition-colors"
+                    >
+                        Save
+                    </button>
                 </div>
             </div>
         </div>
-    )
+    );
 };

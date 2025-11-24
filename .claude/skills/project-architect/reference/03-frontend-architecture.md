@@ -53,6 +53,10 @@ frontend/src/
 │   └── useWebSocket.ts
 ├── types/                        # TypeScript type definitions
 │   └── messages.ts
+├── shared/                       # Shared code
+│   ├── components/               # Reusable UI components
+│   └── types/                    # Shared TypeScript types
+│       └── index.ts              # Core type definitions
 ├── utils/                        # Utility functions
 ├── styles/                       # Global styles
 └── vite.config.ts                # Vite configuration
@@ -98,6 +102,101 @@ frontend/src/
 ### AI Integration
 - **@google/genai**: 1.30.0
   - Gemini API for AI-generated flows
+
+---
+
+## Shared Type Definitions
+
+### Core Types
+**File**: `/home/ali/whatsapp-builder/frontend/src/shared/types/index.ts`
+
+The shared types file defines the core data structures used throughout the application, ensuring type safety and consistency across all components.
+
+#### Condition Types
+
+```typescript
+export interface Condition {
+    id: string;          // Unique identifier for the condition
+    variable: string;    // Variable name to check (from Question nodes)
+    operator: string;    // Comparison operator (==, !=, >, <, >=, <=, contains, not_contains)
+    value: string;       // Value to compare against
+}
+
+export interface ConditionGroup {
+    conditions: Condition[];           // Array of conditions to evaluate
+    logicalOperator: 'AND' | 'OR';    // How to combine multiple conditions
+}
+```
+
+**Usage**:
+- Used by Condition nodes in the flow builder
+- Stored in `NodeData.conditionGroup` field
+- Enables complex multi-condition logic with AND/OR operators
+- Maximum 5 conditions per group
+
+#### Node Data Types
+
+```typescript
+export interface NodeData {
+    label: string;                    // Display label for the node
+    type?: NodeDataType;              // Logical type: "start" | "message" | "question" | "condition"
+    content?: string;                 // Message content or question text
+    variable?: string;                // Variable name to store user response (Question nodes)
+
+    // Condition Node - New Structure
+    conditionGroup?: ConditionGroup;  // Multiple conditions with AND/OR logic
+
+    // Condition Node - Legacy Structure (backward compatibility)
+    conditionVar?: string;            // Single condition variable
+    conditionOp?: string;             // Single condition operator
+    conditionVal?: string;            // Single condition value
+
+    // Question Node Types
+    questionType?: "text" | "buttons" | "list";
+    headerText?: string;              // Optional header (buttons/list)
+    footerText?: string;              // Optional footer (buttons/list)
+    buttons?: ButtonItem[];           // Button options (max 3)
+    listButtonText?: string;          // List trigger button text
+    listSections?: SectionItem[];     // List sections (max 10)
+
+    // Component callbacks
+    onConfig?: () => void;            // Open configuration modal
+    onDelete?: () => void;            // Delete node
+}
+```
+
+**Key Design Decisions**:
+1. **Dual Condition Format**: Supports both legacy (`conditionVar/Op/Val`) and new (`conditionGroup`) formats for backward compatibility
+2. **Optional Fields**: Most fields are optional to support different node types
+3. **Type Safety**: TypeScript ensures all components use consistent data structures
+4. **Extensibility**: Easy to add new fields without breaking existing code
+
+#### Interactive Message Types
+
+```typescript
+export interface ButtonItem {
+    id: string;      // Unique ID: "btn-0", "btn-1", "btn-2"
+    title: string;   // Button text (max 20 chars for WhatsApp API)
+}
+
+export interface RowItem {
+    id: string;          // Unique ID: "row-0", "row-1", etc.
+    title: string;       // Row title (max 24 chars)
+    description?: string; // Optional description (max 72 chars)
+}
+
+export interface SectionItem {
+    id: string;          // Unique ID: "section-0", etc.
+    title: string;       // Section title (max 24 chars)
+    rows: RowItem[];     // Row items (max 10 per section)
+}
+```
+
+**WhatsApp API Constraints**:
+- Button titles: max 20 characters, max 3 buttons
+- List section titles: max 24 characters, max 10 sections
+- List row titles: max 24 characters, max 10 rows per section
+- List row descriptions: max 72 characters
 
 ---
 
@@ -184,6 +283,201 @@ builder/
 4. **Flow Validation**: Real-time validation with error panel
 5. **AI Generation**: Gemini-powered flow generation
 6. **Backend Integration**: Save/load flows via API
+
+#### ConfigCondition Component
+**File**: `/home/ali/whatsapp-builder/frontend/src/features/builder/components/ConfigModals.tsx`
+
+The `ConfigCondition` component provides a comprehensive interface for configuring conditional branching logic in chatbot flows. It supports multiple conditions with AND/OR logical operators, enabling complex decision trees.
+
+**Key Features**:
+
+1. **Multiple Conditions Support** (up to 5 conditions):
+   - Add multiple conditions to create complex logic
+   - Each condition can check a different variable
+   - Minimum 1 condition required, maximum 5
+
+2. **8 Comparison Operators**:
+   - `==` - Equal To
+   - `!=` - Not Equal To
+   - `>` - Greater Than
+   - `<` - Less Than
+   - `>=` - Greater Than or Equal
+   - `<=` - Less Than or Equal
+   - `contains` - Contains substring
+   - `not_contains` - Does Not Contain substring
+
+3. **Logical Operators**:
+   - `AND` - All conditions must be true
+   - `OR` - At least one condition must be true
+   - Applied between all conditions in the group
+
+4. **Variable Discovery**:
+   - Automatically scans all Question nodes in the flow
+   - Extracts variable names for use in conditions
+   - Displays warning if no variables are available
+   - Dropdown selection for easy variable picking
+
+5. **Real-time Preview**:
+   - Shows human-readable condition logic
+   - Format: `variable operator "value" AND/OR variable operator "value"`
+   - Updates as conditions are modified
+
+6. **Backward Compatibility**:
+   - Supports legacy single-condition format (`conditionVar`, `conditionOp`, `conditionVal`)
+   - Automatically migrates legacy data to new structure on edit
+   - Saves both old and new formats for compatibility
+
+**Data Structure**:
+```typescript
+interface Condition {
+    id: string;           // Unique ID: "cond-0", "cond-1", etc.
+    variable: string;     // Variable name from Question node
+    operator: string;     // One of 8 operators
+    value: string;        // Comparison value
+}
+
+interface ConditionGroup {
+    conditions: Condition[];           // Array of conditions
+    logicalOperator: 'AND' | 'OR';    // How to combine conditions
+}
+
+// Stored in NodeData as:
+interface NodeData {
+    // ... other fields
+    conditionGroup?: ConditionGroup;   // New structure
+    // Legacy fields (for backward compatibility):
+    conditionVar?: string;
+    conditionOp?: string;
+    conditionVal?: string;
+}
+```
+
+**State Management**:
+```typescript
+const [conditions, setConditions] = useState<Condition[]>(initConditions());
+const [logicalOperator, setLogicalOperator] = useState<'AND' | 'OR'>('AND');
+const [label, setLabel] = useState(data.label || "Condition");
+```
+
+**Initialization Logic**:
+```typescript
+const initConditions = (): Condition[] => {
+    // 1. Check if new structure exists
+    if (data.conditionGroup && data.conditionGroup.conditions.length > 0) {
+        return data.conditionGroup.conditions;
+    }
+    // 2. Migrate legacy structure
+    if (data.conditionVar) {
+        return [{
+            id: 'cond-0',
+            variable: data.conditionVar,
+            operator: data.conditionOp || '==',
+            value: data.conditionVal || ''
+        }];
+    }
+    // 3. Default empty condition
+    return [{
+        id: 'cond-0',
+        variable: availableVariables[0] || '',
+        operator: '==',
+        value: ''
+    }];
+};
+```
+
+**Variable Discovery**:
+```typescript
+const availableVariables = useMemo(() => {
+    const nodes = reactFlowInstance.getNodes();
+    const vars: string[] = [];
+
+    nodes.forEach(node => {
+        if (node.type === 'question' && node.data?.variable) {
+            vars.push(node.data.variable as string);
+        }
+    });
+
+    return vars;
+}, [reactFlowInstance]);
+```
+
+**Validation**:
+```typescript
+const handleSave = () => {
+    // Ensure all conditions have required fields
+    const isValid = conditions.every(c => c.variable && c.operator && c.value);
+    if (!isValid) {
+        alert("Please fill all condition fields");
+        return;
+    }
+
+    const conditionGroup: ConditionGroup = {
+        conditions,
+        logicalOperator
+    };
+
+    onSave({
+        ...data,
+        label,
+        conditionGroup,
+        // Keep legacy fields for backward compatibility
+        conditionVar: conditions[0]?.variable,
+        conditionOp: conditions[0]?.operator,
+        conditionVal: conditions[0]?.value,
+    });
+    onClose();
+};
+```
+
+**Preview Generation**:
+```typescript
+const previewText = useMemo(() => {
+    if (conditions.length === 0) return "No conditions defined";
+
+    return conditions.map((cond, idx) => {
+        const op = operators.find(o => o.value === cond.operator)?.label || cond.operator;
+        const condText = `${cond.variable} ${op} "${cond.value}"`;
+
+        if (idx === conditions.length - 1) return condText;
+        return `${condText} ${logicalOperator}`;
+    }).join(' ');
+}, [conditions, logicalOperator]);
+```
+
+**UI Features**:
+- **Dark Theme Support**: Fully styled for dark mode
+- **Add/Remove Conditions**: Dynamic condition management with clear affordances
+- **Dropdown Selectors**: For variables and operators
+- **Text Inputs**: For comparison values
+- **Preview Panel**: Shows complete logic expression
+- **Validation Warnings**: Alerts when no variables are available
+- **Disabled States**: Prevents adding conditions beyond limits
+
+**User Workflow**:
+1. Click on Condition node in builder
+2. Modal opens with existing conditions or default
+3. Select variable from dropdown (populated from Question nodes)
+4. Select comparison operator
+5. Enter comparison value
+6. Add more conditions if needed (up to 5)
+7. Choose AND/OR logical operator
+8. Preview shows complete logic
+9. Save applies configuration to node
+
+**Example Use Cases**:
+```typescript
+// Simple condition (legacy format supported)
+age > "18"
+
+// Multiple conditions with AND
+age > "18" AND country == "USA"
+
+// Multiple conditions with OR
+status == "premium" OR status == "gold"
+
+// Complex string matching
+email contains "@company.com" AND role != "guest"
+```
 
 **State Management**:
 ```typescript
@@ -512,32 +806,65 @@ if (node.type === 'message') {
 ```typescript
 // Rule: Condition nodes must have complete configuration
 if (node.type === 'condition') {
-  const conditionVar = node.data.conditionVar as string | undefined;
-  const conditionOp = node.data.conditionOp as string | undefined;
-  const conditionVal = node.data.conditionVal as string | undefined;
+  // Check new structure first
+  const conditionGroup = node.data.conditionGroup as ConditionGroup | undefined;
 
-  if (!conditionVar || conditionVar.trim() === '') {
-    errors.push({
-      nodeId: node.id,
-      message: 'Condition node must have a variable to check',
-      severity: 'error'
-    });
-  }
+  if (conditionGroup && conditionGroup.conditions.length > 0) {
+    // Validate each condition in the group
+    conditionGroup.conditions.forEach((cond, idx) => {
+      if (!cond.variable || cond.variable.trim() === '') {
+        errors.push({
+          nodeId: node.id,
+          message: `Condition ${idx + 1}: Must have a variable to check`,
+          severity: 'error'
+        });
+      }
 
-  if (!conditionOp) {
-    errors.push({
-      nodeId: node.id,
-      message: 'Condition node must have an operator',
-      severity: 'error'
-    });
-  }
+      if (!cond.operator) {
+        errors.push({
+          nodeId: node.id,
+          message: `Condition ${idx + 1}: Must have an operator`,
+          severity: 'error'
+        });
+      }
 
-  if (conditionVal === undefined || conditionVal === null || conditionVal === '') {
-    errors.push({
-      nodeId: node.id,
-      message: 'Condition node must have a value to compare',
-      severity: 'warning'
+      if (cond.value === undefined || cond.value === null || cond.value === '') {
+        errors.push({
+          nodeId: node.id,
+          message: `Condition ${idx + 1}: Must have a value to compare`,
+          severity: 'warning'
+        });
+      }
     });
+  } else {
+    // Fallback to legacy structure for backward compatibility
+    const conditionVar = node.data.conditionVar as string | undefined;
+    const conditionOp = node.data.conditionOp as string | undefined;
+    const conditionVal = node.data.conditionVal as string | undefined;
+
+    if (!conditionVar || conditionVar.trim() === '') {
+      errors.push({
+        nodeId: node.id,
+        message: 'Condition node must have a variable to check',
+        severity: 'error'
+      });
+    }
+
+    if (!conditionOp) {
+      errors.push({
+        nodeId: node.id,
+        message: 'Condition node must have an operator',
+        severity: 'error'
+      });
+    }
+
+    if (conditionVal === undefined || conditionVal === null || conditionVal === '') {
+      errors.push({
+        nodeId: node.id,
+        message: 'Condition node must have a value to compare',
+        severity: 'warning'
+      });
+    }
   }
 }
 ```
@@ -977,7 +1304,10 @@ export const MessageNode = ({ data }: NodeProps) => {
 1. **StartNode**: Entry point, single output
 2. **MessageNode**: Displays message content, single output
 3. **QuestionNode**: Shows question type (text/buttons/list), multiple outputs for buttons/lists
-4. **ConditionNode**: Shows condition expression, two outputs (true/false)
+4. **ConditionNode**: Shows condition expression(s) with AND/OR logic, two outputs (true/false)
+   - Supports multiple conditions (up to 5)
+   - Displays human-readable preview of logic
+   - Shows logical operator (AND/OR) between conditions
 
 **Handle Configuration**:
 ```typescript

@@ -1,10 +1,12 @@
 import { client } from '../../api/client';
 
-export enum ChatBotStatus {
-    ACTIVE = 'active',
-    ARCHIVED = 'archived',
-    DRAFT = 'draft',
-}
+export const ChatBotStatus = {
+    ACTIVE: 'active',
+    ARCHIVED: 'archived',
+    DRAFT: 'draft',
+} as const;
+
+export type ChatBotStatus = typeof ChatBotStatus[keyof typeof ChatBotStatus];
 
 export interface ChatBot {
     id: string;

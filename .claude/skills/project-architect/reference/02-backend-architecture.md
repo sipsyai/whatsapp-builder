@@ -160,6 +160,10 @@ Manages chatbot flows (formerly called "flows") and executes conversation logic 
   - `processMessageNode()`: Sends text message, moves to next
   - `processQuestionNode()`: Sends interactive message, **waits** for response
   - `processConditionNode()`: Evaluates condition, branches accordingly
+    - **Current Implementation**: Supports legacy single-condition format (`conditionVar`, `conditionOp`, `conditionVal`)
+    - **Frontend Compatibility**: Frontend saves both legacy and new formats for backward compatibility
+    - **Future Enhancement**: Add support for `conditionGroup` with multiple conditions and AND/OR logic
+    - **Supported Operators**: `==`, `!=`, `>`, `<`, `>=`, `<=`, `contains`, `not_contains`
 - **Flow Navigation**: `findNextNode(chatbot, nodeId, sourceHandle)` - traverses edges
 - **Variable System**: `replaceVariables(text, variables)` - replaces `{{varName}}` syntax
 
