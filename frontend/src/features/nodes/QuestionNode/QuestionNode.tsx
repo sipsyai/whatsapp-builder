@@ -1,5 +1,5 @@
 import { Handle, Position } from "@xyflow/react";
-import type { NodeData } from "../../../shared/types";
+import type { NodeData, ButtonItem } from "../../../shared/types";
 
 export const QuestionNode = ({ data }: { data: NodeData }) => {
     const isButtons = data.questionType === 'buttons';
@@ -9,7 +9,13 @@ export const QuestionNode = ({ data }: { data: NodeData }) => {
     // Flatten outputs for rendering handles
     let outputs: { id: string, label: string }[] = [];
     if (isButtons && data.buttons) {
-        outputs = data.buttons.map((b, i) => ({ id: `btn-${i}`, label: b }));
+        // Handle both legacy string[] and new ButtonItem[] formats
+        const buttonItems: ButtonItem[] = data.buttons.map((btn, i) =>
+            typeof btn === 'string'
+                ? { id: `btn-${i}`, title: btn }
+                : btn
+        );
+        outputs = buttonItems.map(b => ({ id: b.id, label: b.title }));
     } else if (isList && data.listSections) {
         outputs = data.listSections.flatMap(s => s.rows.map(r => ({ id: r.id, label: r.title })));
     }

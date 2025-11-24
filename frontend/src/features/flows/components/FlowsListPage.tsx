@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { getFlows, softDeleteFlow, type Flow } from '../api';
+import { getFlows, softDeleteFlow, updateFlow, type Flow } from '../api';
 
 interface FlowsListPageProps {
     onNavigate: (path: string) => void;
     onLoadFlow?: (flow: Flow) => void;
 }
+
+type FilterType = 'all' | 'active' | 'inactive';
 
 export const FlowsListPage: React.FC<FlowsListPageProps> = ({ onNavigate, onLoadFlow }) => {
     const [flows, setFlows] = useState<Flow[]>([]);
@@ -15,12 +17,21 @@ export const FlowsListPage: React.FC<FlowsListPageProps> = ({ onNavigate, onLoad
     const [pageSize] = useState(12);
     const [sortBy] = useState<'name' | 'createdAt' | 'updatedAt'>('createdAt');
     const [sortOrder] = useState<'ASC' | 'DESC'>('DESC');
+    const [filter, setFilter] = useState<FilterType>('all');
+    const [togglingFlowId, setTogglingFlowId] = useState<string | null>(null);
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
     useEffect(() => {
         loadFlows();
-    }, [searchQuery, currentPage]);
+    }, [searchQuery, currentPage, filter]);
 
-
+    // Auto-hide toast after 3 seconds
+    useEffect(() => {
+        if (toast) {
+            const timer = setTimeout(() => setToast(null), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [toast]);
 
     const loadFlows = async () => {
         try {
@@ -31,7 +42,7 @@ export const FlowsListPage: React.FC<FlowsListPageProps> = ({ onNavigate, onLoad
                 offset: (currentPage - 1) * pageSize,
                 sortBy,
                 sortOrder,
-                isActive: true  // Only show active flows
+                isActive: filter === 'all' ? undefined : filter === 'active'
             });
             // Ensure data is always an array
             setFlows(Array.isArray(data) ? data : []);
@@ -42,6 +53,27 @@ export const FlowsListPage: React.FC<FlowsListPageProps> = ({ onNavigate, onLoad
             setFlows([]);  // Set empty array on error
         } finally {
             setLoading(false);
+        }
+    };
+
+    const toggleFlowStatus = async (flowId: string, currentStatus: boolean) => {
+        try {
+            setTogglingFlowId(flowId);
+            await updateFlow(flowId, { isActive: !currentStatus });
+            setToast({
+                message: `Flow ${!currentStatus ? 'activated' : 'deactivated'} successfully`,
+                type: 'success'
+            });
+            // Reload flows to reflect the change
+            await loadFlows();
+        } catch (err) {
+            console.error('Failed to toggle flow status:', err);
+            setToast({
+                message: 'Failed to update flow status',
+                type: 'error'
+            });
+        } finally {
+            setTogglingFlowId(null);
         }
     };
 
@@ -78,6 +110,20 @@ export const FlowsListPage: React.FC<FlowsListPageProps> = ({ onNavigate, onLoad
     return (
         <div className="h-full bg-background-light dark:bg-background-dark overflow-y-auto">
             <div className="max-w-7xl mx-auto p-8">
+                {/* Toast Notification */}
+                {toast && (
+                    <div className={`fixed top-4 right-4 z-50 px-6 py-4 rounded-xl shadow-lg flex items-center gap-3 animate-slideIn ${
+                        toast.type === 'success'
+                            ? 'bg-green-100 border border-green-400 text-green-800'
+                            : 'bg-red-100 border border-red-400 text-red-800'
+                    }`}>
+                        <span className="material-symbols-outlined">
+                            {toast.type === 'success' ? 'check_circle' : 'error'}
+                        </span>
+                        <span className="font-medium">{toast.message}</span>
+                    </div>
+                )}
+
                 {/* Header */}
                 <div className="mb-8">
                     <div className="flex justify-between items-start mb-6">
@@ -94,19 +140,40 @@ export const FlowsListPage: React.FC<FlowsListPageProps> = ({ onNavigate, onLoad
                         </button>
                     </div>
 
-                    {/* Search Bar */}
-                    <div className="relative">
-                        <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400">search</span>
-                        <input
-                            type="text"
-                            placeholder="Search flows by name or description..."
-                            value={searchQuery}
-                            onChange={(e) => {
-                                setSearchQuery(e.target.value);
-                                setCurrentPage(1);  // Reset to first page on search
-                            }}
-                            className="w-full pl-12 pr-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-surface-dark text-zinc-900 dark:text-white placeholder-zinc-400 focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-                        />
+                    {/* Search Bar and Filter */}
+                    <div className="flex gap-4">
+                        <div className="relative flex-1">
+                            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400">search</span>
+                            <input
+                                type="text"
+                                placeholder="Search flows by name or description..."
+                                value={searchQuery}
+                                onChange={(e) => {
+                                    setSearchQuery(e.target.value);
+                                    setCurrentPage(1);  // Reset to first page on search
+                                }}
+                                className="w-full pl-12 pr-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-surface-dark text-zinc-900 dark:text-white placeholder-zinc-400 focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                            />
+                        </div>
+
+                        {/* Filter Dropdown */}
+                        <div className="relative">
+                            <select
+                                value={filter}
+                                onChange={(e) => {
+                                    setFilter(e.target.value as FilterType);
+                                    setCurrentPage(1);
+                                }}
+                                className="appearance-none pl-4 pr-10 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-surface-dark text-zinc-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all cursor-pointer"
+                            >
+                                <option value="all">All Flows</option>
+                                <option value="active">Active Only</option>
+                                <option value="inactive">Inactive Only</option>
+                            </select>
+                            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none">
+                                filter_list
+                            </span>
+                        </div>
                     </div>
 
                     {/* Stats */}
@@ -193,13 +260,33 @@ export const FlowsListPage: React.FC<FlowsListPageProps> = ({ onNavigate, onLoad
                             {Array.isArray(flows) && flows.map((flow) => (
                                 <div
                                     key={flow.id}
-                                    className="bg-white dark:bg-surface-dark rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden hover:shadow-2xl transition-all duration-300 group hover:scale-105"
+                                    className={`bg-white dark:bg-surface-dark rounded-2xl border overflow-hidden hover:shadow-2xl transition-all duration-300 group hover:scale-105 ${
+                                        flow.isActive
+                                            ? 'border-l-4 border-l-green-500 border-zinc-200 dark:border-zinc-800'
+                                            : 'border-zinc-200 dark:border-zinc-800 opacity-75'
+                                    }`}
                                 >
                                     {/* Flow Preview/Header */}
                                     <div className="h-32 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent relative overflow-hidden">
                                         <div className="absolute inset-0 flex items-center justify-center">
                                             <span className="material-symbols-outlined text-6xl text-primary/30">smart_toy</span>
                                         </div>
+
+                                        {/* Active Badge - Top Left */}
+                                        <div className="absolute top-3 left-3">
+                                            {flow.isActive ? (
+                                                <span className="px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-full text-xs font-bold flex items-center gap-1">
+                                                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                                                    Active
+                                                </span>
+                                            ) : (
+                                                <span className="px-3 py-1 bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 rounded-full text-xs font-medium">
+                                                    Inactive
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* Action Buttons - Top Right */}
                                         <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button
                                                 onClick={() => handleLoadFlow(flow)}
@@ -262,6 +349,35 @@ export const FlowsListPage: React.FC<FlowsListPageProps> = ({ onNavigate, onLoad
                                                 </span>
                                                 <span className="font-mono font-medium">{flow.id.slice(0, 8)}...</span>
                                             </div>
+                                        </div>
+
+                                        {/* Activation Toggle */}
+                                        <div className="flex items-center justify-between pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                                            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                                                Status
+                                            </span>
+                                            <button
+                                                onClick={() => toggleFlowStatus(flow.id, flow.isActive)}
+                                                disabled={togglingFlowId === flow.id}
+                                                className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                                                    flow.isActive
+                                                        ? 'bg-green-500 focus:ring-green-500'
+                                                        : 'bg-zinc-300 dark:bg-zinc-700 focus:ring-zinc-400'
+                                                }`}
+                                                title={flow.isActive ? 'Click to deactivate' : 'Click to activate'}
+                                            >
+                                                <span
+                                                    className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                                                        flow.isActive ? 'translate-x-8' : 'translate-x-1'
+                                                    }`}
+                                                >
+                                                    {togglingFlowId === flow.id && (
+                                                        <span className="flex items-center justify-center h-full">
+                                                            <span className="animate-spin h-3 w-3 border-2 border-zinc-400 border-t-transparent rounded-full"></span>
+                                                        </span>
+                                                    )}
+                                                </span>
+                                            </button>
                                         </div>
 
                                         <button

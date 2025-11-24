@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { ButtonItem } from "@/shared/types";
 
 // ... Config Components ...
 export const ConfigMessage = ({ data, onClose, onSave }: any) => {
@@ -31,8 +32,17 @@ export const ConfigQuestion = ({ data, onClose, onSave }: any) => {
     const [headerText, setHeaderText] = useState(data.headerText || "");
     const [footerText, setFooterText] = useState(data.footerText || "");
 
-    // Buttons Specific
-    const [buttons, setButtons] = useState<string[]>(data.buttons || []);
+    // Buttons Specific - Convert legacy string[] to ButtonItem[] if needed
+    const initButtons = (): ButtonItem[] => {
+        if (!data.buttons || data.buttons.length === 0) return [];
+        // Check if already ButtonItem[] format
+        if (typeof data.buttons[0] === 'object' && 'id' in data.buttons[0]) {
+            return data.buttons as ButtonItem[];
+        }
+        // Legacy string[] format - convert to ButtonItem[]
+        return (data.buttons as string[]).map((title, i) => ({ id: `btn-${i}`, title }));
+    };
+    const [buttons, setButtons] = useState<ButtonItem[]>(initButtons());
     const [newBtn, setNewBtn] = useState("");
 
     // List Specific
@@ -42,11 +52,30 @@ export const ConfigQuestion = ({ data, onClose, onSave }: any) => {
         { id: 's1', title: 'Section 1', rows: [{ id: 'r1', title: 'Option 1', description: '' }] }
     ]);
 
-    const addBtn = () => { if (newBtn && buttons.length < 3) { setButtons([...buttons, newBtn]); setNewBtn(""); } };
+    const addBtn = () => {
+        if (newBtn.trim() && buttons.length < 3) {
+            setButtons([...buttons, { id: `btn-${buttons.length}`, title: newBtn.trim() }]);
+            setNewBtn("");
+        }
+    };
+
+    const removeBtn = (index: number) => {
+        const newButtons = buttons.filter((_, i) => i !== index);
+        // Re-index remaining buttons with sequential IDs
+        newButtons.forEach((btn, i) => { btn.id = `btn-${i}`; });
+        setButtons(newButtons);
+    };
+
+    const updateBtnTitle = (index: number, title: string) => {
+        const newButtons = [...buttons];
+        newButtons[index] = { ...newButtons[index], title };
+        setButtons(newButtons);
+    };
 
     // List Helpers
     const addSection = () => {
-        setSections([...sections, { id: crypto.randomUUID(), title: 'New Section', rows: [] }]);
+        if (sections.length >= 10) return; // Max 10 sections
+        setSections([...sections, { id: `section-${sections.length}`, title: 'New Section', rows: [] }]);
     };
     const removeSection = (idx: number) => {
         setSections(sections.filter((_, i) => i !== idx));
@@ -56,7 +85,8 @@ export const ConfigQuestion = ({ data, onClose, onSave }: any) => {
     };
     const addRow = (sIdx: number) => {
         const newS = [...sections];
-        newS[sIdx].rows.push({ id: crypto.randomUUID(), title: 'New Option', description: '' });
+        if (newS[sIdx].rows.length >= 10) return; // Max 10 rows per section
+        newS[sIdx].rows.push({ id: `row-${newS[sIdx].rows.length}`, title: 'New Option', description: '' });
         setSections(newS);
     };
     const removeRow = (sIdx: number, rIdx: number) => {
@@ -120,20 +150,38 @@ export const ConfigQuestion = ({ data, onClose, onSave }: any) => {
                         <div className="bg-zinc-50 dark:bg-white/5 p-4 rounded-lg border border-zinc-200 dark:border-white/10">
                             <span className="text-sm font-bold dark:text-white block mb-2">Buttons (Max 3)</span>
                             <div className="space-y-2">
-                                {buttons.map((b, i) => (
-                                    <div key={i} className="flex items-center gap-2">
-                                        <div className="flex-1 p-2 bg-white dark:bg-black/20 rounded border dark:border-white/10 text-sm dark:text-white">{b}</div>
-                                        <button onClick={() => setButtons(buttons.filter((_, idx) => idx !== i))} className="text-red-500 hover:text-red-400 p-1">
+                                {buttons.map((btn, i) => (
+                                    <div key={btn.id} className="flex items-center gap-2">
+                                        <input
+                                            className="flex-1 p-2 bg-white dark:bg-black/20 rounded border dark:border-white/10 text-sm dark:text-white"
+                                            value={btn.title}
+                                            onChange={(e) => updateBtnTitle(i, e.target.value)}
+                                            placeholder="Button title"
+                                            maxLength={20}
+                                        />
+                                        <button onClick={() => removeBtn(i)} className="text-red-500 hover:text-red-400 p-1">
                                             <span className="material-symbols-outlined text-lg">delete</span>
                                         </button>
                                     </div>
                                 ))}
                             </div>
                             {buttons.length < 3 && (
-                                <div className="flex gap-2 mt-3">
-                                    <input className="flex-1 border rounded p-2 text-sm dark:bg-black/20 dark:text-white dark:border-white/10" value={newBtn} onChange={e => setNewBtn(e.target.value)} placeholder="New Button Label" maxLength={20} />
-                                    <button onClick={addBtn} className="bg-primary text-[#112217] px-3 py-1 rounded text-sm font-bold">Add</button>
+                                <div className="flex flex-col gap-2 mt-3">
+                                    <div className="flex gap-2">
+                                        <input
+                                            className="flex-1 border rounded p-2 text-sm dark:bg-black/20 dark:text-white dark:border-white/10"
+                                            value={newBtn}
+                                            onChange={e => setNewBtn(e.target.value)}
+                                            placeholder="New Button Label"
+                                            maxLength={20}
+                                        />
+                                        <button onClick={addBtn} className="bg-primary text-[#112217] px-3 py-1 rounded text-sm font-bold">Add</button>
+                                    </div>
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">(Max 20 chars)</span>
                                 </div>
+                            )}
+                            {buttons.length >= 3 && (
+                                <div className="mt-2 text-xs text-amber-600 dark:text-amber-400">Maximum 3 buttons reached</div>
                             )}
                         </div>
                     )}
@@ -148,32 +196,40 @@ export const ConfigQuestion = ({ data, onClose, onSave }: any) => {
 
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm font-bold dark:text-white">List Sections</span>
-                                    <button onClick={addSection} className="text-xs text-primary hover:underline">+ Add Section</button>
+                                    <span className="text-sm font-bold dark:text-white">List Sections (Max 10)</span>
+                                    <button onClick={addSection} disabled={sections.length >= 10} className="text-xs text-primary hover:underline disabled:text-gray-400 disabled:cursor-not-allowed">+ Add Section</button>
                                 </div>
 
                                 {sections.map((section, sIdx) => (
                                     <div key={section.id} className="border border-zinc-200 dark:border-white/10 rounded-lg p-3 bg-zinc-50 dark:bg-white/5">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <input
-                                                className="flex-1 bg-transparent border-b border-dashed border-gray-400 dark:border-gray-500 focus:border-primary outline-none text-sm font-bold dark:text-white py-1"
-                                                value={section.title}
-                                                onChange={(e) => updateSectionTitle(sIdx, e.target.value)}
-                                                placeholder="Section Title (Optional)"
-                                            />
-                                            <button onClick={() => removeSection(sIdx)} className="text-red-500 hover:text-red-400"><span className="material-symbols-outlined text-lg">delete</span></button>
+                                        <div className="flex flex-col gap-1 mb-2">
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    className="flex-1 bg-transparent border-b border-dashed border-gray-400 dark:border-gray-500 focus:border-primary outline-none text-sm font-bold dark:text-white py-1"
+                                                    value={section.title}
+                                                    onChange={(e) => updateSectionTitle(sIdx, e.target.value)}
+                                                    placeholder="Section Title (Optional)"
+                                                    maxLength={24}
+                                                />
+                                                <button onClick={() => removeSection(sIdx)} className="text-red-500 hover:text-red-400"><span className="material-symbols-outlined text-lg">delete</span></button>
+                                            </div>
+                                            <span className="text-xs text-gray-500 dark:text-gray-400">(Max 24 chars)</span>
                                         </div>
 
                                         <div className="space-y-2 pl-2 border-l-2 border-gray-200 dark:border-white/10">
                                             {section.rows.map((row: any, rIdx: number) => (
                                                 <div key={row.id} className="group flex flex-col gap-1 relative bg-white dark:bg-black/20 p-2 rounded border dark:border-white/5">
                                                     <div className="flex items-center gap-2">
-                                                        <input
-                                                            className="flex-1 bg-transparent border-none p-0 text-sm font-medium dark:text-white placeholder:text-gray-400"
-                                                            value={row.title}
-                                                            onChange={(e) => updateRow(sIdx, rIdx, 'title', e.target.value)}
-                                                            placeholder="Row Title"
-                                                        />
+                                                        <div className="flex-1 flex flex-col gap-1">
+                                                            <input
+                                                                className="w-full bg-transparent border-none p-0 text-sm font-medium dark:text-white placeholder:text-gray-400"
+                                                                value={row.title}
+                                                                onChange={(e) => updateRow(sIdx, rIdx, 'title', e.target.value)}
+                                                                placeholder="Row Title"
+                                                                maxLength={24}
+                                                            />
+                                                            <span className="text-xs text-gray-500 dark:text-gray-400">(Max 24 chars)</span>
+                                                        </div>
                                                         <button onClick={() => removeRow(sIdx, rIdx)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300"><span className="material-symbols-outlined text-sm">close</span></button>
                                                     </div>
                                                     <input
@@ -181,10 +237,18 @@ export const ConfigQuestion = ({ data, onClose, onSave }: any) => {
                                                         value={row.description}
                                                         onChange={(e) => updateRow(sIdx, rIdx, 'description', e.target.value)}
                                                         placeholder="Description (Optional)"
+                                                        maxLength={72}
                                                     />
+                                                    <span className="text-xs text-gray-500 dark:text-gray-400">(Max 72 chars)</span>
                                                 </div>
                                             ))}
-                                            <button onClick={() => addRow(sIdx)} className="w-full py-1 text-xs text-center border border-dashed border-gray-300 dark:border-gray-600 rounded text-gray-500 hover:text-primary hover:border-primary transition-colors">+ Add Row</button>
+                                            <button
+                                                onClick={() => addRow(sIdx)}
+                                                disabled={section.rows.length >= 10}
+                                                className="w-full py-1 text-xs text-center border border-dashed border-gray-300 dark:border-gray-600 rounded text-gray-500 hover:text-primary hover:border-primary transition-colors disabled:text-gray-400 disabled:cursor-not-allowed"
+                                            >
+                                                + Add Row {section.rows.length >= 10 && '(Max 10 reached)'}
+                                            </button>
                                         </div>
                                     </div>
                                 ))}

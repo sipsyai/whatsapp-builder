@@ -15,8 +15,10 @@ import { GoogleGenAI } from "@google/genai";
 import { StartNode, MessageNode, QuestionNode, ConditionNode } from "../../nodes";
 import { QuestionTypeModal } from "./QuestionTypeModal";
 import { ConfigMessage, ConfigQuestion, ConfigCondition } from "./ConfigModals";
+import { FlowTester } from "./FlowTester";
 import type { NodeDataType } from "../../../shared/types";
 import type { Flow } from "../../flows/api";
+import { validateFlow, type ValidationError } from "../utils/flowValidation";
 
 const nodeTypes = {
     start: StartNode,
@@ -53,6 +55,13 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
     const [showAIModal, setShowAIModal] = useState(false);
     const [aiPrompt, setAiPrompt] = useState("");
     const [isGenerating, setIsGenerating] = useState(false);
+
+    // Validation State
+    const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+    const [showValidationPanel, setShowValidationPanel] = useState(false);
+
+    // Test Mode State
+    const [testMode, setTestMode] = useState(false);
 
     // Load initial flow when provided
     useEffect(() => {
@@ -234,6 +243,31 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
 
     // NestJS Backend Integration
     const handleSave = async () => {
+        // Validate flow before saving
+        const errors = validateFlow(nodes, edges);
+        setValidationErrors(errors);
+
+        // Check if there are any errors (severity: 'error')
+        const hasErrors = errors.some(e => e.severity === 'error');
+        const hasWarnings = errors.some(e => e.severity === 'warning');
+
+        if (hasErrors) {
+            setShowValidationPanel(true);
+            alert('Flow has validation errors. Please fix them before saving.');
+            return;
+        }
+
+        // If only warnings, ask for confirmation
+        if (hasWarnings) {
+            setShowValidationPanel(true);
+            const confirmed = window.confirm(
+                'There are some warnings in your flow. Do you want to continue saving?'
+            );
+            if (!confirmed) {
+                return;
+            }
+        }
+
         const payload = {
             name: currentFlowName,
             description: currentFlowDescription || undefined,
@@ -258,6 +292,10 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
                 console.log("Created flow:", data);
                 if (onFlowSaved) onFlowSaved(data.id);
             }
+
+            // Clear validation errors on successful save
+            setValidationErrors([]);
+            setShowValidationPanel(false);
         } catch (error) {
             console.error("Save error:", error);
             alert("Could not save flow. Is the backend running on port 3000?");
@@ -325,18 +363,47 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
                     <button onClick={onSwitchToChat} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg flex items-center gap-2 text-sm font-bold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
                         <span className="material-symbols-outlined text-sm">chat</span> Preview
                     </button>
-                    <button onClick={() => setShowAIModal(true)} className="px-4 py-2 bg-purple-600 text-white rounded-lg flex items-center gap-2 text-sm font-bold">
+                    <button
+                        onClick={() => setTestMode(!testMode)}
+                        className={`px-4 py-2 ${testMode ? 'bg-primary text-[#112217]' : 'bg-orange-600 text-white'} rounded-lg flex items-center gap-2 text-sm font-bold hover:opacity-90 transition-all`}
+                    >
+                        <span className="material-symbols-outlined text-sm">{testMode ? 'edit' : 'science'}</span>
+                        {testMode ? 'Edit Mode' : 'Test Mode'}
+                    </button>
+                    <button
+                        onClick={() => {
+                            const errors = validateFlow(nodes, edges);
+                            setValidationErrors(errors);
+                            setShowValidationPanel(true);
+                            if (errors.length === 0) {
+                                alert('Flow validation passed! No issues found.');
+                            }
+                        }}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2 text-sm font-bold hover:bg-blue-700 transition-colors"
+                    >
+                        <span className="material-symbols-outlined text-sm">check_circle</span> Validate
+                    </button>
+                    <button onClick={() => setShowAIModal(true)} className="px-4 py-2 bg-purple-600 text-white rounded-lg flex items-center gap-2 text-sm font-bold hover:bg-purple-700 transition-colors">
                         <span className="material-symbols-outlined text-sm">auto_awesome</span> AI Build
                     </button>
-                    <button onClick={handleSave} className="px-4 py-2 bg-primary text-[#112217] rounded-lg text-sm font-bold">
+                    <button onClick={handleSave} className="px-4 py-2 bg-primary text-[#112217] rounded-lg text-sm font-bold hover:opacity-90 transition-opacity">
                         {currentFlowId ? 'Update Flow' : 'Save Flow'}
                     </button>
                 </div>
             </header>
 
             <div className="flex flex-1 overflow-hidden">
-                {/* Sidebar */}
-                <aside className="w-72 bg-background-light dark:bg-background-dark border-r border-zinc-200 dark:border-[#23482f] p-4 z-10 overflow-y-auto">
+                {/* Test Mode Full Screen */}
+                {testMode ? (
+                    <FlowTester
+                        flowId={currentFlowId || 'new-flow'}
+                        nodes={nodes}
+                        edges={edges}
+                    />
+                ) : (
+                    <>
+                        {/* Sidebar */}
+                        <aside className="w-72 bg-background-light dark:bg-background-dark border-r border-zinc-200 dark:border-[#23482f] p-4 z-10 overflow-y-auto">
                     {/* Flow Info Section */}
                     <div className="mb-6 pb-4 border-b border-zinc-200 dark:border-zinc-700">
                         <h3 className="text-sm font-bold text-gray-500 mb-3 uppercase tracking-wider">Flow Details</h3>
@@ -433,6 +500,8 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
                         <Controls />
                     </ReactFlow>
                 </div>
+                    </>
+                )}
             </div>
 
             {/* Overlays */}
@@ -466,6 +535,67 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
                                 {isGenerating ? "Thinking..." : "Generate"}
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Validation Errors Panel */}
+            {showValidationPanel && validationErrors.length > 0 && (
+                <div className="fixed bottom-4 right-4 z-50 w-96 max-h-96 overflow-y-auto bg-white dark:bg-[#193322] border border-zinc-200 dark:border-white/10 rounded-lg shadow-2xl">
+                    <div className="sticky top-0 flex items-center justify-between p-4 bg-white dark:bg-[#193322] border-b border-zinc-200 dark:border-white/10">
+                        <h3 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                            <span className="material-symbols-outlined text-yellow-500">warning</span>
+                            Validation Issues
+                        </h3>
+                        <button
+                            onClick={() => setShowValidationPanel(false)}
+                            className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                        >
+                            <span className="material-symbols-outlined">close</span>
+                        </button>
+                    </div>
+                    <div className="p-4 space-y-2">
+                        {validationErrors.map((error, index) => (
+                            <div
+                                key={index}
+                                className={`p-3 rounded-lg border ${
+                                    error.severity === 'error'
+                                        ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+                                        : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'
+                                }`}
+                            >
+                                <div className="flex items-start gap-2">
+                                    <span className={`material-symbols-outlined text-sm ${
+                                        error.severity === 'error' ? 'text-red-600 dark:text-red-400' : 'text-yellow-600 dark:text-yellow-400'
+                                    }`}>
+                                        {error.severity === 'error' ? 'error' : 'warning'}
+                                    </span>
+                                    <div className="flex-1">
+                                        <p className={`text-sm font-medium ${
+                                            error.severity === 'error'
+                                                ? 'text-red-800 dark:text-red-200'
+                                                : 'text-yellow-800 dark:text-yellow-200'
+                                        }`}>
+                                            {error.message}
+                                        </p>
+                                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                                            Node: {error.nodeId === 'flow' ? 'Flow Level' : error.nodeId.slice(0, 8)}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="sticky bottom-0 p-4 bg-white dark:bg-[#193322] border-t border-zinc-200 dark:border-white/10 flex justify-between items-center">
+                        <span className="text-sm text-zinc-600 dark:text-zinc-400">
+                            {validationErrors.filter(e => e.severity === 'error').length} errors, {validationErrors.filter(e => e.severity === 'warning').length} warnings
+                        </span>
+                        <button
+                            onClick={() => setShowValidationPanel(false)}
+                            className="px-4 py-2 bg-zinc-200 dark:bg-zinc-700 text-zinc-800 dark:text-white rounded-lg text-sm font-medium hover:bg-zinc-300 dark:hover:bg-zinc-600"
+                        >
+                            Dismiss
+                        </button>
                     </div>
                 </div>
             )}
