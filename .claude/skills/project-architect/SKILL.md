@@ -241,7 +241,7 @@ Implementation Guidance
    - QuestionNode: Interactive questions
    - ConditionNode: Conditional branching
 
-5. **users**, **settings**, **conversations**, **flows**, **landing** - Supporting features
+5. **users**, **settings**, **conversations**, **landing** - Supporting features
 
 **Shared Code** (`frontend/src/`):
 - **api/** - API clients and services

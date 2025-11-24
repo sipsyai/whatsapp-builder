@@ -36,7 +36,6 @@ whatsapp-builder/
 │   │   │   ├── conversation.entity.ts
 │   │   │   ├── conversation-context.entity.ts
 │   │   │   ├── message.entity.ts
-│   │   │   ├── flow.entity.ts          # Legacy - use chatbot.entity.ts instead
 │   │   │   └── whatsapp-config.entity.ts
 │   │   │
 │   │   ├── migrations/               # Database migrations

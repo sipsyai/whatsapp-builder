@@ -40,7 +40,6 @@ backend/src/
 │   ├── conversation-context.entity.ts
 │   ├── message.entity.ts
 │   ├── user.entity.ts
-│   ├── flow.entity.ts          # Legacy - use chatbot.entity.ts instead
 │   └── whatsapp-config.entity.ts
 ├── modules/                      # Feature modules
 │   ├── chatbots/

@@ -53,31 +53,31 @@ The WhatsApp Builder project underwent a terminology refactoring from **"Flows"*
 
 ### Dual Entity System
 
-**IMPORTANT**: Both entity files currently exist in the codebase:
+**MIGRATION STATUS**: ✅ **COMPLETED**
 
 1. **`backend/src/entities/chatbot.entity.ts`** ✓ **ACTIVE**
    - Used by all application code
    - Maps to `chatbots` database table
    - Full TypeORM entity with relations
 
-2. **`backend/src/entities/flow.entity.ts`** ⚠️ **LEGACY**
-   - Retained for backward compatibility
-   - NOT actively used in application
-   - May be removed in future version
+2. **`backend/src/entities/flow.entity.ts`** ❌ **REMOVED**
+   - Previously marked as legacy
+   - Has been deleted from codebase
+   - Migration complete
 
-### Frontend Dual Feature System
+### Frontend Migration Status
 
-**IMPORTANT**: Both frontend features exist:
+**MIGRATION STATUS**: ✅ **COMPLETED**
 
 1. **`frontend/src/features/chatbots/`** ✓ **ACTIVE**
    - Current API client (`/api/chatbots`)
    - Used in production code
    - Full CRUD operations
 
-2. **`frontend/src/features/flows/`** ⚠️ **LEGACY**
-   - Old API client (`/flows` - endpoints don't exist)
-   - NOT actively used
-   - Candidates for removal
+2. **`frontend/src/features/flows/`** ❌ **REMOVED**
+   - Previously had old API client (`/flows` - endpoints never existed)
+   - Has been deleted from codebase
+   - Migration complete
 
 ---
 

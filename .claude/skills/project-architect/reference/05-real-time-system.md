@@ -263,13 +263,12 @@ interface MessageStatusDto {
 ```typescript
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
+const URL = import.meta.env.VITE_WS_URL || 'http://localhost:3000';
 
-export const socket = io(`${SOCKET_URL}/messages`, {
-  autoConnect: false,  // Manual connection control
-  query: {
-    userId: 'user-123',  // TODO: Get from auth context
-  },
+// Connect to /messages namespace as expected by backend
+export const socket = io(URL + '/messages', {
+  autoConnect: false,
+  transports: ['websocket'],
 });
 ```
 

@@ -300,22 +300,11 @@ export class Conversation {
 
   @UpdateDateColumn({ type: 'timestamp with time zone' })
   updatedAt: Date;
-
-  /**
-   * Check if the 24-hour messaging window is still open
-   */
-  canSendSessionMessage(): boolean {
-    if (!this.lastCustomerMessageAt) return false;
-    const now = new Date();
-    const diff = now.getTime() - this.lastCustomerMessageAt.getTime();
-    return diff < 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-  }
 }
 ```
 
 **Business Logic**:
-- **lastCustomerMessageAt**: Tracks WhatsApp's 24-hour messaging window
-- **canSendSessionMessage()**: Method to check if free-form messages can be sent
+- **lastCustomerMessageAt**: Tracks WhatsApp's 24-hour messaging window for template message requirements
 
 ---
 
