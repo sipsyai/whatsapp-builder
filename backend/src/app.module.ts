@@ -4,7 +4,7 @@ import { AppService } from './app.service';
 import { ConfigModule } from './config/config.module';
 import { DatabaseModule } from './database/database.module';
 import { WhatsAppModule } from './modules/whatsapp/whatsapp.module';
-import { FlowsModule } from './modules/flows/flows.module';
+import { ChatBotsModule } from './modules/chatbots/chatbots.module';
 import { MediaModule } from './modules/media/media.module';
 import { UsersModule } from './modules/users/users.module';
 import { ConversationsModule } from './modules/conversations/conversations.module';
@@ -17,7 +17,7 @@ import { WebSocketModule } from './modules/websocket/websocket.module';
     ConfigModule,
     DatabaseModule,
     WhatsAppModule,
-    FlowsModule,
+    ChatBotsModule,
     MediaModule,
     UsersModule,
     ConversationsModule,

@@ -17,7 +17,7 @@ import { QuestionTypeModal } from "./QuestionTypeModal";
 import { ConfigMessage, ConfigQuestion, ConfigCondition } from "./ConfigModals";
 import { FlowTester } from "./FlowTester";
 import type { NodeDataType } from "../../../shared/types";
-import type { Flow } from "../../flows/api";
+import type { ChatBot } from "../../chatbots/api";
 import { validateFlow, type ValidationError } from "../utils/flowValidation";
 
 const nodeTypes = {
@@ -29,8 +29,8 @@ const nodeTypes = {
 
 interface BuilderPageProps {
     onSwitchToChat?: () => void;
-    initialFlow?: Flow;
-    onFlowSaved?: (flowId: string) => void;
+    initialFlow?: ChatBot;
+    onFlowSaved?: (chatbotId: string) => void;
 }
 
 export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: BuilderPageProps) => {
@@ -315,15 +315,15 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
         try {
             if (currentFlowId) {
                 // Update existing flow
-                const { updateFlow } = await import('../../flows/api');
-                const data = await updateFlow(currentFlowId, payload);
+                const { updateChatBot } = await import('../../chatbots/api');
+                const data = await updateChatBot(currentFlowId, payload);
                 alert(`Flow "${data.name}" updated successfully!`);
                 console.log("Updated flow:", data);
                 if (onFlowSaved) onFlowSaved(data.id);
             } else {
                 // Create new flow
-                const { createFlow } = await import('../../flows/api');
-                const data = await createFlow(payload);
+                const { createChatBot } = await import('../../chatbots/api');
+                const data = await createChatBot(payload);
                 setCurrentFlowId(data.id);
                 alert(`Flow "${data.name}" saved successfully! ID: ${data.id}`);
                 console.log("Created flow:", data);

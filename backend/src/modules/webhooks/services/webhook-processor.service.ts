@@ -6,7 +6,7 @@ import { Conversation } from '../../../entities/conversation.entity';
 import { User } from '../../../entities/user.entity';
 import { ParsedMessageDto, ParsedStatusUpdateDto } from '../dto/parsed-message.dto';
 import { WebhookParserService } from './webhook-parser.service';
-import { FlowExecutionService } from '../../flows/services/flow-execution.service';
+import { ChatBotExecutionService } from '../../chatbots/services/chatbot-execution.service';
 import { MessagesGateway } from '../../websocket/messages.gateway';
 
 /**
@@ -25,7 +25,7 @@ export class WebhookProcessorService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly parserService: WebhookParserService,
-    private readonly flowExecutionService: FlowExecutionService,
+    private readonly chatbotExecutionService: ChatBotExecutionService,
     @Inject(forwardRef(() => MessagesGateway))
     private readonly messagesGateway: MessagesGateway,
   ) {}
@@ -160,7 +160,7 @@ export class WebhookProcessorService {
   ): Promise<void> {
     try {
       // Check if conversation has active flow context
-      const hasContext = await this.flowExecutionService.hasActiveContext(
+      const hasContext = await this.chatbotExecutionService.hasActiveContext(
         conversation.id,
       );
 
@@ -187,7 +187,7 @@ export class WebhookProcessorService {
                            parsedMessage.content?.caption ||
                            '';
 
-        await this.flowExecutionService.processUserResponse(
+        await this.chatbotExecutionService.processUserResponse(
           conversation.id,
           messageText,
           buttonId,
@@ -203,7 +203,7 @@ export class WebhookProcessorService {
           `No active flow context for conversation ${conversation.id}, starting new flow`,
         );
 
-        await this.flowExecutionService.startFlow(
+        await this.chatbotExecutionService.startChatBot(
           conversation.id,
           parsedMessage.senderPhoneNumber,
         );

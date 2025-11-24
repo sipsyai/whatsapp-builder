@@ -10,7 +10,7 @@ export enum NodeType {
   CONDITION = 'condition',
 }
 
-export class FlowNodeDto {
+export class ChatBotNodeDto {
   @IsString()
   id: string;
 

@@ -1,29 +1,29 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { FlowsController } from './flows.controller';
-import { FlowsService } from './flows.service';
-import { FlowWebhookController } from './flow-webhook.controller';
+import { ChatBotsController } from './chatbots.controller';
+import { ChatBotsService } from './chatbots.service';
+import { ChatBotWebhookController } from './chatbot-webhook.controller';
 import { AppointmentService } from './appointment.service';
 import { MockCalendarService } from './mock-calendar.service';
-import { FlowExecutionService } from './services/flow-execution.service';
+import { ChatBotExecutionService } from './services/chatbot-execution.service';
 import { WhatsAppModule } from '../whatsapp/whatsapp.module';
-import { Flow } from '../../entities/flow.entity';
+import { ChatBot } from '../../entities/chatbot.entity';
 import { ConversationContext } from '../../entities/conversation-context.entity';
 import { Conversation } from '../../entities/conversation.entity';
 import { User } from '../../entities/user.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Flow, ConversationContext, Conversation, User]),
+    TypeOrmModule.forFeature([ChatBot, ConversationContext, Conversation, User]),
     WhatsAppModule,
   ],
-  controllers: [FlowsController, FlowWebhookController],
+  controllers: [ChatBotsController, ChatBotWebhookController],
   providers: [
-    FlowsService,
+    ChatBotsService,
     AppointmentService,
     MockCalendarService,
-    FlowExecutionService,
+    ChatBotExecutionService,
   ],
-  exports: [FlowExecutionService],
+  exports: [ChatBotExecutionService],
 })
-export class FlowsModule {}
+export class ChatBotsModule {}

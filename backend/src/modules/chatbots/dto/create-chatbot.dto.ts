@@ -6,10 +6,10 @@ import {
   ArrayMinSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { FlowNodeDto } from './flow-node.dto';
-import { FlowEdgeDto } from './flow-edge.dto';
+import { ChatBotNodeDto } from './chatbot-node.dto';
+import { ChatBotEdgeDto } from './chatbot-edge.dto';
 
-export class CreateFlowDto {
+export class CreateChatBotDto {
   @IsString()
   name: string;
 
@@ -20,12 +20,12 @@ export class CreateFlowDto {
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => FlowNodeDto)
-  nodes?: FlowNodeDto[];
+  @Type(() => ChatBotNodeDto)
+  nodes?: ChatBotNodeDto[];
 
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => FlowEdgeDto)
-  edges?: FlowEdgeDto[];
+  @Type(() => ChatBotEdgeDto)
+  edges?: ChatBotEdgeDto[];
 }

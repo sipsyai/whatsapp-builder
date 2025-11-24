@@ -1,6 +1,6 @@
 import { IsString, IsOptional } from 'class-validator';
 
-export class FlowEdgeDto {
+export class ChatBotEdgeDto {
   @IsString()
   source: string;
 

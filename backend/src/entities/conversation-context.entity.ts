@@ -8,7 +8,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Conversation } from './conversation.entity';
-import { Flow } from './flow.entity';
+import { ChatBot } from './chatbot.entity';
 
 @Entity('conversation_contexts')
 export class ConversationContext {
@@ -23,11 +23,11 @@ export class ConversationContext {
   conversation: Conversation;
 
   @Column({ type: 'uuid' })
-  flowId: string;
+  chatbotId: string;
 
-  @ManyToOne(() => Flow, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'flowId' })
-  flow: Flow;
+  @ManyToOne(() => ChatBot, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'chatbotId' })
+  chatbot: ChatBot;
 
   @Column({ type: 'varchar', length: '255' })
   currentNodeId: string;

@@ -10,7 +10,7 @@ import {
 import { Message } from '../../entities/message.entity';
 import { Conversation } from '../../entities/conversation.entity';
 import { User } from '../../entities/user.entity';
-import { FlowsModule } from '../flows/flows.module';
+import { ChatBotsModule } from '../chatbots/chatbots.module';
 import { WebSocketModule } from '../websocket/websocket.module';
 
 /**
@@ -21,7 +21,7 @@ import { WebSocketModule } from '../websocket/websocket.module';
   imports: [
     ConfigModule,
     TypeOrmModule.forFeature([Message, Conversation, User]),
-    FlowsModule,
+    ChatBotsModule,
     forwardRef(() => WebSocketModule),
   ],
   controllers: [WebhooksController],

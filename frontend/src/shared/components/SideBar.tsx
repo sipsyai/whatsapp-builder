@@ -7,7 +7,7 @@ interface SideBarProps {
 
 export const SideBar: React.FC<SideBarProps> = ({ currentView, onNavigate }) => {
     const navItems = [
-        { id: 'flows', label: 'My Chatbots', icon: 'smart_toy' },
+        { id: 'chatbots', label: 'My Chatbots', icon: 'smart_toy' },
         { id: 'builder', label: 'Builder', icon: 'account_tree' },
         { id: 'chat', label: 'Chat', icon: 'chat' },
         { id: 'users', label: 'Users', icon: 'group' },

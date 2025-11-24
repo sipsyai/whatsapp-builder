@@ -2,7 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConversationContext } from '../../../entities/conversation-context.entity';
-import { Flow } from '../../../entities/flow.entity';
+import { ChatBot } from '../../../entities/chatbot.entity';
 import { Conversation } from '../../../entities/conversation.entity';
 import { User } from '../../../entities/user.entity';
 import { TextMessageService } from '../../whatsapp/services/message-types/text-message.service';
@@ -10,14 +10,14 @@ import { InteractiveMessageService } from '../../whatsapp/services/message-types
 import { NodeDataType, QuestionType } from '../dto/node-data.dto';
 
 @Injectable()
-export class FlowExecutionService {
-  private readonly logger = new Logger(FlowExecutionService.name);
+export class ChatBotExecutionService {
+  private readonly logger = new Logger(ChatBotExecutionService.name);
 
   constructor(
     @InjectRepository(ConversationContext)
     private readonly contextRepo: Repository<ConversationContext>,
-    @InjectRepository(Flow)
-    private readonly flowRepo: Repository<Flow>,
+    @InjectRepository(ChatBot)
+    private readonly chatbotRepo: Repository<ChatBot>,
     @InjectRepository(Conversation)
     private readonly conversationRepo: Repository<Conversation>,
     @InjectRepository(User)
@@ -27,41 +27,41 @@ export class FlowExecutionService {
   ) {}
 
   /**
-   * Start flow execution for a new conversation
+   * Start chatbot execution for a new conversation
    */
-  async startFlow(
+  async startChatBot(
     conversationId: string,
     phoneNumber: string,
   ): Promise<void> {
     this.logger.log(
-      `Starting flow for conversation ${conversationId}, phone: ${phoneNumber}`,
+      `Starting chatbot for conversation ${conversationId}, phone: ${phoneNumber}`,
     );
 
-    // Find first active flow
-    const flow = await this.flowRepo.findOne({
+    // Find first active chatbot
+    const chatbot = await this.chatbotRepo.findOne({
       where: { isActive: true },
       order: { createdAt: 'ASC' },
     });
 
-    if (!flow) {
-      throw new NotFoundException('No active flow found');
+    if (!chatbot) {
+      throw new NotFoundException('No active chatbot found');
     }
 
     // Find START node
-    const startNode = flow.nodes.find(
+    const startNode = chatbot.nodes.find(
       (node) => node.data?.type === NodeDataType.START,
     );
 
     if (!startNode) {
-      throw new NotFoundException('START node not found in flow');
+      throw new NotFoundException('START node not found in chatbot');
     }
 
-    this.logger.log(`Found flow ${flow.id} with START node ${startNode.id}`);
+    this.logger.log(`Found chatbot ${chatbot.id} with START node ${startNode.id}`);
 
     // Create conversation context
     const context = this.contextRepo.create({
       conversationId,
-      flowId: flow.id,
+      chatbotId: chatbot.id,
       currentNodeId: startNode.id,
       variables: {},
       nodeHistory: [],
@@ -85,7 +85,7 @@ export class FlowExecutionService {
     // Load context with relations
     const context = await this.contextRepo.findOne({
       where: { id: contextId, isActive: true },
-      relations: ['conversation', 'flow'],
+      relations: ['conversation', 'chatbot'],
     });
 
     if (!context) {
@@ -94,15 +94,15 @@ export class FlowExecutionService {
 
     // Get current node
     const currentNode = this.findNodeById(
-      context.flow,
+      context.chatbot,
       context.currentNodeId,
     );
 
     if (!currentNode) {
       this.logger.warn(
-        `No current node found for context ${contextId}. Flow ended.`,
+        `No current node found for context ${contextId}. ChatBot ended.`,
       );
-      // Mark context as inactive - flow has ended
+      // Mark context as inactive - chatbot has ended
       context.isActive = false;
       await this.contextRepo.save(context);
       return;
@@ -144,10 +144,10 @@ export class FlowExecutionService {
     this.logger.log(`Processing START node ${node.id}`);
 
     // Find next node
-    const nextNode = this.findNextNode(context.flow, node.id);
+    const nextNode = this.findNextNode(context.chatbot, node.id);
 
     if (!nextNode) {
-      this.logger.warn('No next node after START. Flow ended.');
+      this.logger.warn('No next node after START. ChatBot ended.');
       context.isActive = false;
       await this.contextRepo.save(context);
       return;
@@ -196,10 +196,10 @@ export class FlowExecutionService {
     }
 
     // Find next node
-    const nextNode = this.findNextNode(context.flow, node.id);
+    const nextNode = this.findNextNode(context.chatbot, node.id);
 
     if (!nextNode) {
-      this.logger.log('No next node after MESSAGE. Flow ended.');
+      this.logger.log('No next node after MESSAGE. ChatBot ended.');
       context.isActive = false;
       context.nodeHistory.push(node.id);
       await this.contextRepo.save(context);
@@ -372,11 +372,11 @@ export class FlowExecutionService {
 
     // Find next node based on condition result
     const sourceHandle = conditionResult ? 'true' : 'false';
-    const nextNode = this.findNextNode(context.flow, node.id, sourceHandle);
+    const nextNode = this.findNextNode(context.chatbot, node.id, sourceHandle);
 
     if (!nextNode) {
       this.logger.warn(
-        `No next node after CONDITION (${sourceHandle}). Flow ended.`,
+        `No next node after CONDITION (${sourceHandle}). ChatBot ended.`,
       );
       context.isActive = false;
       context.nodeHistory.push(node.id);
@@ -409,7 +409,7 @@ export class FlowExecutionService {
     // Load active context
     const context = await this.contextRepo.findOne({
       where: { conversationId, isActive: true },
-      relations: ['conversation', 'flow'],
+      relations: ['conversation', 'chatbot'],
     });
 
     if (!context) {
@@ -421,7 +421,7 @@ export class FlowExecutionService {
 
     // Get current node (should be QUESTION node)
     const currentNode = this.findNodeById(
-      context.flow,
+      context.chatbot,
       context.currentNodeId,
     );
 
@@ -465,13 +465,13 @@ export class FlowExecutionService {
 
     // Find next node
     const nextNode = this.findNextNode(
-      context.flow,
+      context.chatbot,
       context.currentNodeId,
       sourceHandle,
     );
 
     if (!nextNode) {
-      this.logger.log('No next node after user response. Flow ended.');
+      this.logger.log('No next node after user response. ChatBot ended.');
       context.isActive = false;
       await this.contextRepo.save(context);
       return;
@@ -489,12 +489,12 @@ export class FlowExecutionService {
    * Find next node via edges
    */
   private findNextNode(
-    flow: Flow,
+    chatbot: ChatBot,
     currentNodeId: string,
     sourceHandle?: string,
   ): any {
     // Find edge where source matches current node
-    const edge = flow.edges.find((e) => {
+    const edge = chatbot.edges.find((e) => {
       if (e.source !== currentNodeId) return false;
 
       // If sourceHandle is specified, match it too
@@ -513,10 +513,10 @@ export class FlowExecutionService {
     }
 
     // Find target node
-    const targetNode = flow.nodes.find((n) => n.id === edge.target);
+    const targetNode = chatbot.nodes.find((n) => n.id === edge.target);
 
     if (!targetNode) {
-      this.logger.error(`Target node ${edge.target} not found in flow`);
+      this.logger.error(`Target node ${edge.target} not found in chatbot`);
       return null;
     }
 
@@ -542,7 +542,7 @@ export class FlowExecutionService {
   async loadContext(conversationId: string): Promise<ConversationContext> {
     const context = await this.contextRepo.findOne({
       where: { conversationId, isActive: true },
-      relations: ['conversation', 'flow'],
+      relations: ['conversation', 'chatbot'],
     });
 
     if (!context) {
@@ -584,10 +584,10 @@ export class FlowExecutionService {
   }
 
   /**
-   * Find node by ID in flow
+   * Find node by ID in chatbot
    */
-  private findNodeById(flow: Flow, nodeId: string): any {
-    return flow.nodes.find((n) => n.id === nodeId);
+  private findNodeById(chatbot: ChatBot, nodeId: string): any {
+    return chatbot.nodes.find((n) => n.id === nodeId);
   }
 
   /**
@@ -602,10 +602,10 @@ export class FlowExecutionService {
   }
 
   /**
-   * Stop flow execution for a conversation
+   * Stop chatbot execution for a conversation
    */
-  async stopFlow(conversationId: string): Promise<void> {
-    this.logger.log(`Stopping flow for conversation ${conversationId}`);
+  async stopChatBot(conversationId: string): Promise<void> {
+    this.logger.log(`Stopping chatbot for conversation ${conversationId}`);
 
     await this.contextRepo.update(
       { conversationId, isActive: true },

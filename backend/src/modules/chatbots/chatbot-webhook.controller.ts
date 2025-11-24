@@ -8,10 +8,10 @@ import {
 } from '@nestjs/common';
 import { AppointmentService } from './appointment.service';
 import { MockCalendarService } from './mock-calendar.service';
-import { FlowCryptoUtil } from './flow-crypto.util';
+import { ChatBotCryptoUtil } from './chatbot-crypto.util';
 
-@Controller('flow-webhook')
-export class FlowWebhookController {
+@Controller('chatbot-webhook')
+export class ChatBotWebhookController {
   // In production, store these securely in environment variables
   private privateKey: string;
   private publicKey: string;
@@ -22,17 +22,17 @@ export class FlowWebhookController {
   ) {
     // Generate key pair for testing
     // In production, generate once and store in .env
-    const keys = FlowCryptoUtil.generateKeyPair();
+    const keys = ChatBotCryptoUtil.generateKeyPair();
     this.privateKey = keys.privateKey;
     this.publicKey = keys.publicKey;
 
     console.log('\n=================================');
-    console.log('WhatsApp Flow Public Key:');
+    console.log('WhatsApp ChatBot Public Key:');
     console.log('=================================');
     console.log(this.publicKey);
     console.log('=================================\n');
     console.log('Copy this public key to WhatsApp Business Manager');
-    console.log('when configuring your Flow endpoint.\n');
+    console.log('when configuring your ChatBot endpoint.\n');
   }
 
   @Get('public-key')
@@ -45,12 +45,12 @@ export class FlowWebhookController {
 
   @Post()
   @HttpCode(HttpStatus.OK)
-  async handleFlowRequest(@Body() body: any) {
+  async handleChatBotRequest(@Body() body: any) {
     try {
-      console.log('Received Flow request:', JSON.stringify(body, null, 2));
+      console.log('Received ChatBot request:', JSON.stringify(body, null, 2));
 
       // Decrypt the request
-      const decryptedRequest = FlowCryptoUtil.decryptRequest(
+      const decryptedRequest = ChatBotCryptoUtil.decryptRequest(
         body,
         this.privateKey,
       );
@@ -87,7 +87,7 @@ export class FlowWebhookController {
         };
       } else if (decryptedRequest.action === 'data_exchange') {
         // Handle data exchange (get available slots or create appointment)
-        const flowToken = decryptedRequest.flow_token;
+        const chatbotToken = decryptedRequest.chatbot_token;
         const screenId = decryptedRequest.screen;
         const data = decryptedRequest.data;
 
@@ -168,7 +168,7 @@ export class FlowWebhookController {
       }
 
       // Encrypt the response
-      const encryptedResponse = FlowCryptoUtil.encryptResponse(
+      const encryptedResponse = ChatBotCryptoUtil.encryptResponse(
         responseData,
         aesKey.subarray(0, 16), // Use first 16 bytes for AES-128
         initialVector,
@@ -177,10 +177,10 @@ export class FlowWebhookController {
       console.log('Response data:', JSON.stringify(responseData, null, 2));
 
       return {
-        encrypted_flow_data: encryptedResponse,
+        encrypted_chatbot_data: encryptedResponse,
       };
     } catch (error) {
-      console.error('Error handling flow request:', error);
+      console.error('Error handling chatbot request:', error);
 
       // Return error response
       return {

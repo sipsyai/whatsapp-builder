@@ -3,25 +3,25 @@ import { ReactFlowProvider } from "@xyflow/react";
 import { LandingPage } from "../features/landing";
 import { BuilderPage } from "../features/builder";
 import { ChatPage } from "../features/chat/ChatPage";
-import { FlowsListPage } from "../features/flows/components/FlowsListPage";
+import { ChatBotsListPage } from "../features/chatbots/components/ChatBotsListPage";
 import { UsersPage } from "../features/users/components/UsersPage";
 import { WhatsappConfigPage } from "../features/settings/WhatsappConfigPage";
 import { SideBar } from "../shared/components/SideBar";
 import type { ViewState } from "../shared/types";
-import type { Flow } from "../features/flows/api";
+import type { ChatBot } from "../features/chatbots/api";
 
 // Extend ViewState type locally since we can't easily edit shared types without seeing them
-type ExtendedViewState = ViewState | "flows" | "users";
+type ExtendedViewState = ViewState | "chatbots" | "users";
 
 const App = () => {
-  // Start with flows page instead of landing to show sidebar immediately
-  const [view, setView] = useState<ExtendedViewState>("flows");
-  const [selectedFlow, setSelectedFlow] = useState<Flow | null>(null);
+  // Start with chatbots page instead of landing to show sidebar immediately
+  const [view, setView] = useState<ExtendedViewState>("chatbots");
+  const [selectedChatBot, setSelectedChatBot] = useState<ChatBot | null>(null);
 
-  // Clear selected flow when navigating away from builder
+  // Clear selected chatbot when navigating away from builder
   useEffect(() => {
     if (view !== "builder") {
-      setSelectedFlow(null);
+      setSelectedChatBot(null);
     }
   }, [view]);
 
@@ -35,21 +35,21 @@ const App = () => {
 
         {/* Main Content */}
         <div className="flex-1 overflow-hidden">
-          {view === "landing" && <LandingPage onStart={() => setView("flows")} />}
+          {view === "landing" && <LandingPage onStart={() => setView("chatbots")} />}
           {view === "builder" && <BuilderPage
             onSwitchToChat={() => setView("chat")}
-            initialFlow={selectedFlow || undefined}
+            initialFlow={selectedChatBot || undefined}
             onFlowSaved={() => {
-              // Optional: could refresh flows list or show notification
+              // Optional: could refresh chatbots list or show notification
             }}
           />}
           {view === "chat" && <ChatPage onBack={() => setView("builder")} />}
-          {view === "flows" && <FlowsListPage
+          {view === "chatbots" && <ChatBotsListPage
             onNavigate={(path) => {
               if (path === '/builder') setView("builder");
             }}
-            onLoadFlow={(flow) => {
-              setSelectedFlow(flow);
+            onLoadChatBot={(chatbot) => {
+              setSelectedChatBot(chatbot);
               setView("builder");
             }}
           />}

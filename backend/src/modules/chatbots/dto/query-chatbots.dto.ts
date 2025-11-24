@@ -1,8 +1,8 @@
 import { IsOptional, IsString, IsNumber, Min, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
-import { FlowStatus } from '../../../entities/flow.entity';
+import { ChatBotStatus } from '../../../entities/chatbot.entity';
 
-export enum FlowSortField {
+export enum ChatBotSortField {
   NAME = 'name',
   CREATED_AT = 'createdAt',
   UPDATED_AT = 'updatedAt',
@@ -13,7 +13,7 @@ export enum SortOrder {
   DESC = 'DESC',
 }
 
-export class QueryFlowsDto {
+export class QueryChatBotsDto {
   @IsOptional()
   @IsString()
   search?: string;
@@ -31,8 +31,8 @@ export class QueryFlowsDto {
   offset?: number;
 
   @IsOptional()
-  @IsEnum(FlowSortField)
-  sortBy?: FlowSortField;
+  @IsEnum(ChatBotSortField)
+  sortBy?: ChatBotSortField;
 
   @IsOptional()
   @IsEnum(SortOrder)
@@ -43,6 +43,6 @@ export class QueryFlowsDto {
   isActive?: boolean;
 
   @IsOptional()
-  @IsEnum(FlowStatus)
-  status?: FlowStatus;
+  @IsEnum(ChatBotStatus)
+  status?: ChatBotStatus;
 }

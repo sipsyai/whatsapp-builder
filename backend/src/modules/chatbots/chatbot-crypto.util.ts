@@ -1,8 +1,8 @@
 import * as crypto from 'crypto';
 
-export class FlowCryptoUtil {
+export class ChatBotCryptoUtil {
   /**
-   * Decrypt WhatsApp Flow request body
+   * Decrypt WhatsApp ChatBot request body
    * @param body Encrypted request body from WhatsApp
    * @param privateKey Your private key for decryption
    * @param passphrase Private key passphrase (if any)
@@ -11,7 +11,7 @@ export class FlowCryptoUtil {
   static decryptRequest(
     body: {
       encrypted_aes_key: string;
-      encrypted_flow_data: string;
+      encrypted_chatbot_data: string;
       initial_vector: string;
     },
     privateKey: string,
@@ -20,7 +20,7 @@ export class FlowCryptoUtil {
     try {
       // Decode base64 encoded data
       const encryptedAesKey = Buffer.from(body.encrypted_aes_key, 'base64');
-      const encryptedFlowData = Buffer.from(body.encrypted_flow_data, 'base64');
+      const encryptedChatBotData = Buffer.from(body.encrypted_chatbot_data, 'base64');
       const initialVector = Buffer.from(body.initial_vector, 'base64');
 
       // Decrypt the AES key using RSA private key
@@ -36,19 +36,19 @@ export class FlowCryptoUtil {
 
       // Split encrypted data into tag and ciphertext
       const TAG_LENGTH = 16;
-      const encryptedFlowDataBody = encryptedFlowData.subarray(0, -TAG_LENGTH);
-      const encryptedFlowDataTag = encryptedFlowData.subarray(-TAG_LENGTH);
+      const encryptedChatBotDataBody = encryptedChatBotData.subarray(0, -TAG_LENGTH);
+      const encryptedChatBotDataTag = encryptedChatBotData.subarray(-TAG_LENGTH);
 
-      // Decrypt the flow data using AES-GCM
+      // Decrypt the chatbot data using AES-GCM
       const decipher = crypto.createDecipheriv(
         'aes-128-gcm',
         decryptedAesKey,
         initialVector,
       );
-      decipher.setAuthTag(encryptedFlowDataTag);
+      decipher.setAuthTag(encryptedChatBotDataTag);
 
       const decryptedData = Buffer.concat([
-        decipher.update(encryptedFlowDataBody),
+        decipher.update(encryptedChatBotDataBody),
         decipher.final(),
       ]);
 
@@ -60,7 +60,7 @@ export class FlowCryptoUtil {
   }
 
   /**
-   * Encrypt WhatsApp Flow response
+   * Encrypt WhatsApp ChatBot response
    * @param response Response data to encrypt
    * @param aesKey AES key from the decrypted request
    * @param initialVector IV from the request

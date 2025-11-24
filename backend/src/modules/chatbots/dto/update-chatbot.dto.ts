@@ -1,9 +1,9 @@
 import { IsString, IsArray, IsOptional, ValidateNested, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
-import { FlowNodeDto } from './flow-node.dto';
-import { FlowEdgeDto } from './flow-edge.dto';
+import { ChatBotNodeDto } from './chatbot-node.dto';
+import { ChatBotEdgeDto } from './chatbot-edge.dto';
 
-export class UpdateFlowDto {
+export class UpdateChatBotDto {
   @IsOptional()
   @IsString()
   name?: string;
@@ -15,14 +15,14 @@ export class UpdateFlowDto {
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => FlowNodeDto)
-  nodes?: FlowNodeDto[];
+  @Type(() => ChatBotNodeDto)
+  nodes?: ChatBotNodeDto[];
 
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => FlowEdgeDto)
-  edges?: FlowEdgeDto[];
+  @Type(() => ChatBotEdgeDto)
+  edges?: ChatBotEdgeDto[];
 
   @IsOptional()
   @IsBoolean()
