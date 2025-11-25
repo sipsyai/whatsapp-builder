@@ -52,12 +52,13 @@ export class FlowMessageService {
             flow_id: dto.flowId,
             flow_cta: dto.ctaText,
             flow_action: dto.mode || 'navigate',
-            flow_action_payload: dto.initialScreen
-              ? {
-                  screen: dto.initialScreen,
-                  data: dto.initialData || {},
-                }
-              : undefined,
+            // flow_action_payload is optional - WhatsApp will show first screen automatically
+            ...(dto.initialScreen && {
+              flow_action_payload: {
+                screen: dto.initialScreen,
+                data: dto.initialData || {},
+              },
+            }),
           },
         },
       },

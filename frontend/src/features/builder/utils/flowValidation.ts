@@ -258,5 +258,64 @@ export const validateFlow = (
     }
   });
 
+  // 8. WhatsApp Flow node validation
+  nodes.forEach(node => {
+    if (node.type === 'whatsapp_flow') {
+      const whatsappFlowId = node.data.whatsappFlowId as string | undefined;
+      const flowCta = node.data.flowCta as string | undefined;
+      const flowBodyText = node.data.flowBodyText as string | undefined;
+
+      if (!whatsappFlowId || whatsappFlowId.trim() === '') {
+        errors.push({
+          nodeId: node.id,
+          message: 'WhatsApp Flow node must have a flow selected',
+          severity: 'error'
+        });
+      }
+
+      if (!flowCta || flowCta.trim() === '') {
+        errors.push({
+          nodeId: node.id,
+          message: 'WhatsApp Flow node must have a button text (CTA)',
+          severity: 'error'
+        });
+      }
+
+      if (flowCta && flowCta.length > 20) {
+        errors.push({
+          nodeId: node.id,
+          message: 'Button text (CTA) can have maximum 20 characters',
+          severity: 'error'
+        });
+      }
+
+      if (!flowBodyText || flowBodyText.trim() === '') {
+        errors.push({
+          nodeId: node.id,
+          message: 'WhatsApp Flow node must have body text',
+          severity: 'error'
+        });
+      }
+
+      if (flowBodyText && flowBodyText.length > 1024) {
+        errors.push({
+          nodeId: node.id,
+          message: 'Body text can have maximum 1024 characters',
+          severity: 'error'
+        });
+      }
+
+      // Check if node has outgoing connection
+      const outgoingEdges = edges.filter(e => e.source === node.id);
+      if (outgoingEdges.length === 0) {
+        errors.push({
+          nodeId: node.id,
+          message: 'WhatsApp Flow node should have an outgoing connection for flow completion',
+          severity: 'warning'
+        });
+      }
+    }
+  });
+
   return errors;
 };

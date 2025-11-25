@@ -1,5 +1,5 @@
 export type ViewState = "landing" | "builder" | "chat" | "settings";
-export type NodeDataType = "start" | "message" | "question" | "condition";
+export type NodeDataType = "start" | "message" | "question" | "condition" | "whatsapp_flow";
 
 export interface ButtonItem {
   id: string;      // "btn-0", "btn-1", "btn-2"
@@ -60,7 +60,13 @@ export interface NodeData {
     // WhatsApp Flow Fields
     whatsappFlowId?: string;
     flowCta?: string;
-    flowMode?: string;
+    flowMode?: 'navigate' | 'data_exchange';
+    flowInitialScreen?: string;
+    flowInitialData?: Record<string, any>;
+    flowOutputVariable?: string;
+    flowHeaderText?: string;
+    flowBodyText?: string;
+    flowFooterText?: string;
 
     // Methods to trigger modal or actions from within node component
     onConfig?: () => void;

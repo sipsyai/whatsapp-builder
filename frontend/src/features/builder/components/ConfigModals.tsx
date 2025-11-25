@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import type { ButtonItem, Condition, ConditionGroup } from "@/shared/types";
 import { useReactFlow } from "@xyflow/react";
+import { flowsApi, type WhatsAppFlow } from "../../flows/api";
 
 // ... Config Components ...
 export const ConfigMessage = ({ data, onClose, onSave }: any) => {
@@ -585,6 +586,318 @@ export const ConfigCondition = ({ data, onClose, onSave }: any) => {
                     <button
                         onClick={handleSave}
                         className="px-4 py-2 rounded-lg bg-primary text-[#112217] font-bold hover:bg-primary/90 transition-colors"
+                    >
+                        Save
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export const ConfigWhatsAppFlow = ({ data, onClose, onSave }: any) => {
+    const [flows, setFlows] = useState<WhatsAppFlow[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    // Form state
+    const [label, setLabel] = useState(data.label || "WhatsApp Flow");
+    const [selectedFlowId, setSelectedFlowId] = useState(data.whatsappFlowId || "");
+    const [flowCta, setFlowCta] = useState(data.flowCta || "Start");
+    const [flowMode, setFlowMode] = useState<'navigate' | 'data_exchange'>(data.flowMode || "navigate");
+    const [bodyText, setBodyText] = useState(data.flowBodyText || "");
+    const [headerText, setHeaderText] = useState(data.flowHeaderText || "");
+    const [footerText, setFooterText] = useState(data.flowFooterText || "");
+    const [outputVariable, setOutputVariable] = useState(data.flowOutputVariable || "");
+    const [initialScreen, setInitialScreen] = useState(data.flowInitialScreen || "");
+    const [initialDataJson, setInitialDataJson] = useState(
+        data.flowInitialData ? JSON.stringify(data.flowInitialData, null, 2) : ""
+    );
+
+    // Load available flows
+    useEffect(() => {
+        const loadFlows = async () => {
+            try {
+                setLoading(true);
+                // Only fetch published flows for chatbot use
+                const allFlows = await flowsApi.getAll();
+                const publishedFlows = allFlows.filter(f => f.status === 'PUBLISHED' && f.whatsappFlowId);
+                setFlows(publishedFlows);
+            } catch (err) {
+                setError("Failed to load WhatsApp Flows");
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadFlows();
+    }, []);
+
+    const selectedFlow = useMemo(() => {
+        return flows.find(f => f.whatsappFlowId === selectedFlowId);
+    }, [flows, selectedFlowId]);
+
+    const handleSave = () => {
+        if (!selectedFlowId) {
+            alert("Please select a WhatsApp Flow");
+            return;
+        }
+
+        if (!flowCta.trim()) {
+            alert("Please enter a button text (CTA)");
+            return;
+        }
+
+        if (!bodyText.trim()) {
+            alert("Please enter body text");
+            return;
+        }
+
+        // Parse initial data JSON if provided
+        let parsedInitialData: Record<string, any> | undefined;
+        if (initialDataJson.trim()) {
+            try {
+                parsedInitialData = JSON.parse(initialDataJson);
+            } catch {
+                alert("Invalid JSON in initial data field");
+                return;
+            }
+        }
+
+        onSave({
+            ...data,
+            label,
+            whatsappFlowId: selectedFlowId,
+            flowCta,
+            flowMode,
+            flowBodyText: bodyText,
+            flowHeaderText: headerText || undefined,
+            flowFooterText: footerText || undefined,
+            flowOutputVariable: outputVariable || undefined,
+            flowInitialScreen: initialScreen || undefined,
+            flowInitialData: parsedInitialData,
+        });
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm fade-in">
+            <div className="w-full max-w-2xl h-full bg-white dark:bg-[#102216] shadow-2xl overflow-y-auto flex flex-col border-l border-zinc-200 dark:border-white/10">
+                <div className="p-8 flex-1">
+                    <header className="flex justify-between items-center mb-6">
+                        <h1 className="text-2xl font-bold dark:text-white">Configure: WhatsApp Flow</h1>
+                        <button onClick={onClose}>
+                            <span className="material-symbols-outlined dark:text-white">close</span>
+                        </button>
+                    </header>
+
+                    {loading ? (
+                        <div className="flex items-center justify-center py-12">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                            <span className="ml-3 dark:text-white">Loading flows...</span>
+                        </div>
+                    ) : error ? (
+                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                            <p className="text-red-800 dark:text-red-300">{error}</p>
+                        </div>
+                    ) : flows.length === 0 ? (
+                        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                            <div className="flex items-start gap-2">
+                                <span className="material-symbols-outlined text-amber-600 dark:text-amber-400">warning</span>
+                                <div>
+                                    <p className="font-medium text-amber-800 dark:text-amber-300">No Published Flows Available</p>
+                                    <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
+                                        You need to create and publish a WhatsApp Flow first. Go to the Flows page to create one.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-6">
+                            {/* Label */}
+                            <label className="block">
+                                <span className="text-sm font-medium dark:text-white">Node Label</span>
+                                <input
+                                    className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+                                    value={label}
+                                    onChange={e => setLabel(e.target.value)}
+                                    placeholder="e.g. Booking Form"
+                                />
+                            </label>
+
+                            {/* Flow Selection */}
+                            <label className="block">
+                                <span className="text-sm font-medium dark:text-white">Select WhatsApp Flow *</span>
+                                <select
+                                    className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+                                    value={selectedFlowId}
+                                    onChange={e => setSelectedFlowId(e.target.value)}
+                                >
+                                    <option value="">-- Select a Flow --</option>
+                                    {flows.map(flow => (
+                                        <option key={flow.id} value={flow.whatsappFlowId}>
+                                            {flow.name} ({flow.status})
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+
+                            {selectedFlow && (
+                                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                                    <p className="text-sm text-green-800 dark:text-green-300">
+                                        <strong>Selected:</strong> {selectedFlow.name}
+                                    </p>
+                                    {selectedFlow.description && (
+                                        <p className="text-xs text-green-700 dark:text-green-400 mt-1">{selectedFlow.description}</p>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Body Text */}
+                            <label className="block">
+                                <span className="text-sm font-medium dark:text-white">Body Text *</span>
+                                <textarea
+                                    className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10 min-h-[80px]"
+                                    value={bodyText}
+                                    onChange={e => setBodyText(e.target.value)}
+                                    placeholder="Message shown before the flow button..."
+                                    maxLength={1024}
+                                />
+                                <span className="text-xs text-gray-500 dark:text-gray-400">{bodyText.length}/1024 chars</span>
+                            </label>
+
+                            {/* CTA Button Text */}
+                            <label className="block">
+                                <span className="text-sm font-medium dark:text-white">Button Text (CTA) *</span>
+                                <input
+                                    className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+                                    value={flowCta}
+                                    onChange={e => setFlowCta(e.target.value)}
+                                    placeholder="e.g. Start, Open Form, Book Now"
+                                    maxLength={20}
+                                />
+                                <span className="text-xs text-gray-500 dark:text-gray-400">{flowCta.length}/20 chars (no emoji)</span>
+                            </label>
+
+                            {/* Flow Mode */}
+                            <div className="block">
+                                <span className="text-sm font-medium dark:text-white block mb-2">Flow Mode</span>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => setFlowMode('navigate')}
+                                        className={`flex-1 p-3 rounded-lg border transition-colors ${
+                                            flowMode === 'navigate'
+                                                ? 'bg-primary text-[#112217] border-primary'
+                                                : 'bg-white dark:bg-black/20 dark:text-white border-zinc-200 dark:border-white/10'
+                                        }`}
+                                    >
+                                        <span className="font-bold block">Navigate</span>
+                                        <span className="text-xs opacity-75">Static flow, no backend</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setFlowMode('data_exchange')}
+                                        className={`flex-1 p-3 rounded-lg border transition-colors ${
+                                            flowMode === 'data_exchange'
+                                                ? 'bg-primary text-[#112217] border-primary'
+                                                : 'bg-white dark:bg-black/20 dark:text-white border-zinc-200 dark:border-white/10'
+                                        }`}
+                                    >
+                                        <span className="font-bold block">Data Exchange</span>
+                                        <span className="text-xs opacity-75">Dynamic, with backend</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Header Text (Optional) */}
+                            <label className="block">
+                                <span className="text-sm font-medium dark:text-gray-300">Header Text (Optional)</span>
+                                <input
+                                    className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+                                    value={headerText}
+                                    onChange={e => setHeaderText(e.target.value)}
+                                    placeholder="Optional header..."
+                                    maxLength={60}
+                                />
+                            </label>
+
+                            {/* Footer Text (Optional) */}
+                            <label className="block">
+                                <span className="text-sm font-medium dark:text-gray-300">Footer Text (Optional)</span>
+                                <input
+                                    className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+                                    value={footerText}
+                                    onChange={e => setFooterText(e.target.value)}
+                                    placeholder="Optional footer..."
+                                    maxLength={60}
+                                />
+                            </label>
+
+                            {/* Output Variable */}
+                            <label className="block pt-4 border-t dark:border-white/10">
+                                <span className="text-sm font-medium dark:text-white">Output Variable (Optional)</span>
+                                <input
+                                    className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+                                    value={outputVariable}
+                                    onChange={e => setOutputVariable(e.target.value)}
+                                    placeholder="e.g. flow_response"
+                                />
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                    Store flow response in this variable for use in subsequent nodes
+                                </span>
+                            </label>
+
+                            {/* Advanced: Initial Screen (for navigate mode) */}
+                            {flowMode === 'navigate' && (
+                                <div className="bg-zinc-50 dark:bg-white/5 p-4 rounded-lg border border-zinc-200 dark:border-white/10">
+                                    <span className="text-sm font-bold dark:text-white block mb-3">Advanced Options</span>
+
+                                    <label className="block mb-4">
+                                        <span className="text-xs font-medium dark:text-gray-300">Initial Screen ID</span>
+                                        <input
+                                            className="w-full mt-1 p-2 rounded border bg-white dark:bg-black/20 dark:text-white dark:border-white/10 text-sm"
+                                            value={initialScreen}
+                                            onChange={e => setInitialScreen(e.target.value)}
+                                            placeholder="e.g. WELCOME_SCREEN"
+                                        />
+                                    </label>
+
+                                    <label className="block">
+                                        <span className="text-xs font-medium dark:text-gray-300">Initial Data (JSON)</span>
+                                        <textarea
+                                            className="w-full mt-1 p-2 rounded border bg-white dark:bg-black/20 dark:text-white dark:border-white/10 text-sm font-mono min-h-[80px]"
+                                            value={initialDataJson}
+                                            onChange={e => setInitialDataJson(e.target.value)}
+                                            placeholder='{"customer_name": "{{name}}", "order_id": "{{order_id}}"}'
+                                        />
+                                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                                            Use {"{{variable}}"} syntax for dynamic values
+                                        </span>
+                                    </label>
+                                </div>
+                            )}
+
+                            {/* Help Text */}
+                            <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1 pt-4 border-t dark:border-white/10">
+                                <p>• Only published WhatsApp Flows can be used in chatbots</p>
+                                <p>• Navigate mode: Static forms with predefined screens</p>
+                                <p>• Data Exchange mode: Dynamic flows with backend interaction</p>
+                                <p>• Flow responses can be stored in a variable for later use</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                <div className="p-4 border-t border-gray-200 dark:border-white/10 flex justify-end gap-3">
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-white/5 dark:text-white transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={handleSave}
+                        disabled={flows.length === 0}
+                        className="px-4 py-2 rounded-lg bg-primary text-[#112217] font-bold hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Save
                     </button>

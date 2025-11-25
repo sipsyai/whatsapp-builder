@@ -94,7 +94,7 @@ export class NodeDataDto {
   // WhatsApp Flow specific fields
   @IsOptional()
   @IsString()
-  whatsappFlowId?: string; // Local database Flow ID
+  whatsappFlowId?: string; // WhatsApp Flow ID (from Meta)
 
   @IsOptional()
   @IsString()
@@ -102,7 +102,19 @@ export class NodeDataDto {
 
   @IsOptional()
   @IsString()
-  flowCta?: string; // Button text
+  flowCta?: string; // Button text (max 20 chars)
+
+  @IsOptional()
+  @IsString()
+  flowBodyText?: string; // Message body text
+
+  @IsOptional()
+  @IsString()
+  flowHeaderText?: string; // Optional header text
+
+  @IsOptional()
+  @IsString()
+  flowFooterText?: string; // Optional footer text
 
   @IsOptional()
   @IsString()

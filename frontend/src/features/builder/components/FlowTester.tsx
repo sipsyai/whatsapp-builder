@@ -156,8 +156,40 @@ export const FlowTester: React.FC<FlowTesterProps> = ({ nodes, edges }) => {
         }
         break;
 
+      case 'whatsapp_flow':
+        // Simulate WhatsApp Flow - show flow message and wait for "completion"
+        const flowBodyText = replaceVariables(nodeData.flowBodyText || 'Please complete this form', variables);
+        const flowCta = nodeData.flowCta || 'Start';
+
+        addBotMessage(`📋 ${flowBodyText}\n\n[WhatsApp Flow Button: "${flowCta}"]`);
+
+        // In test mode, simulate flow completion after a short delay
+        addBotMessage(`⏳ Simulating WhatsApp Flow completion...`);
+
+        // If there's an output variable, simulate storing a response
+        if (nodeData.flowOutputVariable) {
+          setVariables(prev => ({
+            ...prev,
+            [nodeData.flowOutputVariable!]: { simulated: true, timestamp: new Date().toISOString() }
+          }));
+        }
+
+        const flowNext = findNextNode(nodeId);
+        if (flowNext) {
+          setTimeout(() => {
+            addBotMessage(`✅ WhatsApp Flow completed successfully`);
+            setTimeout(() => simulateExecution(flowNext.id), 300);
+          }, 1000);
+        } else {
+          setTimeout(() => {
+            addBotMessage(`✅ WhatsApp Flow completed. Flow ended.`);
+            setIsActive(false);
+          }, 1000);
+        }
+        break;
+
       default:
-        console.warn('Unknown node type:', nodeData.type);
+        console.warn('Unknown node type:', node.type);
         setIsActive(false);
         break;
     }

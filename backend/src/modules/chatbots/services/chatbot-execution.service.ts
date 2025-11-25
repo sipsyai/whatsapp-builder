@@ -459,19 +459,14 @@ export class ChatBotExecutionService {
       throw new Error('WhatsApp Flow ID required');
     }
 
-    // Load Flow from database
+    // Load Flow from database - flowId is the Meta WhatsApp Flow ID
     const flow = await this.flowRepo.findOne({
-      where: { id: flowId },
+      where: { whatsappFlowId: flowId },
     });
 
     if (!flow) {
-      this.logger.error(`WhatsApp Flow ${flowId} not found`);
+      this.logger.error(`WhatsApp Flow with Meta ID ${flowId} not found`);
       throw new NotFoundException(`WhatsApp Flow ${flowId} not found`);
-    }
-
-    if (!flow.whatsappFlowId) {
-      this.logger.error(`Flow ${flowId} has not been published to WhatsApp yet`);
-      throw new Error('Flow must be published before use');
     }
 
     // Get recipient phone number
@@ -489,17 +484,24 @@ export class ChatBotExecutionService {
     const flowToken = `${context.id}-${node.id}`;
 
     try {
-      // Send Flow message
-      const content = node.data?.content || 'Please complete this form';
-      const message = this.replaceVariables(content, context.variables);
+      // Send Flow message - use flowBodyText (new) or content (legacy) for body text
+      const bodyContent =
+        node.data?.flowBodyText ||
+        node.data?.content ||
+        'Please complete this form';
+      const message = this.replaceVariables(bodyContent, context.variables);
+
+      // Use flowHeaderText/flowFooterText (new) or headerText/footerText (legacy)
+      const headerText = node.data?.flowHeaderText || node.data?.headerText;
+      const footerText = node.data?.flowFooterText || node.data?.footerText;
 
       await this.flowMessageService.sendFlowMessage({
         to: recipientPhone,
-        flowId: flow.whatsappFlowId,
+        flowId: flow.whatsappFlowId!, // Non-null: we query by whatsappFlowId so it exists
         body: message,
         ctaText: flowCta,
-        header: node.data?.headerText,
-        footer: node.data?.footerText,
+        header: headerText,
+        footer: footerText,
         flowToken,
         mode: flowMode,
         initialScreen: node.data?.flowInitialScreen,
