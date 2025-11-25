@@ -293,12 +293,22 @@ export class SessionHistoryService {
     try {
       const context = await this.contextRepository.findOne({
         where: { id: sessionId },
-        relations: ['conversation'],
+        relations: ['conversation', 'conversation.participants'],
       });
 
       if (!context) {
         throw new NotFoundException(`Session with ID ${sessionId} not found`);
       }
+
+      // Business user'ı bul (bot mesajlarını tanımlamak için)
+      const businessUser = context.conversation?.participants?.find(
+        (p) => p.name === 'Business',
+      );
+
+      // İlk mesajı yakalamak için 1 saniye buffer ekle
+      const sessionStartBuffer = new Date(
+        context.createdAt.getTime() - 1000,
+      );
 
       // Build query to get messages within session timeframe
       const queryBuilder = this.messageRepository
@@ -308,7 +318,7 @@ export class SessionHistoryService {
           conversationId: context.conversationId,
         })
         .andWhere('message.timestamp >= :startTime', {
-          startTime: context.createdAt,
+          startTime: sessionStartBuffer,
         });
 
       // If session is completed, filter by completion time
@@ -325,6 +335,9 @@ export class SessionHistoryService {
       return messages.map((message) => ({
         id: message.id,
         senderId: message.senderId,
+        senderPhone: message.sender?.phoneNumber,
+        senderName: message.sender?.name,
+        isFromBot: businessUser ? message.senderId === businessUser.id : false,
         type: message.type,
         content: message.content,
         status: message.status,

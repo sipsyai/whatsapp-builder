@@ -6,6 +6,36 @@ interface ConversationLogProps {
   isActive: boolean;
 }
 
+// Fallback: eğer isFromBot gelmezse content'e göre tahmin et
+const determineIsFromBot = (message: SessionMessage): boolean => {
+  const content = message.content;
+
+  // Kullanıcı yanıt tipleri - kesinlikle kullanıcıdan
+  if (content?.type === 'button_reply' ||
+      content?.type === 'list_reply' ||
+      content?.type === 'nfm_reply') {
+    return false;
+  }
+
+  // Interactive message with action - bot'tan
+  if (message.type === 'interactive' && content?.action) {
+    return true;
+  }
+
+  // senderName 'Business' ise bot
+  if (message.senderName === 'Business') {
+    return true;
+  }
+
+  // senderPhone varsa ve Business değilse kullanıcı
+  if (message.senderPhone && message.senderName !== 'Business') {
+    return false;
+  }
+
+  // Default: bot varsay
+  return true;
+};
+
 export const ConversationLog = ({ messages, isActive }: ConversationLogProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -50,19 +80,62 @@ export const ConversationLog = ({ messages, isActive }: ConversationLogProps) =>
         if (content?.type === 'button_reply') {
           return (
             <div className="flex flex-col gap-1">
-              <p className="text-sm font-medium">
-                Selected: {content.buttonTitle || content.button_reply?.title || 'Button'}
-              </p>
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-sm">touch_app</span>
+                <p className="text-sm font-medium">
+                  {content.buttonTitle || content.button_reply?.title || 'Button'}
+                </p>
+              </div>
+              {content.buttonId && (
+                <p className="text-xs opacity-60">ID: {content.buttonId}</p>
+              )}
               <p className="text-xs opacity-75">Button response</p>
             </div>
           );
         } else if (content?.type === 'list_reply') {
           return (
             <div className="flex flex-col gap-1">
-              <p className="text-sm font-medium">
-                Selected: {content.listTitle || content.list_reply?.title || 'List item'}
-              </p>
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-sm">list</span>
+                <p className="text-sm font-medium">
+                  {content.listTitle || content.list_reply?.title || 'List item'}
+                </p>
+              </div>
+              {content.listDescription && (
+                <p className="text-xs opacity-75">{content.listDescription}</p>
+              )}
+              {content.listId && (
+                <p className="text-xs opacity-60">ID: {content.listId}</p>
+              )}
               <p className="text-xs opacity-75">List response</p>
+            </div>
+          );
+        } else if (content?.type === 'nfm_reply') {
+          // WhatsApp Flow yanıtı
+          return (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-sm">check_circle</span>
+                <p className="text-sm font-medium">Form Completed</p>
+              </div>
+              {content.body && (
+                <p className="text-xs opacity-75">{content.body}</p>
+              )}
+              {content.response_json && (
+                <details className="text-xs">
+                  <summary className="cursor-pointer opacity-75 hover:opacity-100">
+                    View submitted data
+                  </summary>
+                  <pre className="mt-1 bg-black/10 dark:bg-white/10 p-2 rounded overflow-x-auto">
+                    {JSON.stringify(
+                      typeof content.response_json === 'string'
+                        ? JSON.parse(content.response_json)
+                        : content.response_json,
+                      null, 2
+                    )}
+                  </pre>
+                </details>
+              )}
             </div>
           );
         }
@@ -212,7 +285,7 @@ export const ConversationLog = ({ messages, isActive }: ConversationLogProps) =>
                   {msgs.map((message) => {
                     // Determine if message is from bot (left) or user (right)
                     // Adjust this logic based on your actual sender identification
-                    const isFromBot = !message.senderPhone || message.senderId.includes('bot');
+                    const isFromBot = message.isFromBot ?? determineIsFromBot(message);
 
                     return (
                       <div

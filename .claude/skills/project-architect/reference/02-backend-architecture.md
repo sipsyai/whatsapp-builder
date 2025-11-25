@@ -246,6 +246,40 @@ export class ChatBotsController {
 - `NodeDataDto`: type, content, variable, questionType, buttons, whatsappFlowId, flowMode, flowCta, flowOutputVariable, etc.
   - **WHATSAPP_FLOW type fields**: whatsappFlowId (UUID), flowMode ('draft'|'published'), flowCta (string), flowOutputVariable (string)
 
+#### Session DTOs (`dto/session.dto.ts`)
+- `SessionDto`: Session overview data
+- `SessionDetailDto`: Comprehensive session data with messages
+- `MessageDto`: Message data within session
+  - **Fields**:
+    - `id` (UUID)
+    - `senderId` (UUID)
+    - `senderPhone?` (string) - Sender's phone number
+    - `senderName?` (string) - Sender's name (e.g., 'Business' for bot)
+    - `isFromBot?` (boolean) - Whether message is from bot
+    - `type` (string)
+    - `content` (any)
+    - `status` (string)
+    - `timestamp` (Date)
+
+#### SessionHistoryService Enhancements (`services/session-history.service.ts`)
+- `getSessionMessages(sessionId)`: Get messages within session timeframe with enhanced metadata
+  - **Bot Detection Logic**: Identifies bot messages by matching senderId with Business user
+  - **Session Start Buffer**: Adds 1-second buffer before session start to capture initial message
+  - **Enhanced Message Mapping**:
+    ```typescript
+    return messages.map((message) => ({
+      id: message.id,
+      senderId: message.senderId,
+      senderPhone: message.sender?.phoneNumber,
+      senderName: message.sender?.name,
+      isFromBot: businessUser ? message.senderId === businessUser.id : false,
+      type: message.type,
+      content: message.content,
+      status: message.status,
+      timestamp: message.timestamp,
+    }));
+    ```
+
 ---
 
 ### 2. WhatsAppModule

@@ -1644,14 +1644,117 @@ interface ChatbotSession {
 interface SessionMessage {
   id: string;
   senderId: string;
-  senderName: string;
-  senderPhone: string;
+  senderName?: string;
+  senderPhone?: string;
+  isFromBot?: boolean;  // Whether message is from bot (backend-determined)
   type: string;
   content: any;
   status: string;
   timestamp: string;
 }
 ```
+
+#### ConversationLog Component
+**File**: `/home/ali/whatsapp-builder/frontend/src/features/sessions/components/ConversationLog.tsx`
+
+**Responsibilities**:
+1. **Message Display**: Renders conversation messages with sender differentiation
+2. **Bot Detection**: Determines whether message is from bot or user
+3. **Interactive Message Rendering**: Special rendering for WhatsApp interactive messages
+4. **Flow Response Display**: Shows WhatsApp Flow completion data (nfm_reply)
+
+**Bot Detection Logic**:
+
+The component uses a multi-layered approach to determine message sender:
+
+1. **Primary**: Use `isFromBot` flag from backend (preferred)
+2. **Fallback**: Use `determineIsFromBot()` function for legacy messages
+
+```typescript
+const determineIsFromBot = (message: SessionMessage): boolean => {
+  const content = message.content;
+
+  // User response types - definitely from user
+  if (content?.type === 'button_reply' ||
+      content?.type === 'list_reply' ||
+      content?.type === 'nfm_reply') {
+    return false;
+  }
+
+  // Interactive message with action - from bot
+  if (message.type === 'interactive' && content?.action) {
+    return true;
+  }
+
+  // senderName 'Business' indicates bot
+  if (message.senderName === 'Business') {
+    return true;
+  }
+
+  // senderPhone exists and not Business - user
+  if (message.senderPhone && message.senderName !== 'Business') {
+    return false;
+  }
+
+  // Default: assume bot
+  return true;
+};
+
+// Usage in component
+const isFromBot = message.isFromBot ?? determineIsFromBot(message);
+```
+
+**Interactive Message Rendering**:
+
+1. **Button Reply** (`button_reply`):
+   - Icon: `touch_app`
+   - Shows button title and ID
+   - Labeled as "Button response"
+
+2. **List Reply** (`list_reply`):
+   - Icon: `list`
+   - Shows list item title, description, and ID
+   - Labeled as "List response"
+
+3. **Flow Completion** (`nfm_reply`):
+   - Icon: `check_circle`
+   - Shows "Form Completed" header
+   - Optional body text
+   - Expandable JSON data viewer with syntax highlighting
+
+```typescript
+// nfm_reply rendering example
+else if (content?.type === 'nfm_reply') {
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <span className="material-symbols-outlined text-sm">check_circle</span>
+        <p className="text-sm font-medium">Form Completed</p>
+      </div>
+      {content.body && (
+        <p className="text-xs opacity-75">{content.body}</p>
+      )}
+      {content.response_json && (
+        <details className="text-xs">
+          <summary className="cursor-pointer opacity-75 hover:opacity-100">
+            View submitted data
+          </summary>
+          <pre className="mt-1 bg-black/10 dark:bg-white/10 p-2 rounded overflow-x-auto">
+            {JSON.stringify(content.response_json, null, 2)}
+          </pre>
+        </details>
+      )}
+    </div>
+  );
+}
+```
+
+**Visual Design**:
+- Bot messages: Left-aligned, gray background
+- User messages: Right-aligned, blue background
+- Icons for interactive responses
+- Expandable details for Flow responses
+- Dark mode support
 
 #### API Client
 ```typescript

@@ -35,6 +35,7 @@ export interface SessionMessage {
   senderId: string;
   senderName?: string;
   senderPhone?: string;
+  isFromBot?: boolean;
   type: string;
   content: any;
   status: string;

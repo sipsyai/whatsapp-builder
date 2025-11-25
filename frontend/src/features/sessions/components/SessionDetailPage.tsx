@@ -70,6 +70,7 @@ export const SessionDetailPage = ({ sessionId, onBack }: SessionDetailPageProps)
             senderId: data.senderId,
             senderName: data.senderName,
             senderPhone: data.senderPhone,
+            isFromBot: data.isFromBot,
             type: data.type,
             content: data.content,
             status: data.status || 'sent',

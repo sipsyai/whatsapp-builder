@@ -48,6 +48,21 @@ export class MessageDto {
   @IsUUID()
   senderId: string;
 
+  @ApiPropertyOptional({ description: 'Sender phone number', example: '+905551234567' })
+  @IsOptional()
+  @IsString()
+  senderPhone?: string;
+
+  @ApiPropertyOptional({ description: 'Sender name', example: 'John Doe' })
+  @IsOptional()
+  @IsString()
+  senderName?: string;
+
+  @ApiPropertyOptional({ description: 'Whether message is from bot', example: true })
+  @IsOptional()
+  @IsBoolean()
+  isFromBot?: boolean;
+
   @ApiProperty({ description: 'Message type', example: 'text' })
   @IsString()
   type: string;

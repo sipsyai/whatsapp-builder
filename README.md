@@ -11,6 +11,13 @@ A powerful WhatsApp chatbot builder with visual flow designer and conversation m
   - Sync flows from Meta/Facebook API
   - Publish and preview flows
   - Use flows in ChatBot nodes
+- **Chatbot Session Tracking**
+  - Real-time session monitoring with WebSocket
+  - Active and completed session views
+  - Conversation logs with enhanced message metadata
+  - Bot/user message differentiation
+  - WhatsApp Flow response visualization (nfm_reply)
+  - Session control (stop active sessions)
 - Real-time conversation management
 - Message and status tracking
 - Webhook handling with ngrok support
