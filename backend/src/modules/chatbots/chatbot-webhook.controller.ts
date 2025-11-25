@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { AppointmentService } from './appointment.service';
 import { MockCalendarService } from './mock-calendar.service';
+import { ProductCatalogService } from './product-catalog.service';
 import { ChatBotCryptoUtil } from './chatbot-crypto.util';
 
 @Controller('chatbot-webhook')
@@ -19,6 +20,7 @@ export class ChatBotWebhookController {
   constructor(
     private readonly appointmentService: AppointmentService,
     private readonly mockCalendarService: MockCalendarService,
+    private readonly productCatalogService: ProductCatalogService,
   ) {
     // Generate key pair for testing
     // In production, generate once and store in .env
@@ -144,6 +146,133 @@ export class ChatBotWebhookController {
             responseData = {
               version: '3.0',
               screen: 'DATETIME_SCREEN',
+              data: {
+                error_message: error.message,
+              },
+            };
+          }
+        }
+        // ==========================================
+        // PRODUCT CATALOG FLOW ACTIONS
+        // ==========================================
+        else if (data.action === 'get_categories') {
+          // Return all product categories
+          const categories = this.productCatalogService.getCategories();
+
+          responseData = {
+            version: '3.0',
+            screen: 'CATEGORY_SCREEN',
+            data: {
+              categories,
+            },
+          };
+        } else if (data.action === 'get_products') {
+          // Return products by selected category
+          const categoryId = data.category;
+          const products = this.productCatalogService.getProductsByCategory(categoryId);
+          const categoryName = this.productCatalogService.getCategoryName(categoryId);
+
+          responseData = {
+            version: '3.0',
+            screen: 'PRODUCT_LIST_SCREEN',
+            data: {
+              category_name: categoryName,
+              products,
+            },
+          };
+        } else if (data.action === 'get_product_details') {
+          // Return product details for selected product
+          const productId = data.product;
+          const product = this.productCatalogService.getProductDetails(productId);
+
+          if (!product) {
+            responseData = {
+              version: '3.0',
+              screen: 'PRODUCT_LIST_SCREEN',
+              data: {
+                error_message: 'Ürün bulunamadı',
+              },
+            };
+          } else {
+            const quantityOptions = this.productCatalogService.getQuantityOptions(
+              Math.min(product.stock, 10),
+            );
+
+            responseData = {
+              version: '3.0',
+              screen: 'PRODUCT_DETAIL_SCREEN',
+              data: {
+                product_id: product.id,
+                product_title: product.title,
+                product_description: product.description,
+                product_price: this.productCatalogService.formatPrice(product.price),
+                product_stock: `${product.stock} adet stokta`,
+                quantity_options: quantityOptions,
+              },
+            };
+          }
+        } else if (data.action === 'add_to_cart') {
+          // Confirm order details before checkout
+          const productId = data.product_id;
+          const quantity = parseInt(data.quantity, 10) || 1;
+          const product = this.productCatalogService.getProductDetails(productId);
+
+          if (!product) {
+            responseData = {
+              version: '3.0',
+              screen: 'PRODUCT_DETAIL_SCREEN',
+              data: {
+                error_message: 'Ürün bulunamadı',
+              },
+            };
+          } else {
+            const totalPrice = product.price * quantity;
+
+            responseData = {
+              version: '3.0',
+              screen: 'CHECKOUT_SCREEN',
+              data: {
+                product_id: product.id,
+                product_title: product.title,
+                quantity: String(quantity),
+                unit_price: this.productCatalogService.formatPrice(product.price),
+                total_price: this.productCatalogService.formatPrice(totalPrice),
+              },
+            };
+          }
+        } else if (data.action === 'create_order') {
+          // Create the order
+          try {
+            const order = this.productCatalogService.createOrder({
+              productId: data.product_id,
+              quantity: parseInt(data.quantity, 10) || 1,
+              customerName: data.customer_name,
+              customerPhone: data.customer_phone || '',
+              address: data.address,
+              notes: data.notes,
+            });
+
+            responseData = {
+              version: '3.0',
+              screen: 'SUCCESS',
+              data: {
+                extension_message_response: {
+                  params: {
+                    flow_token: decryptedRequest.flow_token,
+                    order_id: order.orderId,
+                    product_title: order.product.title,
+                    quantity: order.quantity,
+                    total_price: this.productCatalogService.formatPrice(order.totalPrice),
+                    customer_name: order.customerName,
+                    address: order.address,
+                  },
+                },
+              },
+            };
+          } catch (error) {
+            responseData = {
+              version: '3.0',
+              screen: 'CHECKOUT_SCREEN',
               data: {
                 error_message: error.message,
               },

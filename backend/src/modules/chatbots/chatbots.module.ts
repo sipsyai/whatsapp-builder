@@ -5,6 +5,7 @@ import { ChatBotsService } from './chatbots.service';
 import { ChatBotWebhookController } from './chatbot-webhook.controller';
 import { AppointmentService } from './appointment.service';
 import { MockCalendarService } from './mock-calendar.service';
+import { ProductCatalogService } from './product-catalog.service';
 import { ChatBotExecutionService } from './services/chatbot-execution.service';
 import { WhatsAppModule } from '../whatsapp/whatsapp.module';
 import { MessagesModule } from '../messages/messages.module';
@@ -31,6 +32,7 @@ import { WhatsAppFlow } from '../../entities/whatsapp-flow.entity';
     ChatBotsService,
     AppointmentService,
     MockCalendarService,
+    ProductCatalogService,
     ChatBotExecutionService,
   ],
   exports: [ChatBotExecutionService],
