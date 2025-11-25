@@ -1,11 +1,14 @@
 import {
   Controller,
   Get,
+  Post,
   Param,
   Query,
   ParseUUIDPipe,
   ValidationPipe,
   UsePipes,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -15,6 +18,7 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { SessionHistoryService } from './services/session-history.service';
+import { SessionGateway } from '../websocket/session.gateway';
 import {
   ChatbotSessionDto,
   ChatbotSessionDetailDto,
@@ -29,6 +33,7 @@ import {
 export class SessionsController {
   constructor(
     private readonly sessionHistoryService: SessionHistoryService,
+    private readonly sessionGateway: SessionGateway,
   ) {}
 
   @Get()
@@ -211,5 +216,55 @@ export class SessionsController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<MessageDto[]> {
     return this.sessionHistoryService.getSessionMessages(id);
+  }
+
+  @Post(':id/stop')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Stop a session',
+    description: 'Manually stops an active chatbot session',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Session UUID',
+    type: String,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Session stopped successfully',
+    type: ChatbotSessionDetailDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Session not found',
+  })
+  async stopSession(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<ChatbotSessionDetailDto> {
+    // Get session before stopping to capture previous status
+    const sessionBefore = await this.sessionHistoryService.getSessionDetail(id);
+    const previousStatus = sessionBefore.status;
+
+    // Update session status to stopped
+    await this.sessionHistoryService.updateSessionStatus(
+      id,
+      'stopped',
+      'Manually stopped by user',
+    );
+
+    // Get updated session
+    const sessionAfter = await this.sessionHistoryService.getSessionDetail(id);
+
+    // Emit WebSocket event for real-time UI update
+    this.sessionGateway.emitSessionStatusChanged({
+      sessionId: id,
+      previousStatus,
+      newStatus: 'stopped',
+      currentNodeId: sessionAfter.currentNodeId,
+      currentNodeLabel: sessionAfter.currentNodeLabel,
+      updatedAt: new Date(),
+    });
+
+    return sessionAfter;
   }
 }

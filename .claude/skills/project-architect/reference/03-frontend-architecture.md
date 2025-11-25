@@ -1531,6 +1531,141 @@ export type SyncResult = {
 
 ---
 
+### Feature: Sessions (Chatbot Session Tracking)
+**Location**: `/home/ali/whatsapp-builder/frontend/src/features/sessions/`
+
+#### Structure
+```
+sessions/
+├── components/
+│   ├── SessionsListPage.tsx       # Main sessions list with tabs
+│   ├── SessionDetailPage.tsx      # Session detail view
+│   ├── SessionCard.tsx            # Individual session card
+│   ├── ConversationLog.tsx        # Message history display
+│   ├── VariablesPanel.tsx         # Session variables display
+│   ├── NodeHistoryTimeline.tsx    # Node execution timeline
+│   ├── MiniFlowVisualization.tsx  # Mini chatbot flow visualization
+│   └── index.ts                   # Public exports
+└── index.ts
+```
+
+#### SessionsListPage Component
+**File**: `/home/ali/whatsapp-builder/frontend/src/features/sessions/components/SessionsListPage.tsx`
+
+**Responsibilities**:
+1. **Session Listing**: Display active and completed chatbot sessions
+2. **Tab Navigation**: Switch between active and completed sessions
+3. **Real-time Updates**: Live session updates via WebSocket
+4. **Filtering**: Filter sessions by chatbot
+5. **Pagination**: Server-side pagination support
+6. **Statistics**: Display session stats (active, completed today, total)
+
+**Key Features**:
+- **Tab-based UI**: "Active Sessions" and "Completed Sessions" tabs
+- **Session Cards**: Grid layout (1-3 columns) with session info
+- **Real-time Badge**: Shows live updates indicator when connected
+- **Stats Cards**: Visual stat cards for quick overview
+- **Toast Notifications**: Real-time session event notifications
+
+**State Management**:
+```typescript
+const [sessions, setSessions] = useState<ChatbotSession[]>([]);
+const [currentTab, setCurrentTab] = useState<'active' | 'completed'>('active');
+const [selectedChatbotId, setSelectedChatbotId] = useState<string>('all');
+const [currentPage, setCurrentPage] = useState(1);
+
+// WebSocket for real-time updates
+const {
+  connected,
+  activeSessions,
+  sessionStarted,
+  sessionStatusChanged,
+  sessionCompleted,
+  subscribeToSessions
+} = useSessionSocket();
+```
+
+**Real-time Events**:
+- `session:started` - New session notification
+- `session:status-changed` - Status change (running → waiting_input → completed)
+- `session:completed` - Session completion notification
+
+#### SessionDetailPage Component
+**File**: `/home/ali/whatsapp-builder/frontend/src/features/sessions/components/SessionDetailPage.tsx`
+
+**Responsibilities**:
+1. **Session Details**: Display comprehensive session information
+2. **Message History**: Show conversation log with timestamps
+3. **Variables Panel**: Display session context variables
+4. **Node History**: Track chatbot node execution path
+5. **Real-time Updates**: Live message and status updates
+6. **Session Control**: Stop active sessions
+
+**Layout**:
+- **Split View**: 60% conversation log, 40% variables panel
+- **Header**: Customer info, chatbot name, status badge
+- **Current Node**: Shows current position in chatbot flow
+
+**WebSocket Integration**:
+```typescript
+// Join session room for real-time updates
+useEffect(() => {
+  if (connected && sessionId) {
+    joinSession(sessionId);
+    return () => leaveSession(sessionId);
+  }
+}, [connected, sessionId]);
+
+// Listen for events
+sessionSocket.on('session:message-sent', handleMessageSent);
+sessionSocket.on('session:node-executed', handleNodeExecuted);
+sessionSocket.on('session:status-changed', handleStatusChanged);
+sessionSocket.on('session:completed', handleSessionCompleted);
+```
+
+#### Session Types
+```typescript
+interface ChatbotSession {
+  id: string;
+  conversationId: string;
+  chatbotId: string;
+  chatbotName: string;
+  customerPhone: string;
+  customerName: string;
+  status: 'running' | 'waiting_input' | 'waiting_flow' | 'completed' | 'expired' | 'stopped';
+  isActive: boolean;
+  startedAt: string;
+  completedAt?: string;
+  completionReason?: string;
+  messageCount: number;
+  nodeCount: number;
+}
+
+interface SessionMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderPhone: string;
+  type: string;
+  content: any;
+  status: string;
+  timestamp: string;
+}
+```
+
+#### API Client
+```typescript
+// api/sessions.service.ts
+export const SessionsService = {
+  getSessions: (params) => client.get('/api/sessions', { params }),
+  getSession: (id) => client.get(`/api/sessions/${id}`),
+  getSessionMessages: (id) => client.get(`/api/sessions/${id}/messages`),
+  stopSession: (id) => client.post(`/api/chatbots/conversations/${id}/stop`),
+};
+```
+
+---
+
 ### Feature: Nodes (Custom ReactFlow Nodes)
 **Location**: `/home/ali/whatsapp-builder/frontend/src/features/nodes/`
 

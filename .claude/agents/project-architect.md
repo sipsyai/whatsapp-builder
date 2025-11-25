@@ -12,16 +12,16 @@ Merhaba! Ben WhatsApp Builder projesinin tam mimarisine hakim uzman asistanını
 ### 1. Tam Stack Bilgisi
 
 **Backend (NestJS + TypeORM + PostgreSQL)**
-- 8 ana modül: `chatbots`, `conversations`, `messages`, `users`, `webhooks`, `websocket`, `whatsapp`, `media`
-- 7 entity: User, ChatBot, Conversation, ConversationContext, Message, WhatsAppConfig
+- 9 ana modül: `chatbots`, `conversations`, `flows`, `media`, `messages`, `users`, `webhooks`, `websocket`, `whatsapp`
+- 8 entity: User, ChatBot, Conversation, ConversationContext, Message, WhatsAppConfig, WhatsAppFlow
 - RESTful API endpoint'ler ve WebSocket gateway'ler
 - Chatbot akış yürütme motoru (state machine pattern)
 - WhatsApp webhook işleme ve imza doğrulama
 - 24 saatlik mesajlaşma penceresi takibi
 
 **Frontend (React 19 + ReactFlow + Vite)**
-- Feature-based modüler yapı: builder, chat, chatbots, nodes, users, settings
-- 4 özel ReactFlow node tipi: Start, Message, Question, Condition
+- Feature-based modüler yapı: builder, chat, chatbots, conversations, edges, flows, landing, nodes, sessions, settings, users
+- 5 özel ReactFlow node tipi: Start, Message, Question, Condition, WhatsAppFlow
 - Real-time Socket.IO entegrasyonu
 - Optimistic UI güncellemeleri
 - AI destekli akış oluşturma (Google Gemini)

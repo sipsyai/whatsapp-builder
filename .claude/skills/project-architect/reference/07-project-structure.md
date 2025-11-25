@@ -177,7 +177,8 @@ whatsapp-builder/
         │   ├── client.ts             # Axios instance
         │   ├── socket.ts             # Socket.IO client
         │   ├── conversations.service.ts
-        │   └── messages.service.ts
+        │   ├── messages.service.ts
+        │   └── sessions.service.ts   # Session tracking API
         │
         ├── features/                 # Feature modules
         │   │
@@ -242,6 +243,17 @@ whatsapp-builder/
         │   │   │   └── index.ts
         │   │   └── index.ts
         │   │
+        │   ├── sessions/             # Chatbot session tracking
+        │   │   └── components/
+        │   │       ├── SessionsListPage.tsx
+        │   │       ├── SessionDetailPage.tsx
+        │   │       ├── SessionCard.tsx
+        │   │       ├── ConversationLog.tsx
+        │   │       ├── VariablesPanel.tsx
+        │   │       ├── NodeHistoryTimeline.tsx
+        │   │       ├── MiniFlowVisualization.tsx
+        │   │       └── index.ts
+        │   │
         │   ├── users/                # User management
         │   │   ├── api.ts
         │   │   └── components/
@@ -262,10 +274,12 @@ whatsapp-builder/
         │       └── index.ts
         │
         ├── hooks/                    # Custom React hooks
-        │   └── useWebSocket.ts
+        │   ├── useWebSocket.ts
+        │   └── useSessionSocket.ts
         │
         ├── types/                    # TypeScript type definitions
-        │   └── messages.ts
+        │   ├── messages.ts
+        │   └── sessions.ts           # Session tracking types
         │
         ├── utils/                    # Utility functions
         │
