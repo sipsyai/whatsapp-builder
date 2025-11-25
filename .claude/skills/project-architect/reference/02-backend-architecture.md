@@ -167,6 +167,17 @@ Manages chatbot flows (formerly called "flows") and executes conversation logic 
   - `processQuestionNode()`: Sends interactive message, **saves to database**, **waits** for response
     - Saves with `type: MessageType.INTERACTIVE`
     - Stores WhatsApp message ID in `content.whatsappMessageId`
+    - **Button Data Format (Backward Compatible)**:
+      - Supports both legacy `string[]` format and new `ButtonItemDto[]` format
+      - Button processing logic:
+        ```typescript
+        const buttonItems = buttons.map((button: any, index: number) => ({
+          id: button.id || `btn-${index}`,  // Use existing ID or generate fallback
+          title: (typeof button === 'string' ? button : button.title).substring(0, 20),
+        }));
+        ```
+      - Automatically converts strings to `{ id: 'btn-{index}', title: 'text' }`
+      - Preserves custom IDs from frontend when available
   - `processConditionNode()`: Evaluates condition, branches accordingly
     - **Current Implementation**: Supports legacy single-condition format (`conditionVar`, `conditionOp`, `conditionVal`)
     - **Frontend Compatibility**: Frontend saves both legacy and new formats for backward compatibility

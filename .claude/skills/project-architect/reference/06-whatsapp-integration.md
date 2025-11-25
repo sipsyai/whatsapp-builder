@@ -125,6 +125,33 @@ async sendButtonMessage(dto: SendButtonMessageDto): Promise<MessageResponse> {
 - Button title: max 20 characters
 - Button ID: max 256 characters
 
+**ButtonItemDto Format**:
+
+The backend uses `ButtonItemDto` for type-safe button handling:
+
+```typescript
+// DTO Definition (backend/src/modules/chatbots/dto/list-section.dto.ts)
+export class ButtonItemDto {
+  @IsString()
+  id: string;         // Unique identifier (e.g., "btn_0", "btn-0", or custom ID)
+
+  @IsString()
+  @MaxLength(20)      // WhatsApp API limit
+  title: string;      // Display text
+}
+```
+
+**Data Flow**:
+```
+Frontend (ButtonItem[])  →  Backend (ButtonItemDto[])  →  WhatsApp API
+     { id, title }            { id, title }              { type: "reply", reply: { id, title } }
+```
+
+**Backward Compatibility**:
+- Backend accepts both `string[]` (legacy) and `ButtonItemDto[]` (current) formats
+- Frontend transforms all buttons to `ButtonItemDto[]` before saving
+- Runtime conversion handles both formats transparently
+
 ### 3. Interactive List Messages
 ```typescript
 async sendListMessage(dto: SendListMessageDto): Promise<MessageResponse> {
@@ -1099,6 +1126,94 @@ try {
   }
 }
 ```
+
+---
+
+## Edge Routing with Fallback Logic
+
+When a user responds to a Question node (Button or List type), the system determines which edge to follow based on the response type. A fallback mechanism ensures flow continuity even when users type text instead of clicking buttons.
+
+### Button Question Handling
+
+```typescript
+// chatbot-execution.service.ts - processUserResponse()
+if (questionType === QuestionType.BUTTONS) {
+  if (buttonId) {
+    // User clicked a button - use the button ID
+    sourceHandle = buttonId;
+  } else {
+    // User typed text instead of clicking button - use default handle
+    sourceHandle = 'default';
+    this.logger.log('User typed text instead of clicking button, using default handle');
+  }
+}
+```
+
+### List Question Handling
+
+```typescript
+if (questionType === QuestionType.LIST) {
+  if (listRowId) {
+    // User selected from list - use the row ID
+    sourceHandle = listRowId;
+  } else {
+    // User typed text instead of selecting from list - use default handle
+    sourceHandle = 'default';
+    this.logger.log('User typed text instead of selecting from list, using default handle');
+  }
+}
+```
+
+### Edge Resolution with Fallback
+
+The `findNextNode()` method implements a two-step edge resolution:
+
+```typescript
+private findNextNode(chatbot: ChatBot, currentNodeId: string, sourceHandle?: string): any {
+  // Step 1: Try to find edge with specific sourceHandle
+  let edge = chatbot.edges.find((e) => {
+    if (e.source !== currentNodeId) return false;
+    if (sourceHandle) {
+      return e.sourceHandle === sourceHandle;
+    }
+    return true;
+  });
+
+  // Step 2: If no edge found, try finding a default/fallback edge
+  if (!edge && sourceHandle) {
+    this.logger.log(`No edge found with sourceHandle ${sourceHandle}, looking for default edge`);
+    edge = chatbot.edges.find((e) => {
+      if (e.source !== currentNodeId) return false;
+      // Look for edge without sourceHandle (default) or with sourceHandle='default'
+      return !e.sourceHandle || e.sourceHandle === 'default';
+    });
+  }
+
+  // ... return target node or null
+}
+```
+
+### Fallback Mechanism Benefits
+
+1. **Resilient Flow Execution**: Flow continues even if user doesn't click button/list
+2. **Graceful Degradation**: Missing button edges don't crash the chatbot
+3. **User Flexibility**: Users can type text responses for button/list questions
+4. **Validation Warning, Not Error**: Frontend validation warns about missing edges, but backend handles it
+
+### Edge Naming Convention
+
+| Node Type | User Action | sourceHandle Used |
+|-----------|-------------|-------------------|
+| Button Question | Click button | Button ID (e.g., `btn_0`, `btn-1`) |
+| Button Question | Type text | `'default'` |
+| List Question | Select row | Row ID (e.g., `row-0`, `row-1`) |
+| List Question | Type text | `'default'` |
+
+### Flow Builder Best Practices
+
+- Always add a `default` edge for Button/List questions as fallback
+- Or ensure all buttons have corresponding edges to avoid relying on fallback
+- Frontend validation shows warnings for missing button edges (not errors)
 
 ---
 

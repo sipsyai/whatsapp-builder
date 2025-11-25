@@ -181,9 +181,14 @@ export interface NodeData {
 
 ```typescript
 export interface ButtonItem {
-    id: string;      // Unique ID: "btn-0", "btn-1", "btn-2"
+    id: string;      // Unique ID: "btn_0", "btn_1", "btn_2" (frontend uses underscore)
     title: string;   // Button text (max 20 chars for WhatsApp API)
 }
+
+// Button ID Format Convention:
+// - Frontend format: `btn_0`, `btn_1`, `btn_2` (underscore)
+// - Backend fallback: `btn-0`, `btn-1`, `btn-2` (hyphen)
+// - Custom IDs are preserved if provided
 
 export interface RowItem {
     id: string;          // Unique ID: "row-0", "row-1", etc.
@@ -509,6 +514,45 @@ const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | n
 - `deleteNode()`: Remove node and connected edges
 - `handleSave()`: Validate and save flow to backend
 - `generateAIResponse()`: Generate flow from AI prompt
+
+**Data Transformation Pipeline (handleSave)**:
+
+Before saving to backend, node data is transformed to ensure API compatibility:
+
+```typescript
+const payload = {
+  name: currentFlowName,
+  nodes: nodes.map(n => {
+    const buttons = (n.data as any).buttons;
+    return {
+      id: n.id,
+      type: n.type,
+      position: n.position,
+      data: {
+        ...n.data,
+        // Transform buttons to ButtonItemDto[] format
+        buttons: Array.isArray(buttons)
+          ? buttons.map((btn: any, index: number) =>
+              typeof btn === 'string'
+                ? { id: `btn_${index}`, title: btn }
+                : { id: btn.id || `btn_${index}`, title: btn.title }
+            )
+          : undefined,
+        // Remove non-serializable function references
+        onConfig: undefined,
+        onDelete: undefined
+      }
+    };
+  }),
+  edges: edges.map(e => ({ /* ... */ })),
+};
+```
+
+**Purpose**:
+1. Ensure all buttons have both `id` and `title` fields (ButtonItemDto format)
+2. Support backward compatibility with legacy `string[]` format
+3. Generate consistent IDs for buttons without explicit IDs
+4. Remove non-serializable function references before API call
 
 **Validation System**:
 

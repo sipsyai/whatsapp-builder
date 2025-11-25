@@ -313,9 +313,13 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
                     position: n.position,
                     data: {
                         ...n.data,
-                        // Transform buttons from ButtonItem[] to string[] for backend compatibility
+                        // Transform buttons to ButtonItemDto format { id, title } for backend
                         buttons: Array.isArray(buttons)
-                            ? buttons.map((btn: any) => typeof btn === 'string' ? btn : btn.title)
+                            ? buttons.map((btn: any, index: number) =>
+                                typeof btn === 'string'
+                                    ? { id: `btn_${index}`, title: btn }
+                                    : { id: btn.id || `btn_${index}`, title: btn.title }
+                              )
                             : undefined,
                         // Remove non-serializable functions
                         onConfig: undefined,

@@ -297,9 +297,9 @@ export class ChatBotExecutionService {
         case QuestionType.BUTTONS:
           // Send button message
           const buttons = node.data?.buttons || [];
-          const buttonItems = buttons.map((buttonText: string, index: number) => ({
-            id: `btn-${index}`,
-            title: buttonText.substring(0, 20), // Max 20 chars
+          const buttonItems = buttons.map((button: any, index: number) => ({
+            id: button.id || `btn-${index}`,
+            title: (typeof button === 'string' ? button : button.title).substring(0, 20), // Max 20 chars
           }));
 
           const buttonResult = await this.interactiveMessageService.sendButtonMessage({
@@ -714,12 +714,24 @@ export class ChatBotExecutionService {
 
     const questionType = currentNode.data?.questionType;
 
-    if (questionType === QuestionType.BUTTONS && buttonId) {
-      // For buttons, use the button ID (btn-0, btn-1, etc.)
-      sourceHandle = buttonId;
-    } else if (questionType === QuestionType.LIST && listRowId) {
-      // For list, use the row ID
-      sourceHandle = listRowId;
+    if (questionType === QuestionType.BUTTONS) {
+      if (buttonId) {
+        // User clicked a button - use the button ID
+        sourceHandle = buttonId;
+      } else {
+        // User typed text instead of clicking button - use default
+        sourceHandle = 'default';
+        this.logger.log('User typed text instead of clicking button, using default handle');
+      }
+    } else if (questionType === QuestionType.LIST) {
+      if (listRowId) {
+        // User selected from list - use the row ID
+        sourceHandle = listRowId;
+      } else {
+        // User typed text instead of selecting from list - use default
+        sourceHandle = 'default';
+        this.logger.log('User typed text instead of selecting from list, using default handle');
+      }
     }
 
     // Find next node
