@@ -17,7 +17,7 @@ export class ChatBotNodeDto {
   @IsString()
   id: string;
 
-  @ApiProperty({ description: 'Type of the node', enum: NodeType, example: 'message' })
+  @ApiProperty({ description: 'Type of the node', enum: NodeType, example: 'start' })
   @IsEnum(NodeType)
   type: NodeType;
 

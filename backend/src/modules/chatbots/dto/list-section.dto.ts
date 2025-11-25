@@ -1,6 +1,17 @@
-import { IsString, IsArray, ValidateNested } from 'class-validator';
+import { IsString, IsArray, ValidateNested, MaxLength } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
+
+export class ButtonItemDto {
+  @ApiProperty({ description: 'Unique button identifier', example: 'btn_1' })
+  @IsString()
+  id: string;
+
+  @ApiProperty({ description: 'Button display text (max 20 characters)', example: 'Yes' })
+  @IsString()
+  @MaxLength(20)
+  title: string;
+}
 
 export class ListRowDto {
   @ApiProperty({ description: 'Unique identifier for the row', example: 'row_1' })

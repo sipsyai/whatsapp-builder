@@ -10,7 +10,7 @@ export class ChatBotEdgeDto {
   @IsString()
   target: string;
 
-  @ApiPropertyOptional({ description: 'Source handle identifier for conditional branches', example: 'yes' })
+  @ApiPropertyOptional({ description: 'Source handle identifier for conditional branches (use "true" or "false" for condition nodes)', example: 'true' })
   @IsOptional()
   @IsString()
   sourceHandle?: string;

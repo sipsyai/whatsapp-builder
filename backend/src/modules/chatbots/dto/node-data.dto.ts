@@ -8,7 +8,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ListSectionDto } from './list-section.dto';
+import { ButtonItemDto, ListSectionDto } from './list-section.dto';
 
 export enum NodeDataType {
   START = 'start',
@@ -90,11 +90,20 @@ export class NodeDataDto {
   @IsBoolean()
   mediaHeader?: boolean;
 
-  @ApiPropertyOptional({ description: 'Button labels for interactive messages', example: ['Yes', 'No', 'Maybe'] })
+  @ApiPropertyOptional({
+    description: 'Button items for interactive messages (max 3 buttons)',
+    type: [ButtonItemDto],
+    example: [
+      { id: 'btn_1', title: 'Yes' },
+      { id: 'btn_2', title: 'No' },
+      { id: 'btn_3', title: 'Maybe' },
+    ],
+  })
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
-  buttons?: string[];
+  @ValidateNested({ each: true })
+  @Type(() => ButtonItemDto)
+  buttons?: ButtonItemDto[];
 
   @ApiPropertyOptional({ description: 'Button text for list messages', example: 'View Options' })
   @IsOptional()
