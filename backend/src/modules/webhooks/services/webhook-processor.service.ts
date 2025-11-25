@@ -159,6 +159,31 @@ export class WebhookProcessorService {
     conversation: Conversation,
   ): Promise<void> {
     try {
+      // Handle WhatsApp Flow completion response (nfm_reply)
+      if (parsedMessage.content?.type === 'nfm_reply') {
+        const flowToken = parsedMessage.content.flowToken;
+        const responseData = parsedMessage.content.responseData || {};
+
+        if (flowToken) {
+          this.logger.log(`WhatsApp Flow completion detected for token: ${flowToken}`);
+
+          // Remove flow_token from response data before saving to variables
+          const { flow_token, ...flowData } = responseData;
+
+          await this.chatbotExecutionService.processFlowResponse(
+            flowToken,
+            flowData,
+          );
+
+          this.logger.debug(
+            `Processed Flow response for conversation ${conversation.id}`,
+          );
+          return; // Don't continue with normal flow processing
+        } else {
+          this.logger.warn('nfm_reply received but no flow_token found');
+        }
+      }
+
       // Check if conversation has active flow context
       const hasContext = await this.chatbotExecutionService.hasActiveContext(
         conversation.id,

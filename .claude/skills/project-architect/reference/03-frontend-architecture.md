@@ -1744,6 +1744,138 @@ When a user reaches a WhatsAppFlowNode:
 
 ---
 
+### Feature: Edges (Custom ReactFlow Edges)
+**Location**: `/home/ali/whatsapp-builder/frontend/src/features/edges/`
+
+#### Structure
+```
+edges/
+├── DeletableEdge.tsx          # Deletable edge component with hover effects
+└── index.ts                   # Export
+```
+
+#### DeletableEdge Component
+**File**: `/home/ali/whatsapp-builder/frontend/src/features/edges/DeletableEdge.tsx`
+
+Custom edge component with hover interactions and delete functionality.
+
+**Features**:
+- **Hover Effect**: Changes color to red (#ef4444) and increases stroke width on hover
+- **Delete Button**: Shows centered button on edge path when hovered
+- **Interaction Area**: Invisible wider path (20px) for easier hovering
+- **Smooth Transitions**: CSS transitions for color and stroke-width changes
+- **Dark Theme Support**: Compatible with dark mode
+
+**Component Structure**:
+```typescript
+import { BaseEdge, EdgeLabelRenderer, EdgeProps, getBezierPath, useReactFlow } from '@xyflow/react';
+
+export const DeletableEdge = ({
+  id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, style
+}: EdgeProps) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const { setEdges } = useReactFlow();
+
+  const [edgePath, labelX, labelY] = getBezierPath({
+    sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition,
+  });
+
+  const onEdgeDelete = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    setEdges((edges) => edges.filter((edge) => edge.id !== id));
+  };
+
+  return (
+    <>
+      {/* Invisible wider path for easier hover detection */}
+      <path
+        d={edgePath}
+        strokeWidth={20}
+        stroke="transparent"
+        fill="none"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      />
+
+      {/* Visible edge with hover effect */}
+      <BaseEdge
+        path={edgePath}
+        style={{
+          ...style,
+          stroke: isHovered ? '#ef4444' : '#b1b1b7',
+          strokeWidth: isHovered ? 3 : 2,
+          transition: 'stroke 0.2s, stroke-width 0.2s',
+        }}
+      />
+
+      {/* Delete button at edge center (visible on hover) */}
+      {isHovered && (
+        <EdgeLabelRenderer>
+          <button
+            onClick={onEdgeDelete}
+            style={{
+              position: 'absolute',
+              transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+              pointerEvents: 'all',
+            }}
+            className="edge-delete-button"
+          >
+            <span className="material-symbols-outlined">close</span>
+          </button>
+        </EdgeLabelRenderer>
+      )}
+    </>
+  );
+};
+```
+
+#### Usage in BuilderPage
+
+**Edge Types Registration**:
+```typescript
+import { DeletableEdge } from "../../edges";
+
+const edgeTypes = {
+  deletable: DeletableEdge,
+};
+```
+
+**ReactFlow Configuration**:
+```typescript
+<ReactFlow
+  nodes={nodes}
+  edges={edges}
+  edgeTypes={edgeTypes}
+  defaultEdgeOptions={{ type: 'deletable' }}
+  // ... other props
+/>
+```
+
+**Edge Data Transformation**:
+- **On Load**: Loaded edges from API automatically get `type: 'deletable'` added
+- **AI Generated**: AI-generated edges are mapped to add `type: 'deletable'`
+- **New Connections**: Default edge options ensure new edges use deletable type
+
+```typescript
+// When loading chatbot from API
+const edgesWithType = chatbot.edges.map(edge => ({
+  ...edge,
+  type: 'deletable',
+}));
+setEdges(edgesWithType);
+
+// When AI generates flow
+if (result.edges) {
+  const aiEdges = result.edges.map(edge => ({
+    ...edge,
+    type: 'deletable',
+  }));
+  setEdges(aiEdges);
+}
+```
+
+---
+
 ## State Management
 
 ### Local Component State

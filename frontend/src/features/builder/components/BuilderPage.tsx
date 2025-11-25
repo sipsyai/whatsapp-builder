@@ -13,6 +13,7 @@ import {
 } from "@xyflow/react";
 import { GoogleGenAI } from "@google/genai";
 import { StartNode, MessageNode, QuestionNode, ConditionNode, WhatsAppFlowNode } from "../../nodes";
+import { DeletableEdge } from "../../edges";
 import { QuestionTypeModal } from "./QuestionTypeModal";
 import { ConfigMessage, ConfigQuestion, ConfigCondition, ConfigWhatsAppFlow } from "./ConfigModals";
 import { FlowTester } from "./FlowTester";
@@ -26,6 +27,10 @@ const nodeTypes = {
     question: QuestionNode,
     condition: ConditionNode,
     whatsapp_flow: WhatsAppFlowNode,
+};
+
+const edgeTypes = {
+    deletable: DeletableEdge,
 };
 
 interface BuilderPageProps {
@@ -74,10 +79,11 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
                 setNodes(initialFlow.nodes);
             }
             if (initialFlow.edges && initialFlow.edges.length > 0) {
-                // Add id field to edges if missing (required by ReactFlow)
+                // Add id field and type to edges if missing (required by ReactFlow)
                 const edgesWithIds = initialFlow.edges.map(edge => ({
                     ...edge,
-                    id: edge.id || `${edge.source}-${edge.target}${edge.sourceHandle ? `-${edge.sourceHandle}` : ''}`
+                    id: edge.id || `${edge.source}-${edge.target}${edge.sourceHandle ? `-${edge.sourceHandle}` : ''}`,
+                    type: 'deletable'
                 }));
                 setEdges(edgesWithIds);
             }
@@ -250,7 +256,14 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
                         data: { ...n.data, onConfig: () => { } } // handlers re-attached in render
                     }));
                     setNodes(mappedNodes);
-                    if (result.edges) setEdges(result.edges);
+                    if (result.edges) {
+                        // Add deletable type to AI-generated edges
+                        const mappedEdges = result.edges.map((e: any) => ({
+                            ...e,
+                            type: 'deletable'
+                        }));
+                        setEdges(mappedEdges);
+                    }
                     setShowAIModal(false);
                 }
             }
@@ -536,6 +549,8 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
                         onDragOver={onDragOver}
                         onNodeClick={onNodeClick}
                         nodeTypes={nodeTypes}
+                        edgeTypes={edgeTypes}
+                        defaultEdgeOptions={{ type: 'deletable' }}
                         isValidConnection={isValidConnection}
                         fitView
                         minZoom={0.5}

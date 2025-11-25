@@ -55,7 +55,7 @@ export class WebhookValueDto {
       animated?: boolean;
     };
     interactive?: {
-      type: 'button_reply' | 'list_reply';
+      type: 'button_reply' | 'list_reply' | 'nfm_reply';
       button_reply?: {
         id: string;
         title: string;
@@ -64,6 +64,11 @@ export class WebhookValueDto {
         id: string;
         title: string;
         description?: string;
+      };
+      nfm_reply?: {
+        response_json: string;
+        body?: string;
+        name?: string;
       };
     };
     button?: {

@@ -158,20 +158,30 @@ Manages chatbot flows (formerly called "flows") and executes conversation logic 
 **ChatBotExecutionService** (`services/chatbot-execution.service.ts`)
 - **Core Execution Engine**: Interprets chatbot nodes and edges
 - **State Management**: Maintains conversation context with variables
+- **Message Persistence**: Saves all outgoing messages to database via MessagesService
 - **Node Handlers**:
   - `processStartNode()`: Entry point, moves to next node
-  - `processMessageNode()`: Sends text message, moves to next
-  - `processQuestionNode()`: Sends interactive message, **waits** for response
+  - `processMessageNode()`: Sends text message, **saves to database**, moves to next
+    - Saves with `type: MessageType.TEXT`
+    - Stores WhatsApp message ID in `content.whatsappMessageId`
+  - `processQuestionNode()`: Sends interactive message, **saves to database**, **waits** for response
+    - Saves with `type: MessageType.INTERACTIVE`
+    - Stores WhatsApp message ID in `content.whatsappMessageId`
   - `processConditionNode()`: Evaluates condition, branches accordingly
     - **Current Implementation**: Supports legacy single-condition format (`conditionVar`, `conditionOp`, `conditionVal`)
     - **Frontend Compatibility**: Frontend saves both legacy and new formats for backward compatibility
     - **Future Enhancement**: Add support for `conditionGroup` with multiple conditions and AND/OR logic
     - **Supported Operators**: `==`, `!=`, `>`, `<`, `>=`, `<=`, `contains`, `not_contains`
-  - `processWhatsAppFlowNode()`: Sends WhatsApp Flow message, **waits** for response
+  - `processWhatsAppFlowNode()`: Sends WhatsApp Flow message, **saves to database**, **waits** for response
     - Loads Flow from database by `whatsappFlowId`
     - Generates `flow_token` containing `{contextId}-{nodeId}` for tracking
     - Sends interactive Flow message via WhatsApp API
+    - **Saves Flow message** with detailed content: `{ whatsappMessageId, type: 'flow', body, header, footer, action }`
     - Waits for user to complete Flow and webhook to process response
+  - `processFlowResponse()`: Handles Flow completion webhook
+    - **UUID-aware flow_token parsing**: Splits token into 5+5 parts for UUID format
+    - Logs contextId and nodeId after parsing for debugging
+    - Saves Flow response data to context variables
 - **Flow Navigation**: `findNextNode(chatbot, nodeId, sourceHandle)` - traverses edges
 - **Variable System**: `replaceVariables(text, variables)` - replaces `{{varName}}` syntax
 
@@ -207,6 +217,7 @@ export class ChatBotsController {
   @Put(':id')                // Update chatbot
   @Delete(':id')             // Delete (soft) chatbot
   @Patch(':id/status')       // Update status
+  @Post('conversations/:conversationId/stop')  // Stop active chatbot execution
 }
 ```
 
@@ -381,12 +392,24 @@ verifySignatureOrThrow(signature: string, rawBody: Buffer): void {
 **WebhookParserService** (`services/webhook-parser.service.ts`)
 - `parseMessages(value)`: Extract messages from webhook payload
 - `parseStatusUpdates(value)`: Extract status updates (sent/delivered/read)
+- `parseInteractiveContent()`: Parse interactive message content including **nfm_reply** (WhatsApp Flow completion)
+- `getMessagePreview()`: Generate preview text (returns '📋 Flow completed' for nfm_reply)
 - **Handles Multiple Types**:
   - Text messages
   - Interactive button/list replies
+  - **Interactive nfm_reply** (Native Flow Message Reply - WhatsApp Flow completion)
   - Media messages (image, video, document, audio)
   - Reactions
   - System messages
+
+**nfm_reply Parsing**:
+```typescript
+// When interactive.type === 'nfm_reply'
+const responseData = JSON.parse(msg.interactive.nfm_reply.response_json);
+parsed.interactiveType = 'nfm_reply';
+parsed.flowToken = responseData.flow_token;
+parsed.flowResponseData = responseData;  // Full data including all form fields
+```
 
 **WebhookProcessorService** (`services/webhook-processor.service.ts`)
 ```typescript
@@ -426,19 +449,30 @@ async processMessages(messages: ParsedMessageDto[]): Promise<void> {
 }
 
 async processFlowResponse(conversationId: string, msg: ParsedMessageDto): Promise<void> {
-  // Parse flow_token: "{contextId}-{nodeId}"
-  const [contextId, nodeId] = msg.flowToken.split('-');
+  // Parse flow_token with UUID-aware logic: "{contextId}-{nodeId}"
+  // Both contextId and nodeId are UUIDs (format: 8-4-4-4-12 = 5 parts each)
+  const parts = msg.flowToken.split('-');
+  if (parts.length < 10) {
+    throw new Error('Invalid flow_token format');
+  }
+  const contextId = parts.slice(0, 5).join('-');  // First UUID (5 parts)
+  const nodeId = parts.slice(5).join('-');         // Second UUID (5 parts)
+
+  this.logger.log(`Parsed flow_token - contextId: ${contextId}, nodeId: ${nodeId}`);
 
   // Load conversation context
   const context = await this.contextRepo.findOne({ where: { id: contextId } });
 
+  // Remove flow_token from response data before saving
+  const cleanedData = { ...msg.flowResponseData };
+  delete cleanedData.flow_token;
+
   // Save Flow response to context variables
-  const flowData = JSON.parse(msg.flowResponseData);
-  context.variables[context.currentFlowOutputVariable] = flowData;
+  context.variables[context.currentFlowOutputVariable] = cleanedData;
   await this.contextRepo.save(context);
 
   // Resume ChatBot execution
-  await this.executionService.executeCurrentNode(context);
+  await this.executionService.processFlowResponse(msg.flowToken, cleanedData);
 }
 ```
 
@@ -860,7 +894,8 @@ export class FlowsController {
 │   ├── DELETE /:id/soft       Soft delete chatbot
 │   ├── PATCH  /:id/status     Update status
 │   ├── PATCH  /:id/toggle-active  Toggle active state
-│   └── PATCH  /:id/restore    Restore soft-deleted chatbot
+│   ├── PATCH  /:id/restore    Restore soft-deleted chatbot
+│   └── POST   /conversations/:conversationId/stop  Stop active chatbot
 │
 ├── /flows
 │   ├── GET    /               List flows

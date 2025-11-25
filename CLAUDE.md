@@ -1,0 +1,1 @@
+# .claude klasörü altındaki agents ve skillsler bulunuyor. Her zaman bu agentlar ve Claude Code'da bulunan diğer agentları kullanarak çalış. Proje ile ilgili bilgi edinmen gerekirse project-architect agent'ını kullan.

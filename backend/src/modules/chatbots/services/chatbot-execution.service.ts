@@ -200,9 +200,23 @@ export class ChatBotExecutionService {
 
     // Send text message
     try {
-      await this.textMessageService.sendTextMessage({
+      const textResult = await this.textMessageService.sendTextMessage({
         to: recipientPhone,
         text: message,
+      });
+
+      // Save text message to database
+      const businessUser = await this.getBusinessUser(context.conversation);
+      await this.messagesService.create({
+        conversationId: context.conversation.id,
+        senderId: businessUser.id,
+        type: MessageType.TEXT,
+        content: {
+          whatsappMessageId: textResult.messages?.[0]?.id,
+          body: message,
+        },
+        status: MessageStatus.SENT,
+        timestamp: new Date(),
       });
 
       this.logger.log(`Sent message to ${recipientPhone}: ${message}`);
@@ -258,10 +272,25 @@ export class ChatBotExecutionService {
       switch (questionType) {
         case QuestionType.TEXT:
           // Send plain text message, user will respond freely
-          await this.textMessageService.sendTextMessage({
+          const textQuestionResult = await this.textMessageService.sendTextMessage({
             to: recipientPhone,
             text: message,
           });
+
+          // Save text question to database
+          const textBusinessUser = await this.getBusinessUser(context.conversation);
+          await this.messagesService.create({
+            conversationId: context.conversation.id,
+            senderId: textBusinessUser.id,
+            type: MessageType.TEXT,
+            content: {
+              whatsappMessageId: textQuestionResult.messages?.[0]?.id,
+              body: message,
+            },
+            status: MessageStatus.SENT,
+            timestamp: new Date(),
+          });
+
           this.logger.log(`Sent text question to ${recipientPhone}`);
           break;
 
@@ -495,7 +524,7 @@ export class ChatBotExecutionService {
       const headerText = node.data?.flowHeaderText || node.data?.headerText;
       const footerText = node.data?.flowFooterText || node.data?.footerText;
 
-      await this.flowMessageService.sendFlowMessage({
+      const flowResult = await this.flowMessageService.sendFlowMessage({
         to: recipientPhone,
         flowId: flow.whatsappFlowId!, // Non-null: we query by whatsappFlowId so it exists
         body: message,
@@ -506,6 +535,30 @@ export class ChatBotExecutionService {
         mode: flowMode,
         initialScreen: node.data?.flowInitialScreen,
         initialData,
+      });
+
+      // Save Flow message to database
+      const businessUser = await this.getBusinessUser(context.conversation);
+      await this.messagesService.create({
+        conversationId: context.conversation.id,
+        senderId: businessUser.id,
+        type: MessageType.INTERACTIVE,
+        content: {
+          whatsappMessageId: flowResult.messages?.[0]?.id,
+          type: 'flow',
+          body: { text: message },
+          header: headerText ? { type: 'text', text: headerText } : undefined,
+          footer: footerText ? { text: footerText } : undefined,
+          action: {
+            name: 'flow',
+            parameters: {
+              flow_id: flow.whatsappFlowId,
+              flow_cta: flowCta,
+            },
+          },
+        },
+        status: MessageStatus.SENT,
+        timestamp: new Date(),
       });
 
       this.logger.log(
@@ -542,14 +595,18 @@ export class ChatBotExecutionService {
     this.logger.log(`Processing Flow response for token: ${flowToken}`);
 
     // Parse flow_token: {contextId}-{nodeId}
+    // UUID format: 8-4-4-4-12 characters = 5 parts each
+    // Combined: contextId (5 parts) + nodeId (5 parts) = 10 parts total
     const parts = flowToken.split('-');
-    if (parts.length < 2) {
-      this.logger.error(`Invalid flow_token format: ${flowToken}`);
+    if (parts.length < 10) {
+      this.logger.error(`Invalid flow_token format: ${flowToken}, expected 10 parts but got ${parts.length}`);
       return;
     }
 
-    const contextId = parts[0];
-    const nodeId = parts.slice(1).join('-'); // In case nodeId contains dashes
+    const contextId = parts.slice(0, 5).join('-'); // First 5 parts = contextId UUID
+    const nodeId = parts.slice(5).join('-'); // Remaining parts = nodeId UUID
+
+    this.logger.log(`Parsed flow_token - contextId: ${contextId}, nodeId: ${nodeId}`);
 
     // Load context
     const context = await this.contextRepo.findOne({

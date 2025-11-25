@@ -194,6 +194,23 @@ export class WebhookParserService {
       };
     }
 
+    // Handle WhatsApp Flow completion response (nfm_reply = Native Flow Message Reply)
+    if (interactive.type === 'nfm_reply') {
+      let responseData = {};
+      try {
+        responseData = JSON.parse(interactive.nfm_reply?.response_json || '{}');
+      } catch (e) {
+        this.logger.warn('Failed to parse nfm_reply response_json');
+      }
+
+      return {
+        type: 'nfm_reply',
+        flowToken: responseData['flow_token'],
+        responseData,
+        body: interactive.nfm_reply?.body,
+      };
+    }
+
     return interactive;
   }
 
@@ -277,6 +294,9 @@ export class WebhookParserService {
         }
         if (parsedMessage.content?.type === 'list_reply') {
           return `Selected: ${parsedMessage.content.listTitle}`;
+        }
+        if (parsedMessage.content?.type === 'nfm_reply') {
+          return '📋 Flow completed';
         }
         return 'Interactive response';
 

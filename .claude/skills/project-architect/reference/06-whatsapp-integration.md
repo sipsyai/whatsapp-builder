@@ -632,10 +632,13 @@ parseMessages(value: any): ParsedMessageDto[] {
           parsed.text = msg.interactive.list_reply.title;
           parsed.listRowId = msg.interactive.list_reply.id;
         } else if (msg.interactive.type === 'nfm_reply') {
-          // Flow response
-          parsed.text = 'Flow Response';
-          parsed.flowToken = msg.interactive.nfm_reply.response_json.flow_token;
-          parsed.flowResponseData = msg.interactive.nfm_reply.response_json;
+          // Native Flow Message Reply - WhatsApp Flow completion
+          // response_json is a string that needs to be parsed
+          const responseData = JSON.parse(msg.interactive.nfm_reply.response_json);
+          parsed.text = '📋 Flow completed';
+          parsed.interactiveType = 'nfm_reply';
+          parsed.flowToken = responseData.flow_token;
+          parsed.flowResponseData = responseData;  // Full data including all form fields
         }
         break;
 
@@ -700,8 +703,17 @@ async processMessages(messages: ParsedMessageDto[]): Promise<void> {
 }
 
 async processFlowResponse(conversationId: string, msg: ParsedMessageDto): Promise<void> {
-  // Parse flow_token: "{contextId}-{nodeId}"
-  const [contextId, nodeId] = msg.flowToken.split('-');
+  // Parse flow_token with UUID-aware logic: "{contextId}-{nodeId}"
+  // Both contextId and nodeId are UUIDs (format: 8-4-4-4-12 = 5 hyphen-separated parts each)
+  const parts = msg.flowToken.split('-');
+  if (parts.length < 10) {
+    this.logger.error(`Invalid flow_token format: ${msg.flowToken}`);
+    return;
+  }
+  const contextId = parts.slice(0, 5).join('-');  // First UUID (5 parts)
+  const nodeId = parts.slice(5).join('-');         // Second UUID (5 parts)
+
+  this.logger.log(`Parsed flow_token - contextId: ${contextId}, nodeId: ${nodeId}`);
 
   // Load conversation context
   const context = await this.contextRepo.findOne({
@@ -714,14 +726,18 @@ async processFlowResponse(conversationId: string, msg: ParsedMessageDto): Promis
     return;
   }
 
+  // Remove flow_token from response data before saving to context
+  const cleanedData = { ...msg.flowResponseData };
+  delete cleanedData.flow_token;
+
   // Save Flow response to context variables
   const flowOutputVariable = context.variables._currentFlowOutputVariable || 'flowData';
-  context.variables[flowOutputVariable] = msg.flowResponseData;
+  context.variables[flowOutputVariable] = cleanedData;
 
   await this.contextRepo.save(context);
 
-  // Resume ChatBot execution from next node
-  await this.executionService.executeCurrentNode(context);
+  // Resume ChatBot execution via processFlowResponse
+  await this.executionService.processFlowResponse(msg.flowToken, cleanedData);
 }
 ```
 
@@ -1104,9 +1120,15 @@ try {
 **Inbound**: WhatsApp → Webhook → WebhookProcessor → ChatBotExecution → Response
 
 ### Flow Execution Flow
-**Send Flow**: ChatBot (WhatsAppFlowNode) → Generate flow_token → Send Flow message → Wait
+**Send Flow**: ChatBot (WhatsAppFlowNode) → Generate flow_token → Send Flow message → **Save to DB** → Wait
 **User Interaction**: User opens Flow → WhatsApp calls Flow Endpoint → Decrypt → Process → Encrypt → Return
-**Flow Completion**: User submits → WhatsApp sends webhook → Parse flow_token → Extract data → Resume ChatBot
+**Flow Completion**: User submits → WhatsApp sends webhook (nfm_reply) → Parse flow_token (UUID-aware: 5+5 parts) → Remove flow_token from data → Save to context → Resume ChatBot
+
+### Message Persistence
+All chatbot messages are now saved to database:
+- **Text Messages**: Saved with `type: MessageType.TEXT` and `content.whatsappMessageId`
+- **Interactive Messages**: Saved with `type: MessageType.INTERACTIVE` and `content.whatsappMessageId`
+- **Flow Messages**: Saved with detailed content including `{ whatsappMessageId, type: 'flow', body, header, footer, action }`
 
 ---
 

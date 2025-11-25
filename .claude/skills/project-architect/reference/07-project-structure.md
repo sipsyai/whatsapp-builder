@@ -212,6 +212,10 @@ whatsapp-builder/
         │   ├── conversations/        # Conversation list
         │   │   └── api.ts
         │   │
+        │   ├── edges/                # Custom ReactFlow edges
+        │   │   ├── DeletableEdge.tsx # Deletable edge with hover effects
+        │   │   └── index.ts          # Export
+        │   │
         │   ├── flows/                # WhatsApp Flows management
         │   │   ├── components/
         │   │   │   └── FlowsPage.tsx

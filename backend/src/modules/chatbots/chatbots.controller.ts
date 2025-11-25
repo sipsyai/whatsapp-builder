@@ -14,6 +14,7 @@ import {
   UsePipes,
 } from '@nestjs/common';
 import { ChatBotsService } from './chatbots.service';
+import { ChatBotExecutionService } from './services/chatbot-execution.service';
 import { CreateChatBotDto } from './dto/create-chatbot.dto';
 import { UpdateChatBotDto } from './dto/update-chatbot.dto';
 import { QueryChatBotsDto } from './dto/query-chatbots.dto';
@@ -21,7 +22,10 @@ import { QueryChatBotsDto } from './dto/query-chatbots.dto';
 @Controller('api/chatbots')
 @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
 export class ChatBotsController {
-  constructor(private readonly chatbotsService: ChatBotsService) {}
+  constructor(
+    private readonly chatbotsService: ChatBotsService,
+    private readonly executionService: ChatBotExecutionService,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -76,5 +80,12 @@ export class ChatBotsController {
   @Delete(':id/soft')
   async softDelete(@Param('id') id: string) {
     return this.chatbotsService.softDelete(id);
+  }
+
+  @Post('conversations/:conversationId/stop')
+  @HttpCode(HttpStatus.OK)
+  async stopChatBot(@Param('conversationId') conversationId: string) {
+    await this.executionService.stopChatBot(conversationId);
+    return { message: 'Chatbot stopped successfully', conversationId };
   }
 }
