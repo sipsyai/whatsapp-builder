@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan, IsNull, Not } from 'typeorm';
 import { ConversationContext } from '../../../entities/conversation-context.entity';
+import { SessionGateway } from '../../websocket/session.gateway';
 
 /**
  * Context Cleanup Service
@@ -16,6 +17,7 @@ export class ContextCleanupService {
   constructor(
     @InjectRepository(ConversationContext)
     private readonly contextRepo: Repository<ConversationContext>,
+    private readonly sessionGateway: SessionGateway,
   ) {}
 
   /**
@@ -45,7 +47,11 @@ export class ContextCleanupService {
       );
 
       for (const context of expiredContexts) {
+        const previousStatus = context.status;
         context.isActive = false;
+        context.status = 'expired';
+        context.completedAt = new Date();
+        context.completionReason = 'timeout';
         context.expiresAt = null;
 
         // Clear any waiting states
@@ -53,6 +59,28 @@ export class ContextCleanupService {
         delete context.variables['__awaiting_variable__'];
 
         await this.contextRepo.save(context);
+
+        // Emit session:status-changed event
+        this.sessionGateway.emitSessionStatusChanged({
+          sessionId: context.id,
+          previousStatus,
+          newStatus: 'expired',
+          currentNodeId: context.currentNodeId,
+          updatedAt: new Date(),
+        });
+
+        // Emit session:completed event
+        const duration = context.completedAt.getTime() - context.createdAt.getTime();
+        const totalNodes = context.nodeHistory.length;
+        this.sessionGateway.emitSessionCompleted({
+          sessionId: context.id,
+          conversationId: context.conversationId,
+          completedAt: context.completedAt,
+          completionReason: 'timeout',
+          totalNodes,
+          totalMessages: 0,
+          duration,
+        });
 
         this.logger.log(
           `Deactivated expired context ${context.id} for conversation ${context.conversationId}`,

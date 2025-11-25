@@ -52,3 +52,33 @@
 .react-flow__attribution {
   display: none;
 }
+
+/* Node History Timeline Animations */
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(19, 236, 91, 0.6), 0 0 40px rgba(19, 236, 91, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(19, 236, 91, 0.8), 0 0 60px rgba(19, 236, 91, 0.5);
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.2);
+    opacity: 0;
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 1.5s ease-out infinite;
+}

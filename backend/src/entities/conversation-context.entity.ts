@@ -41,8 +41,17 @@ export class ConversationContext {
   @Column({ type: 'boolean', default: true })
   isActive: boolean;
 
+  @Column({ type: 'varchar', length: 50, default: 'running' })
+  status: 'running' | 'waiting_input' | 'waiting_flow' | 'completed' | 'expired' | 'stopped';
+
   @Column({ type: 'timestamp with time zone', nullable: true })
   expiresAt: Date | null;
+
+  @Column({ type: 'timestamp with time zone', nullable: true })
+  completedAt: Date | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  completionReason: string | null;
 
   @CreateDateColumn({ type: 'timestamp with time zone' })
   createdAt: Date;

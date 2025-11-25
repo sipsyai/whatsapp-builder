@@ -9,6 +9,7 @@ export const SideBar: React.FC<SideBarProps> = ({ currentView, onNavigate }) => 
     const navItems = [
         { id: 'chatbots', label: 'My Chatbots', icon: 'smart_toy' },
         { id: 'builder', label: 'Builder', icon: 'account_tree' },
+        { id: 'sessions', label: 'Sessions', icon: 'history' },
         { id: 'chat', label: 'Chat', icon: 'chat' },
         { id: 'users', label: 'Users', icon: 'group' },
         { id: 'flows', label: 'WhatsApp Flows', icon: 'check_box' },

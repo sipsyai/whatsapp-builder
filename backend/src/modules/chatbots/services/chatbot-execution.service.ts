@@ -13,6 +13,8 @@ import { FlowMode } from '../../whatsapp/dto/requests/send-flow-message.dto';
 import { MessagesService } from '../../messages/messages.service';
 import { NodeDataType, QuestionType } from '../dto/node-data.dto';
 import { WhatsAppFlow } from '../../../entities/whatsapp-flow.entity';
+import { SessionHistoryService } from './session-history.service';
+import { SessionGateway } from '../../websocket/session.gateway';
 
 @Injectable()
 export class ChatBotExecutionService {
@@ -33,6 +35,8 @@ export class ChatBotExecutionService {
     private readonly interactiveMessageService: InteractiveMessageService,
     private readonly flowMessageService: FlowMessageService,
     private readonly messagesService: MessagesService,
+    private readonly sessionHistoryService: SessionHistoryService,
+    private readonly sessionGateway: SessionGateway,
   ) {}
 
   /**
@@ -80,11 +84,33 @@ export class ChatBotExecutionService {
       variables: {},
       nodeHistory: [],
       isActive: true,
+      status: 'running',
     });
 
     await this.contextRepo.save(context);
 
     this.logger.log(`Created context ${context.id}, executing START node`);
+
+    // Get customer user details for session event
+    const conversation = await this.conversationRepo.findOne({
+      where: { id: conversationId },
+      relations: ['participants'],
+    });
+
+    if (conversation && conversation.participants && conversation.participants.length > 0) {
+      const customerUser = conversation.participants[0];
+
+      // Emit session:started event
+      this.sessionGateway.emitSessionStarted({
+        sessionId: context.id,
+        conversationId,
+        chatbotId: chatbot.id,
+        chatbotName: chatbot.name,
+        customerPhone: phoneNumber,
+        customerName: customerUser.name || phoneNumber,
+        startedAt: context.createdAt,
+      });
+    }
 
     // Execute START node
     await this.executeCurrentNode(context.id);
@@ -116,9 +142,36 @@ export class ChatBotExecutionService {
       this.logger.warn(
         `No current node found for context ${contextId}. ChatBot ended.`,
       );
-      // Mark context as inactive - chatbot has ended
+      // Mark context as inactive and completed - chatbot has ended
+      const previousStatus = context.status;
       context.isActive = false;
+      context.status = 'completed';
+      context.completedAt = new Date();
+      context.completionReason = 'flow_completed';
       await this.contextRepo.save(context);
+
+      // Emit session:status-changed event
+      this.sessionGateway.emitSessionStatusChanged({
+        sessionId: context.id,
+        previousStatus,
+        newStatus: 'completed',
+        currentNodeId: context.currentNodeId,
+        updatedAt: new Date(),
+      });
+
+      // Emit session:completed event
+      const duration = context.completedAt.getTime() - context.createdAt.getTime();
+      const totalNodes = context.nodeHistory.length;
+      this.sessionGateway.emitSessionCompleted({
+        sessionId: context.id,
+        conversationId: context.conversationId,
+        completedAt: context.completedAt,
+        completionReason: 'flow_completed',
+        totalNodes,
+        totalMessages: 0, // TODO: Count from session history
+        duration,
+      });
+
       return;
     }
 
@@ -167,14 +220,42 @@ export class ChatBotExecutionService {
 
     if (!nextNode) {
       this.logger.warn('No next node after START. ChatBot ended.');
+      const previousStatus = context.status;
       context.isActive = false;
+      context.status = 'completed';
+      context.completedAt = new Date();
+      context.completionReason = 'flow_completed';
       await this.contextRepo.save(context);
+
+      // Emit session:status-changed event
+      this.sessionGateway.emitSessionStatusChanged({
+        sessionId: context.id,
+        previousStatus,
+        newStatus: 'completed',
+        currentNodeId: context.currentNodeId,
+        updatedAt: new Date(),
+      });
+
+      // Emit session:completed event
+      const duration = context.completedAt.getTime() - context.createdAt.getTime();
+      const totalNodes = context.nodeHistory.length;
+      this.sessionGateway.emitSessionCompleted({
+        sessionId: context.id,
+        conversationId: context.conversationId,
+        completedAt: context.completedAt,
+        completionReason: 'flow_completed',
+        totalNodes,
+        totalMessages: 0,
+        duration,
+      });
+
       return;
     }
 
     // Update context to next node
     context.currentNodeId = nextNode.id;
     context.nodeHistory.push(node.id);
+    context.status = 'running';
     await this.contextRepo.save(context);
 
     // Execute next node recursively
@@ -233,15 +314,43 @@ export class ChatBotExecutionService {
 
     if (!nextNode) {
       this.logger.log('No next node after MESSAGE. ChatBot ended.');
+      const previousStatus = context.status;
       context.isActive = false;
+      context.status = 'completed';
+      context.completedAt = new Date();
+      context.completionReason = 'flow_completed';
       context.nodeHistory.push(node.id);
       await this.contextRepo.save(context);
+
+      // Emit session:status-changed event
+      this.sessionGateway.emitSessionStatusChanged({
+        sessionId: context.id,
+        previousStatus,
+        newStatus: 'completed',
+        currentNodeId: context.currentNodeId,
+        updatedAt: new Date(),
+      });
+
+      // Emit session:completed event
+      const duration = context.completedAt.getTime() - context.createdAt.getTime();
+      const totalNodes = context.nodeHistory.length;
+      this.sessionGateway.emitSessionCompleted({
+        sessionId: context.id,
+        conversationId: context.conversationId,
+        completedAt: context.completedAt,
+        completionReason: 'flow_completed',
+        totalNodes,
+        totalMessages: 0,
+        duration,
+      });
+
       return;
     }
 
     // Update context to next node
     context.currentNodeId = nextNode.id;
     context.nodeHistory.push(node.id);
+    context.status = 'running';
     await this.contextRepo.save(context);
 
     // Execute next node recursively
@@ -380,7 +489,19 @@ export class ChatBotExecutionService {
     // DO NOT move to next node - wait for user response
     // Save the variable name for later use when response arrives
     context.variables['__awaiting_variable__'] = variable;
+    const previousStatus = context.status;
+    context.status = 'waiting_input';
     await this.contextRepo.save(context);
+
+    // Emit session:status-changed event
+    this.sessionGateway.emitSessionStatusChanged({
+      sessionId: context.id,
+      previousStatus,
+      newStatus: 'waiting_input',
+      currentNodeId: context.currentNodeId,
+      currentNodeLabel: node.data?.label || `Question: ${questionType}`,
+      updatedAt: new Date(),
+    });
 
     this.logger.log(
       `Waiting for user response to save in variable: ${variable}`,
@@ -454,15 +575,43 @@ export class ChatBotExecutionService {
       this.logger.warn(
         `No next node after CONDITION (${sourceHandle}). ChatBot ended.`,
       );
+      const previousStatus = context.status;
       context.isActive = false;
+      context.status = 'completed';
+      context.completedAt = new Date();
+      context.completionReason = 'flow_completed';
       context.nodeHistory.push(node.id);
       await this.contextRepo.save(context);
+
+      // Emit session:status-changed event
+      this.sessionGateway.emitSessionStatusChanged({
+        sessionId: context.id,
+        previousStatus,
+        newStatus: 'completed',
+        currentNodeId: context.currentNodeId,
+        updatedAt: new Date(),
+      });
+
+      // Emit session:completed event
+      const duration = context.completedAt.getTime() - context.createdAt.getTime();
+      const totalNodes = context.nodeHistory.length;
+      this.sessionGateway.emitSessionCompleted({
+        sessionId: context.id,
+        conversationId: context.conversationId,
+        completedAt: context.completedAt,
+        completionReason: 'flow_completed',
+        totalNodes,
+        totalMessages: 0,
+        duration,
+      });
+
       return;
     }
 
     // Update context to next node
     context.currentNodeId = nextNode.id;
     context.nodeHistory.push(node.id);
+    context.status = 'running';
     await this.contextRepo.save(context);
 
     // Execute next node recursively
@@ -576,7 +725,19 @@ export class ChatBotExecutionService {
       context.expiresAt = new Date(
         Date.now() + FLOW_TIMEOUT_MINUTES * 60 * 1000,
       );
+      const previousStatus = context.status;
+      context.status = 'waiting_flow';
       await this.contextRepo.save(context);
+
+      // Emit session:status-changed event
+      this.sessionGateway.emitSessionStatusChanged({
+        sessionId: context.id,
+        previousStatus,
+        newStatus: 'waiting_flow',
+        currentNodeId: context.currentNodeId,
+        currentNodeLabel: node.data?.label || `WhatsApp Flow: ${flow.name}`,
+        updatedAt: new Date(),
+      });
 
       this.logger.log(
         `Waiting for Flow completion. Timeout at: ${context.expiresAt.toISOString()}`,
@@ -597,11 +758,15 @@ export class ChatBotExecutionService {
         );
         context.currentNodeId = nextNode.id;
         context.nodeHistory.push(node.id);
+        context.status = 'running';
         await this.contextRepo.save(context);
         await this.executeCurrentNode(context.id);
       } else {
         this.logger.warn('Flow send failed and no next node, ending chatbot');
         context.isActive = false;
+        context.status = 'completed';
+        context.completedAt = new Date();
+        context.completionReason = 'flow_completed';
         await this.contextRepo.save(context);
       }
     }
@@ -661,14 +826,52 @@ export class ChatBotExecutionService {
 
     if (!nextNode) {
       this.logger.log('No next node after Flow. ChatBot ended.');
+      const previousStatus = context.status;
       context.isActive = false;
+      context.status = 'completed';
+      context.completedAt = new Date();
+      context.completionReason = 'flow_completed';
       await this.contextRepo.save(context);
+
+      // Emit session:status-changed event
+      this.sessionGateway.emitSessionStatusChanged({
+        sessionId: context.id,
+        previousStatus,
+        newStatus: 'completed',
+        currentNodeId: context.currentNodeId,
+        updatedAt: new Date(),
+      });
+
+      // Emit session:completed event
+      const duration = context.completedAt.getTime() - context.createdAt.getTime();
+      const totalNodes = context.nodeHistory.length;
+      this.sessionGateway.emitSessionCompleted({
+        sessionId: context.id,
+        conversationId: context.conversationId,
+        completedAt: context.completedAt,
+        completionReason: 'flow_completed',
+        totalNodes,
+        totalMessages: 0,
+        duration,
+      });
+
       return;
     }
 
     // Update context to next node
+    const previousStatus = context.status;
     context.currentNodeId = nextNode.id;
+    context.status = 'running';
     await this.contextRepo.save(context);
+
+    // Emit session:status-changed event (back to running)
+    this.sessionGateway.emitSessionStatusChanged({
+      sessionId: context.id,
+      previousStatus,
+      newStatus: 'running',
+      currentNodeId: context.currentNodeId,
+      updatedAt: new Date(),
+    });
 
     // Execute next node
     this.logger.log(`Moving to next node: ${nextNode.id}`);
@@ -766,14 +969,52 @@ export class ChatBotExecutionService {
 
     if (!nextNode) {
       this.logger.log('No next node after user response. ChatBot ended.');
+      const previousStatus = context.status;
       context.isActive = false;
+      context.status = 'completed';
+      context.completedAt = new Date();
+      context.completionReason = 'flow_completed';
       await this.contextRepo.save(context);
+
+      // Emit session:status-changed event
+      this.sessionGateway.emitSessionStatusChanged({
+        sessionId: context.id,
+        previousStatus,
+        newStatus: 'completed',
+        currentNodeId: context.currentNodeId,
+        updatedAt: new Date(),
+      });
+
+      // Emit session:completed event
+      const duration = context.completedAt.getTime() - context.createdAt.getTime();
+      const totalNodes = context.nodeHistory.length;
+      this.sessionGateway.emitSessionCompleted({
+        sessionId: context.id,
+        conversationId: context.conversationId,
+        completedAt: context.completedAt,
+        completionReason: 'flow_completed',
+        totalNodes,
+        totalMessages: 0,
+        duration,
+      });
+
       return;
     }
 
     // Update context to next node
+    const previousStatus = context.status;
     context.currentNodeId = nextNode.id;
+    context.status = 'running';
     await this.contextRepo.save(context);
+
+    // Emit session:status-changed event (back to running)
+    this.sessionGateway.emitSessionStatusChanged({
+      sessionId: context.id,
+      previousStatus,
+      newStatus: 'running',
+      currentNodeId: context.currentNodeId,
+      updatedAt: new Date(),
+    });
 
     // Execute next node
     await this.executeCurrentNode(context.id);
@@ -946,10 +1187,53 @@ export class ChatBotExecutionService {
   async stopChatBot(conversationId: string): Promise<void> {
     this.logger.log(`Stopping chatbot for conversation ${conversationId}`);
 
-    await this.contextRepo.update(
-      { conversationId, isActive: true },
-      { isActive: false },
-    );
+    // First get the active context to emit events
+    const context = await this.contextRepo.findOne({
+      where: { conversationId, isActive: true },
+    });
+
+    if (context) {
+      const previousStatus = context.status;
+
+      await this.contextRepo.update(
+        { conversationId, isActive: true },
+        {
+          isActive: false,
+          status: 'stopped',
+          completedAt: new Date(),
+          completionReason: 'user_stopped',
+        },
+      );
+
+      // Reload to get updated values
+      const updatedContext = await this.contextRepo.findOne({
+        where: { id: context.id },
+      });
+
+      if (updatedContext) {
+        // Emit session:status-changed event
+        this.sessionGateway.emitSessionStatusChanged({
+          sessionId: updatedContext.id,
+          previousStatus,
+          newStatus: 'stopped',
+          currentNodeId: updatedContext.currentNodeId,
+          updatedAt: new Date(),
+        });
+
+        // Emit session:completed event
+        const duration = updatedContext.completedAt!.getTime() - updatedContext.createdAt.getTime();
+        const totalNodes = updatedContext.nodeHistory.length;
+        this.sessionGateway.emitSessionCompleted({
+          sessionId: updatedContext.id,
+          conversationId: updatedContext.conversationId,
+          completedAt: updatedContext.completedAt!,
+          completionReason: 'user_stopped',
+          totalNodes,
+          totalMessages: 0,
+          duration,
+        });
+      }
+    }
   }
 
   /**
@@ -1016,13 +1300,51 @@ export class ChatBotExecutionService {
 
     if (!nextNode) {
       this.logger.log('No next node after skip, ending chatbot');
+      const previousStatus = context.status;
       context.isActive = false;
+      context.status = 'completed';
+      context.completedAt = new Date();
+      context.completionReason = 'flow_completed';
       await this.contextRepo.save(context);
+
+      // Emit session:status-changed event
+      this.sessionGateway.emitSessionStatusChanged({
+        sessionId: context.id,
+        previousStatus,
+        newStatus: 'completed',
+        currentNodeId: context.currentNodeId,
+        updatedAt: new Date(),
+      });
+
+      // Emit session:completed event
+      const duration = context.completedAt.getTime() - context.createdAt.getTime();
+      const totalNodes = context.nodeHistory.length;
+      this.sessionGateway.emitSessionCompleted({
+        sessionId: context.id,
+        conversationId: context.conversationId,
+        completedAt: context.completedAt,
+        completionReason: 'flow_completed',
+        totalNodes,
+        totalMessages: 0,
+        duration,
+      });
+
       return true;
     }
 
+    const previousStatus = context.status;
     context.currentNodeId = nextNode.id;
+    context.status = 'running';
     await this.contextRepo.save(context);
+
+    // Emit session:status-changed event (back to running)
+    this.sessionGateway.emitSessionStatusChanged({
+      sessionId: context.id,
+      previousStatus,
+      newStatus: 'running',
+      currentNodeId: context.currentNodeId,
+      updatedAt: new Date(),
+    });
 
     this.logger.log(`Skipped to next node: ${context.currentNodeId}`);
 
@@ -1090,10 +1412,14 @@ export class ChatBotExecutionService {
     if (nextNode) {
       context.nodeHistory.push(context.currentNodeId);
       context.currentNodeId = nextNode.id;
+      context.status = 'running';
       await this.contextRepo.save(context);
       await this.executeCurrentNode(context.id);
     } else {
       context.isActive = false;
+      context.status = 'completed';
+      context.completedAt = new Date();
+      context.completionReason = 'flow_completed';
       await this.contextRepo.save(context);
     }
   }

@@ -7,22 +7,31 @@ import { ChatBotsListPage } from "../features/chatbots/components/ChatBotsListPa
 import { UsersPage } from "../features/users/components/UsersPage";
 import { WhatsappConfigPage } from "../features/settings/WhatsappConfigPage";
 import { FlowsPage } from "../features/flows";
+import { SessionsListPage, SessionDetailPage } from "../features/sessions/components";
 import { SideBar } from "../shared/components/SideBar";
 import type { ViewState } from "../shared/types";
 import type { ChatBot } from "../features/chatbots/api";
 
 // Extend ViewState type locally since we can't easily edit shared types without seeing them
-type ExtendedViewState = ViewState | "chatbots" | "users" | "flows";
+type ExtendedViewState = ViewState | "chatbots" | "users" | "flows" | "sessions" | "sessionDetail";
 
 const App = () => {
   // Start with chatbots page instead of landing to show sidebar immediately
   const [view, setView] = useState<ExtendedViewState>("chatbots");
   const [selectedChatBot, setSelectedChatBot] = useState<ChatBot | null>(null);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
 
   // Clear selected chatbot when navigating away from builder
   useEffect(() => {
     if (view !== "builder") {
       setSelectedChatBot(null);
+    }
+  }, [view]);
+
+  // Clear selected session when navigating away from session detail
+  useEffect(() => {
+    if (view !== "sessionDetail") {
+      setSelectedSessionId(null);
     }
   }, [view]);
 
@@ -56,6 +65,16 @@ const App = () => {
           />}
           {view === "users" && <UsersPage />}
           {view === "flows" && <FlowsPage />}
+          {view === "sessions" && <SessionsListPage
+            onViewSession={(sessionId) => {
+              setSelectedSessionId(sessionId);
+              setView("sessionDetail");
+            }}
+          />}
+          {view === "sessionDetail" && selectedSessionId && <SessionDetailPage
+            sessionId={selectedSessionId}
+            onBack={() => setView("sessions")}
+          />}
           {view === "settings" && <WhatsappConfigPage />}
         </div>
       </div>
