@@ -55,14 +55,33 @@ Enhanced DTO with new fields:
 - Session filtering and pagination
 
 #### SessionDetailPage (`frontend/src/features/sessions/components/SessionDetailPage.tsx`)
-- Split-view layout (60% conversation, 40% variables)
-- Real-time message updates
+- Split-view layout (60% conversation, 40% timeline/variables)
+- Real-time message updates via WebSocket
 - Session control (stop active sessions)
+- Socket event listeners for live updates
 
 #### ConversationLog (`frontend/src/features/sessions/components/ConversationLog.tsx`)
 - Message rendering with sender differentiation
+- Bot detection fallback mechanism
 - Interactive message visualization (buttons, lists, flows)
-- WhatsApp Flow response display (nfm_reply)
+- WhatsApp Flow response display (nfm_reply) with form data filtering
+- Auto-scroll to bottom on new messages
+- Date grouping (Today, Yesterday, specific dates)
+- Dark mode support
+
+#### SessionTimeline (`frontend/src/features/sessions/components/SessionTimeline.tsx`) **NEW**
+- Visual timeline of all session events
+- Event types: message_user, message_bot, session_start, session_end
+- WhatsApp Flow completion visualization (nfm_reply)
+- Date grouping with timestamps
+- Active session indicator with current node
+
+#### VariablesPanel (`frontend/src/features/sessions/components/VariablesPanel.tsx`)
+- Collapsible panel design
+- Copy to clipboard functionality
+- Complex value (JSON) rendering with syntax highlighting
+- Variable count badge
+- Dark mode support
 
 ## Data Flow
 
@@ -230,6 +249,178 @@ Response: {
 
 ### Dark Mode
 Full dark mode support with appropriate color adjustments.
+
+## SessionTimeline Component
+
+The SessionTimeline component provides a comprehensive visual timeline of all session events.
+
+### Event Types
+
+```typescript
+interface TimelineEvent {
+  id: string;
+  type: 'message_user' | 'message_bot' | 'node_change' | 'status_change' | 'session_start' | 'session_end';
+  timestamp: Date;
+  title: string;
+  description?: string;
+  icon: string;
+  iconColor: string;
+  data?: any;
+}
+```
+
+### Event Detection Logic
+
+```typescript
+// Build timeline events from messages and session data
+const timelineEvents = useMemo(() => {
+  const events: TimelineEvent[] = [];
+
+  // Session start event
+  events.push({
+    id: 'session-start',
+    type: 'session_start',
+    timestamp: new Date(session.startedAt),
+    title: 'Session Started',
+    description: `Chatbot: ${session.chatbotName}`,
+    icon: 'play_circle',
+    iconColor: 'text-green-500',
+  });
+
+  // Process messages
+  messages.forEach((msg) => {
+    const isFromBot = msg.isFromBot ?? (msg.senderName === 'Business' || !msg.senderPhone);
+    const messageType = msg.content?.type || msg.type;
+
+    // Determine title, description, icon based on message type
+    // ... (button_reply, list_reply, nfm_reply, etc.)
+
+    events.push({ id: msg.id, type: isFromBot ? 'message_bot' : 'message_user', ... });
+  });
+
+  // Session end event (if completed)
+  if (session.completedAt) {
+    // ... (completed, expired, stopped states)
+  }
+
+  return events.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+}, [messages, session]);
+```
+
+### nfm_reply Event Handling
+
+```typescript
+else if (messageType === 'nfm_reply') {
+  title = 'Flow Form Submitted';
+  const flowData = msg.content?.responseData || msg.content?.response_json;
+  const parsedData = typeof flowData === 'string' ? JSON.parse(flowData) : flowData;
+  const fieldCount = parsedData
+    ? Object.keys(parsedData).filter(k => !['flow_token', 'version'].includes(k)).length
+    : 0;
+  description = fieldCount > 0 ? `${fieldCount} fields submitted` : 'Form completed';
+  icon = 'check_circle';
+  iconColor = 'text-green-500';
+}
+```
+
+### Session End States
+
+| Status | Title | Icon | Color |
+|--------|-------|------|-------|
+| completed | Session Completed | check_circle | green-500 |
+| expired | Session Expired | timer_off | orange-500 |
+| stopped | Session Stopped | cancel | red-500 |
+
+### Visual Design
+
+- Vertical timeline with date grouping
+- Icon-based event type indicators
+- Color-coded icons by event type
+- Active session indicator with pulse animation
+- Current node label display
+
+## ConversationLog Enhanced nfm_reply Rendering
+
+The ConversationLog component now includes enhanced handling for WhatsApp Flow completions:
+
+```typescript
+else if (content?.type === 'nfm_reply') {
+  // Parse flow data from responseData or response_json
+  const flowData = content.responseData || content.response_json;
+  const parsedData = typeof flowData === 'string' ? JSON.parse(flowData) : flowData;
+
+  // Filter internal fields (flow_token, version)
+  const displayData = parsedData ? Object.fromEntries(
+    Object.entries(parsedData).filter(([key]) => !['flow_token', 'version'].includes(key))
+  ) : null;
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <span className="material-symbols-outlined text-sm text-green-600">check_circle</span>
+        <p className="text-sm font-medium">Form Completed</p>
+      </div>
+      {displayData && Object.keys(displayData).length > 0 && (
+        <details className="text-xs" open>
+          <summary className="cursor-pointer font-medium text-blue-600">
+            View form data ({Object.keys(displayData).length} fields)
+          </summary>
+          <div className="mt-2 space-y-1.5 bg-gray-50 dark:bg-gray-900 p-2 rounded">
+            {Object.entries(displayData).map(([key, value]) => (
+              <div key={key} className="flex justify-between gap-2">
+                <span className="text-gray-500 font-medium">{key}:</span>
+                <span className="text-gray-900 text-right">
+                  {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+    </div>
+  );
+}
+```
+
+### Key Features
+
+1. **Internal Field Filtering**: Removes `flow_token` and `version` from display
+2. **Expandable Details**: Uses `<details>` element for collapsible form data
+3. **Field Count Display**: Shows number of submitted fields
+4. **Value Formatting**: Handles both primitive and object values
+5. **Dark Mode Support**: Proper color classes for dark mode
+
+## VariablesPanel Component
+
+Enhanced panel for displaying session context variables:
+
+### Features
+
+1. **Collapsible Panel**: Toggle visibility with expand/collapse button
+2. **Copy to Clipboard**: Click to copy any variable value
+3. **Complex Value Rendering**: JSON syntax highlighting for objects/arrays
+4. **Variable Count Badge**: Shows total number of variables
+
+### Implementation
+
+```typescript
+const copyToClipboard = async (key: string, value: any) => {
+  await navigator.clipboard.writeText(formatValue(value));
+  setCopiedKey(key);
+  setTimeout(() => setCopiedKey(null), 2000);
+};
+
+const formatValue = (value: any): string => {
+  if (value === null) return 'null';
+  if (value === undefined) return 'undefined';
+  if (typeof value === 'object') return JSON.stringify(value, null, 2);
+  return String(value);
+};
+
+const isComplexValue = (value: any): boolean => {
+  return value !== null && typeof value === 'object';
+};
+```
 
 ## Related Documentation
 

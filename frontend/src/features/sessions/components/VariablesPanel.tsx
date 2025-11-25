@@ -2,12 +2,10 @@ import { useState } from 'react';
 
 interface VariablesPanelProps {
   variables: Record<string, any>;
-  nodeHistory: string[];
 }
 
-export const VariablesPanel = ({ variables, nodeHistory }: VariablesPanelProps) => {
+export const VariablesPanel = ({ variables }: VariablesPanelProps) => {
   const [isVariablesExpanded, setIsVariablesExpanded] = useState(true);
-  const [isHistoryExpanded, setIsHistoryExpanded] = useState(true);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   const formatValue = (value: any): string => {
@@ -100,54 +98,6 @@ export const VariablesPanel = ({ variables, nodeHistory }: VariablesPanelProps) 
         )}
       </div>
 
-      {/* Node History Section */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-        <button
-          onClick={() => setIsHistoryExpanded(!isHistoryExpanded)}
-          className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-purple-600 dark:text-purple-400">
-              route
-            </span>
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100">
-              Node History
-            </h3>
-            <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">
-              {nodeHistory.length}
-            </span>
-          </div>
-          <span className={`material-symbols-outlined text-gray-400 transition-transform ${isHistoryExpanded ? 'rotate-180' : ''}`}>
-            expand_more
-          </span>
-        </button>
-
-        {isHistoryExpanded && (
-          <div className="border-t border-gray-200 dark:border-gray-700">
-            {nodeHistory.length === 0 ? (
-              <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                No nodes executed yet
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-100 dark:divide-gray-700 max-h-[400px] overflow-y-auto">
-                {nodeHistory.map((nodeLabel, index) => (
-                  <div
-                    key={index}
-                    className="p-3 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
-                  >
-                    <div className="flex items-center justify-center w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-xs font-semibold flex-shrink-0">
-                      {index + 1}
-                    </div>
-                    <span className="text-sm text-gray-900 dark:text-gray-100">
-                      {nodeLabel}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
     </div>
   );
 };

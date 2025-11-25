@@ -402,6 +402,110 @@ const ChatPage = () => {
 
 ---
 
+## Session Tracking Events (NEW)
+
+### Session Room Pattern
+- **Namespace**: `/messages` (same as conversations)
+- **Room Format**: `session:{sessionId}`
+
+### Client → Server Events
+
+#### session:join
+**Purpose**: Join a session room for real-time updates
+**Payload**: `{ sessionId: string }`
+```typescript
+socket.emit('session:join', { sessionId });
+```
+
+#### session:leave
+**Purpose**: Leave session room
+**Payload**: `{ sessionId: string }`
+```typescript
+socket.emit('session:leave', { sessionId });
+```
+
+### Server → Client Events
+
+#### session:message-sent
+**Purpose**: New message in session with enhanced metadata
+**Payload**:
+```typescript
+{
+  sessionId: string;
+  messageId: string;
+  senderId: string;
+  senderName?: string;
+  senderPhone?: string;
+  isFromBot?: boolean;  // Backend-determined bot flag
+  type: string;
+  content: any;
+  status: string;
+  timestamp: string;
+}
+```
+
+#### session:node-executed
+**Purpose**: Chatbot node execution notification
+**Payload**:
+```typescript
+{
+  sessionId: string;
+  nodeId: string;
+  nodeLabel: string;
+}
+```
+
+#### session:status-changed
+**Purpose**: Session status update
+**Payload**:
+```typescript
+{
+  sessionId: string;
+  newStatus: 'running' | 'waiting_input' | 'completed' | 'expired' | 'stopped';
+  currentNodeId?: string;
+  currentNodeLabel?: string;
+  updatedAt: string;
+}
+```
+
+#### session:completed
+**Purpose**: Session completion notification
+**Payload**:
+```typescript
+{
+  sessionId: string;
+  completedAt: string;
+  completionReason?: string;
+  totalNodes: number;
+  totalMessages: number;
+}
+```
+
+### Frontend Integration
+```typescript
+// SessionDetailPage.tsx
+useEffect(() => {
+  if (connected && sessionId) {
+    joinSession(sessionId);
+
+    sessionSocket.on('session:message-sent', handleMessageSent);
+    sessionSocket.on('session:node-executed', handleNodeExecuted);
+    sessionSocket.on('session:status-changed', handleStatusChanged);
+    sessionSocket.on('session:completed', handleSessionCompleted);
+
+    return () => {
+      leaveSession(sessionId);
+      sessionSocket.off('session:message-sent');
+      sessionSocket.off('session:node-executed');
+      sessionSocket.off('session:status-changed');
+      sessionSocket.off('session:completed');
+    };
+  }
+}, [connected, sessionId]);
+```
+
+---
+
 ## Room Management
 
 ### Joining a Room

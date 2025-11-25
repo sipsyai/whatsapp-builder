@@ -823,50 +823,88 @@ export class FlowEndpointController {
 
 **FlowEndpointService** handles different action types:
 
+#### INIT Action - Load Initial Data from Context
 ```typescript
-async handleAction(action: string, flowToken: string, data: any): Promise<any> {
-  switch (action) {
-    case 'INIT':
-      // Return first screen of Flow
-      return {
-        screen: 'WELCOME_SCREEN',
-        data: {
-          // Pre-populate fields if needed
-        },
-      };
+async handleInit(request: any): Promise<any> {
+  const { flow_token } = request;
 
-    case 'data_exchange':
-      // Process form submission
-      // Validate data
-      // Return next screen or completion
-      return {
-        screen: 'SUCCESS',
-        data: {
-          message: 'Form submitted successfully',
-        },
-      };
+  // Extract context ID from flow_token (format: {contextId}-{nodeId})
+  let contextId: string | null = null;
+  let initialData: any = {};
 
-    case 'BACK':
-      // Handle backward navigation
-      return {
-        screen: 'PREVIOUS_SCREEN',
-        data: {},
-      };
+  if (flow_token && flow_token.includes('-')) {
+    const parts = flow_token.split('-');
+    contextId = parts[0];
 
-    case 'error_notification':
-      // Log error from Flow
-      this.logger.error('Flow error:', data);
-      return {};
-
-    case 'ping':
-      // Health check
-      return { version: '3.0' };
-
-    default:
-      throw new BadRequestException(`Unknown action: ${action}`);
+    // Load context variables to pre-populate form fields
+    if (contextId) {
+      const context = await this.contextRepo.findOne({ where: { id: contextId } });
+      if (context) {
+        initialData = context.variables || {};
+      }
+    }
   }
+
+  return {
+    screen: 'WELCOME',
+    data: initialData, // Pre-populate with context variables
+  };
 }
 ```
+
+#### data_exchange Action - Process Submission with Full Data
+```typescript
+async handleDataExchange(request: any): Promise<any> {
+  const { screen, data, flow_token } = request;
+
+  // Extract context ID from flow_token
+  let contextId: string | null = null;
+  if (flow_token && flow_token.includes('-')) {
+    contextId = flow_token.split('-')[0];
+  }
+
+  // Save data to context
+  if (contextId && data) {
+    await this.saveFlowDataToContext(contextId, data);
+  }
+
+  // Complete flow with ALL form fields in extension_message_response.params
+  // These params will be included in the nfm_reply webhook response_json
+  return {
+    screen: 'SUCCESS',
+    data: {
+      extension_message_response: {
+        params: {
+          flow_token,
+          ...data, // Include ALL form fields submitted by user
+        },
+      },
+    },
+  };
+}
+```
+
+#### Other Actions
+```typescript
+case 'BACK':
+  // Handle backward navigation
+  return { screen: screen, data: {} };
+
+case 'error_notification':
+  // Log error from Flow
+  this.logger.error('Flow error:', data);
+  return {};
+
+case 'ping':
+  // Health check
+  return { version: '3.0' };
+```
+
+#### Key Changes (Enhanced)
+1. **Context Pre-population**: INIT action loads context variables to pre-fill form fields
+2. **Full Data Passthrough**: data_exchange includes all form fields in `extension_message_response.params`
+3. **Graceful Default Handling**: Unknown screens complete flow with submitted data
+4. **Flow Token Parsing**: Extracts contextId from `{contextId}-{nodeId}` format
 
 ---
 

@@ -110,14 +110,15 @@ export class FlowEndpointService {
           }
         }
 
-        // Complete the flow
+        // Complete the flow with all form fields in extension_message_response.params
+        // These params will be included in the nfm_reply webhook response_json
         return {
           screen: 'SUCCESS',
           data: {
             extension_message_response: {
               params: {
                 flow_token,
-                some_param_name: 'value',
+                ...data, // Include all form fields submitted by the user
               },
             },
           },
@@ -125,9 +126,27 @@ export class FlowEndpointService {
 
       default:
         this.logger.warn(`Unknown screen: ${screen}`);
+
+        // Save data to context if available
+        if (contextId && data) {
+          try {
+            await this.saveFlowDataToContext(contextId, data);
+          } catch (error) {
+            this.logger.error('Failed to save flow data:', error.message);
+          }
+        }
+
+        // Complete flow with all submitted data
         return {
           screen: 'SUCCESS',
-          data: {},
+          data: {
+            extension_message_response: {
+              params: {
+                flow_token,
+                ...data, // Include all form fields
+              },
+            },
+          },
         };
     }
   }

@@ -1540,11 +1540,9 @@ sessions/
 ├── components/
 │   ├── SessionsListPage.tsx       # Main sessions list with tabs
 │   ├── SessionDetailPage.tsx      # Session detail view
-│   ├── SessionCard.tsx            # Individual session card
-│   ├── ConversationLog.tsx        # Message history display
-│   ├── VariablesPanel.tsx         # Session variables display
-│   ├── NodeHistoryTimeline.tsx    # Node execution timeline
-│   ├── MiniFlowVisualization.tsx  # Mini chatbot flow visualization
+│   ├── ConversationLog.tsx        # Message history display (enhanced)
+│   ├── VariablesPanel.tsx         # Session variables display (enhanced)
+│   ├── SessionTimeline.tsx        # Visual event timeline (NEW)
 │   └── index.ts                   # Public exports
 └── index.ts
 ```
@@ -1596,15 +1594,16 @@ const {
 **Responsibilities**:
 1. **Session Details**: Display comprehensive session information
 2. **Message History**: Show conversation log with timestamps
-3. **Variables Panel**: Display session context variables
-4. **Node History**: Track chatbot node execution path
-5. **Real-time Updates**: Live message and status updates
+3. **Session Timeline**: Visual timeline of session events
+4. **Variables Panel**: Display session context variables
+5. **Real-time Updates**: Live message and status updates via WebSocket
 6. **Session Control**: Stop active sessions
 
 **Layout**:
-- **Split View**: 60% conversation log, 40% variables panel
+- **Split View**: 60% conversation log, 40% timeline & variables panel
 - **Header**: Customer info, chatbot name, status badge
 - **Current Node**: Shows current position in chatbot flow
+- **Statistics**: Message count, node count, current node label
 
 **WebSocket Integration**:
 ```typescript
@@ -1717,31 +1716,46 @@ const isFromBot = message.isFromBot ?? determineIsFromBot(message);
    - Labeled as "List response"
 
 3. **Flow Completion** (`nfm_reply`):
-   - Icon: `check_circle`
+   - Icon: `check_circle` (green)
    - Shows "Form Completed" header
    - Optional body text
-   - Expandable JSON data viewer with syntax highlighting
+   - **Enhanced**: Form data filtering (removes `flow_token`, `version`)
+   - **Enhanced**: Field count display
+   - Expandable form data with key-value pairs
 
 ```typescript
-// nfm_reply rendering example
+// Enhanced nfm_reply rendering
 else if (content?.type === 'nfm_reply') {
+  // Parse flow data from responseData or response_json
+  const flowData = content.responseData || content.response_json;
+  const parsedData = typeof flowData === 'string' ? JSON.parse(flowData) : flowData;
+
+  // Filter internal fields (flow_token, version)
+  const displayData = parsedData ? Object.fromEntries(
+    Object.entries(parsedData).filter(([key]) => !['flow_token', 'version'].includes(key))
+  ) : null;
+
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
-        <span className="material-symbols-outlined text-sm">check_circle</span>
+        <span className="material-symbols-outlined text-sm text-green-600">check_circle</span>
         <p className="text-sm font-medium">Form Completed</p>
       </div>
-      {content.body && (
-        <p className="text-xs opacity-75">{content.body}</p>
-      )}
-      {content.response_json && (
-        <details className="text-xs">
-          <summary className="cursor-pointer opacity-75 hover:opacity-100">
-            View submitted data
+      {displayData && Object.keys(displayData).length > 0 && (
+        <details className="text-xs" open>
+          <summary className="cursor-pointer font-medium text-blue-600">
+            View form data ({Object.keys(displayData).length} fields)
           </summary>
-          <pre className="mt-1 bg-black/10 dark:bg-white/10 p-2 rounded overflow-x-auto">
-            {JSON.stringify(content.response_json, null, 2)}
-          </pre>
+          <div className="mt-2 space-y-1.5 bg-gray-50 dark:bg-gray-900 p-2 rounded">
+            {Object.entries(displayData).map(([key, value]) => (
+              <div key={key} className="flex justify-between gap-2">
+                <span className="text-gray-500 font-medium">{key}:</span>
+                <span className="text-gray-900 text-right">
+                  {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                </span>
+              </div>
+            ))}
+          </div>
         </details>
       )}
     </div>
@@ -1751,10 +1765,55 @@ else if (content?.type === 'nfm_reply') {
 
 **Visual Design**:
 - Bot messages: Left-aligned, gray background
-- User messages: Right-aligned, blue background
+- User messages: Right-aligned, green background
 - Icons for interactive responses
 - Expandable details for Flow responses
+- Date grouping (Today, Yesterday, specific dates)
+- Auto-scroll to bottom on new messages
 - Dark mode support
+
+#### SessionTimeline Component (NEW)
+**File**: `/home/ali/whatsapp-builder/frontend/src/features/sessions/components/SessionTimeline.tsx`
+
+**Purpose**: Visual timeline of all session events including messages, node changes, and status updates.
+
+**Event Types**:
+```typescript
+interface TimelineEvent {
+  id: string;
+  type: 'message_user' | 'message_bot' | 'node_change' | 'status_change' | 'session_start' | 'session_end';
+  timestamp: Date;
+  title: string;
+  description?: string;
+  icon: string;
+  iconColor: string;
+  data?: any;
+}
+```
+
+**Key Features**:
+1. **Comprehensive Event Detection**: Bot/user message distinction, interactive message type parsing
+2. **nfm_reply Visualization**: Flow form submission with field count
+3. **Session Lifecycle Events**: Start, end (completed/expired/stopped)
+4. **Date Grouping**: Today, Yesterday, specific dates
+5. **Active Session Indicator**: Pulse animation with current node label
+
+**Session End States**:
+| Status | Title | Icon | Color |
+|--------|-------|------|-------|
+| completed | Session Completed | check_circle | green-500 |
+| expired | Session Expired | timer_off | orange-500 |
+| stopped | Session Stopped | cancel | red-500 |
+
+#### VariablesPanel Component (Enhanced)
+**File**: `/home/ali/whatsapp-builder/frontend/src/features/sessions/components/VariablesPanel.tsx`
+
+**Features**:
+1. **Collapsible Panel**: Toggle visibility with expand/collapse button
+2. **Copy to Clipboard**: Click to copy any variable value
+3. **Complex Value Rendering**: JSON syntax highlighting for objects/arrays
+4. **Variable Count Badge**: Shows total number of variables
+5. **Dark Mode Support**: Proper color classes
 
 #### API Client
 ```typescript

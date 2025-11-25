@@ -112,28 +112,39 @@ export const ConversationLog = ({ messages, isActive }: ConversationLogProps) =>
           );
         } else if (content?.type === 'nfm_reply') {
           // WhatsApp Flow yanıtı
+          // Backend sends responseData, but also check response_json for compatibility
+          const flowData = content.responseData || content.response_json;
+          const parsedData = typeof flowData === 'string' ? JSON.parse(flowData) : flowData;
+
+          // Filter out internal fields like flow_token
+          const displayData = parsedData ? Object.fromEntries(
+            Object.entries(parsedData).filter(([key]) => !['flow_token', 'version'].includes(key))
+          ) : null;
+
           return (
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-sm">check_circle</span>
+                <span className="material-symbols-outlined text-sm text-green-600">check_circle</span>
                 <p className="text-sm font-medium">Form Completed</p>
               </div>
               {content.body && (
                 <p className="text-xs opacity-75">{content.body}</p>
               )}
-              {content.response_json && (
-                <details className="text-xs">
-                  <summary className="cursor-pointer opacity-75 hover:opacity-100">
-                    View submitted data
+              {displayData && Object.keys(displayData).length > 0 && (
+                <details className="text-xs" open>
+                  <summary className="cursor-pointer font-medium text-blue-600 dark:text-blue-400 hover:underline">
+                    View form data ({Object.keys(displayData).length} fields)
                   </summary>
-                  <pre className="mt-1 bg-black/10 dark:bg-white/10 p-2 rounded overflow-x-auto">
-                    {JSON.stringify(
-                      typeof content.response_json === 'string'
-                        ? JSON.parse(content.response_json)
-                        : content.response_json,
-                      null, 2
-                    )}
-                  </pre>
+                  <div className="mt-2 space-y-1.5 bg-gray-50 dark:bg-gray-900 p-2 rounded">
+                    {Object.entries(displayData).map(([key, value]) => (
+                      <div key={key} className="flex justify-between gap-2">
+                        <span className="text-gray-500 dark:text-gray-400 font-medium">{key}:</span>
+                        <span className="text-gray-900 dark:text-gray-100 text-right">
+                          {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </details>
               )}
             </div>

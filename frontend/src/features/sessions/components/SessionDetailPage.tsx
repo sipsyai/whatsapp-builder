@@ -5,6 +5,7 @@ import { sessionSocket } from '../../../api/socket';
 import type { ChatbotSessionDetail, SessionMessage } from '../../../types/sessions';
 import { ConversationLog } from './ConversationLog';
 import { VariablesPanel } from './VariablesPanel';
+import { SessionTimeline } from './SessionTimeline';
 
 interface SessionDetailPageProps {
   sessionId: string;
@@ -301,12 +302,17 @@ export const SessionDetailPage = ({ sessionId, onBack }: SessionDetailPageProps)
           <ConversationLog messages={messages} isActive={session.isActive} />
         </div>
 
-        {/* Right side - Variables Panel (40%) */}
-        <div className="w-[40%] overflow-y-auto p-4">
-          <VariablesPanel
-            variables={session.variables}
-            nodeHistory={session.nodeHistory}
-          />
+        {/* Right side - Timeline & Variables (40%) */}
+        <div className="w-[40%] flex flex-col overflow-hidden">
+          {/* Session Timeline (upper) */}
+          <div className="flex-1 min-h-0 p-4 pb-2">
+            <SessionTimeline messages={messages} session={session} />
+          </div>
+
+          {/* Variables Panel (lower) */}
+          <div className="p-4 pt-2">
+            <VariablesPanel variables={session.variables} />
+          </div>
         </div>
       </div>
     </div>
