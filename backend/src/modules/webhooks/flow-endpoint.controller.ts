@@ -9,6 +9,13 @@ import {
   UnprocessableEntityException,
   Req,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiHeader,
+  ApiBody,
+} from '@nestjs/swagger';
 import type { RawBodyRequest } from '@nestjs/common';
 import type { Request } from 'express';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -17,13 +24,7 @@ import { FlowEndpointService } from './services/flow-endpoint.service';
 import { FlowEncryptionService } from '../whatsapp/services/flow-encryption.service';
 import { WhatsAppConfig } from '../../entities/whatsapp-config.entity';
 
-/**
- * WhatsApp Flow Endpoint Controller
- * Handles encrypted data exchange requests from WhatsApp Flows
- *
- * Endpoints:
- * - POST /api/webhooks/flow-endpoint - Handle Flow data exchange requests
- */
+@ApiTags('Flow Endpoint')
 @Controller('api/webhooks/flow-endpoint')
 export class FlowEndpointController {
   private readonly logger = new Logger(FlowEndpointController.name);
@@ -35,24 +36,25 @@ export class FlowEndpointController {
     private readonly configRepo: Repository<WhatsAppConfig>,
   ) {}
 
-  /**
-   * POST /api/webhooks/flow-endpoint
-   * Handle encrypted Flow data exchange requests
-   *
-   * Flow actions:
-   * - INIT: Initial screen data request
-   * - data_exchange: Screen submission, return next screen or SUCCESS
-   * - ping: Health check
-   * - BACK: Navigate back (optional handling)
-   * - error_notification: Client-side error notification
-   *
-   * @param req - Raw request for signature verification
-   * @param signature - X-Hub-Signature-256 header
-   * @param body - Encrypted Flow request body
-   * @returns Encrypted response
-   */
   @Post()
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Handle WhatsApp Flow data exchange',
+    description: `Handles encrypted data exchange requests from WhatsApp Flows.
+
+**Flow Actions:**
+- \`ping\`: Health check from WhatsApp
+- \`INIT\`: Initial screen data request
+- \`data_exchange\`: Screen submission, returns next screen or SUCCESS
+- \`BACK\`: Navigate to previous screen
+- \`error_notification\`: Client-side error notification
+
+**Note:** All requests and responses are encrypted using RSA/AES encryption.`
+  })
+  @ApiHeader({ name: 'x-hub-signature-256', description: 'HMAC-SHA256 signature for request verification', required: true })
+  @ApiBody({ description: 'Encrypted flow request containing encrypted_flow_data, encrypted_aes_key, and initial_vector' })
+  @ApiResponse({ status: 200, description: 'Encrypted response returned successfully' })
+  @ApiResponse({ status: 422, description: 'Invalid signature or decryption failed' })
   async handleFlowRequest(
     @Req() req: RawBodyRequest<Request>,
     @Headers('x-hub-signature-256') signature: string,

@@ -1,5 +1,7 @@
 # Backend Requirements for WhatsApp Web Clone
 
+> **Note**: This document contains the initial API requirements specification. For up-to-date, interactive API documentation, visit the **Swagger UI** at `http://localhost:3000/api/docs` when the backend is running.
+
 This document outlines the backend API endpoints and data structures required to support the WhatsApp Web clone frontend interface.
 
 ## Data Structures

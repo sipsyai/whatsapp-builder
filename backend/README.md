@@ -151,6 +151,39 @@ npm run webhook:start
 
 ## API Documentation
 
+### Swagger UI (Recommended)
+
+This project includes comprehensive OpenAPI/Swagger documentation for all API endpoints.
+
+**Access Interactive Documentation:**
+```
+http://localhost:3000/api/docs
+```
+
+**Features:**
+- Interactive testing - Test all endpoints directly from the browser
+- Auto-generated - Documentation generated from TypeScript decorators
+- Request/Response schemas - View all DTO structures and validation rules
+- Example values - See example payloads for all endpoints
+- Organized by tags - Endpoints grouped by feature (Chatbots, Flows, WhatsApp Config, etc.)
+
+**Swagger Tags:**
+| Tag | Description | Endpoints |
+|-----|-------------|-----------|
+| Chatbots | Chatbot management and configuration | 13 endpoints |
+| Flows | WhatsApp Flow management and Meta sync | 8 endpoints |
+| WhatsApp Config | WhatsApp Business API configuration | 4 endpoints |
+| Flow Endpoint | WhatsApp Flow data exchange endpoint | 1 endpoint |
+| Chatbot Webhook | Chatbot webhook for encrypted data exchange | 3 endpoints |
+
+**OpenAPI Specification:**
+```
+http://localhost:3000/api/docs-json
+```
+This can be imported into tools like Postman, Insomnia, or used for API client generation.
+
+---
+
 ### Base URL
 
 ```

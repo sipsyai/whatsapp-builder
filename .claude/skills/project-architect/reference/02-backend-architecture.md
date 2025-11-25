@@ -1180,6 +1180,59 @@ export class WhatsAppApiService {
 
 ---
 
+## API Documentation
+
+### Swagger/OpenAPI Integration
+
+The backend includes comprehensive Swagger/OpenAPI documentation accessible at:
+```
+http://localhost:3000/api/docs
+```
+
+#### Setup Location
+**File**: `/home/ali/whatsapp-builder/backend/src/main.ts`
+
+#### Documentation Coverage
+
+| Component | Files Documented | Coverage |
+|-----------|------------------|----------|
+| Controllers | 5 | 29+ endpoints |
+| DTOs | 18 | 100+ fields |
+| Tags | 9 | Organized by feature |
+
+#### Documented Controllers
+
+1. **ChatBotsController** - 13 endpoints (CRUD, stats, toggle, restore)
+2. **FlowsController** - 8 endpoints (Meta sync, publish, preview)
+3. **WhatsAppConfigController** - 4 endpoints (config CRUD, test connection)
+4. **FlowEndpointController** - 1 endpoint (encrypted data exchange)
+5. **ChatBotWebhookController** - 3 endpoints (RSA key, data exchange)
+
+#### Swagger Decorators Used
+
+**Controller Level:**
+- `@ApiTags()` - Group endpoints by feature
+
+**Endpoint Level:**
+- `@ApiOperation({ summary, description })` - Endpoint documentation
+- `@ApiResponse()` - Status code and response descriptions
+- `@ApiParam()` - Path parameter documentation
+- `@ApiBody()` - Request body schema
+
+**DTO Level:**
+- `@ApiProperty()` - Required field documentation with examples
+- `@ApiPropertyOptional()` - Optional field documentation
+
+#### OpenAPI Spec Export
+
+```
+http://localhost:3000/api/docs-json
+```
+
+Use cases: Postman import, API client generation, contract testing.
+
+---
+
 ## Summary
 
 ### Module Dependency Graph

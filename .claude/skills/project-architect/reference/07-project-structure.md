@@ -293,6 +293,10 @@ whatsapp-builder/
 - **`/docs`**: Documentation files
 - **`.claude/`**: Claude AI skill configurations
 
+### API Documentation
+- **Swagger UI**: `http://localhost:3000/api/docs` - Interactive API documentation
+- **OpenAPI JSON**: `http://localhost:3000/api/docs-json` - For Postman/client generation
+
 ---
 
 ## File Naming Conventions

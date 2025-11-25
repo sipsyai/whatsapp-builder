@@ -6,11 +6,18 @@ import {
   HttpStatus,
   Get,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+} from '@nestjs/swagger';
 import { AppointmentService } from './appointment.service';
 import { MockCalendarService } from './mock-calendar.service';
 import { ProductCatalogService } from './product-catalog.service';
 import { ChatBotCryptoUtil } from './chatbot-crypto.util';
 
+@ApiTags('Chatbot Webhook')
 @Controller('chatbot-webhook')
 export class ChatBotWebhookController {
   // In production, store these securely in environment variables
@@ -38,6 +45,8 @@ export class ChatBotWebhookController {
   }
 
   @Get('public-key')
+  @ApiOperation({ summary: 'Get RSA public key', description: 'Returns the RSA public key for encrypting chatbot requests' })
+  @ApiResponse({ status: 200, description: 'Public key returned successfully' })
   getPublicKey() {
     return {
       publicKey: this.publicKey,
@@ -47,6 +56,17 @@ export class ChatBotWebhookController {
 
   @Post()
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Handle chatbot data exchange',
+    description: `Handles encrypted data exchange requests for chatbot features like appointment booking and product catalog.
+
+**Actions:**
+- \`ping\`: Health check
+- \`INIT\`: Initial screen load
+- \`data_exchange\`: Process user inputs (get_stylist_info, get_available_slots, create_appointment, get_categories, get_products, get_product_details, add_to_cart, create_order)`
+  })
+  @ApiBody({ description: 'Encrypted chatbot request' })
+  @ApiResponse({ status: 200, description: 'Encrypted response returned successfully' })
   async handleChatBotRequest(@Body() body: any) {
     try {
       console.log('Received ChatBot request:', JSON.stringify(body, null, 2));
@@ -320,6 +340,8 @@ export class ChatBotWebhookController {
   }
 
   @Get('appointments')
+  @ApiOperation({ summary: 'Get all appointments', description: 'Retrieves all booked appointments from the system' })
+  @ApiResponse({ status: 200, description: 'List of appointments returned successfully' })
   getAllAppointments() {
     return {
       appointments: this.appointmentService.getAllAppointments(),

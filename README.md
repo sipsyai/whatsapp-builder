@@ -76,9 +76,15 @@ Follow the instructions displayed by the script or check [WEBHOOK_QUICKSTART.md]
 
 ## 📚 Documentation
 
+### API Documentation
+- **Swagger UI**: [http://localhost:3000/api/docs](http://localhost:3000/api/docs) - Interactive API documentation (when backend is running)
+- **OpenAPI Spec**: Available at `/api/docs-json` for client generation
+
+### Guides
 - [Webhook Quick Start](./WEBHOOK_QUICKSTART.md) - Quick guide to get webhooks running
 - [Webhook Setup Guide](./docs/WEBHOOK_SETUP.md) - Detailed webhook configuration
 - [Frontend Integration](./docs/FRONTEND_INTEGRATION.md) - Frontend setup and features
+- [ChatBot Implementation](./docs/CHATBOT_IMPLEMENTATION.md) - Complete chatbot flow guide
 
 ## 🔧 Manual Setup
 
@@ -124,6 +130,7 @@ See [WEBHOOK_QUICKSTART.md](./WEBHOOK_QUICKSTART.md#-sorun-giderme) for common i
 
 ## 🔗 Resources
 
+- [Swagger API Documentation](http://localhost:3000/api/docs) - Interactive API explorer
 - [WhatsApp Business API Documentation](https://developers.facebook.com/docs/whatsapp)
 - [React Flow Documentation](https://reactflow.dev)
 - [NestJS Documentation](https://nestjs.com)
