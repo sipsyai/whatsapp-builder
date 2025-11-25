@@ -8,6 +8,9 @@ A powerful WhatsApp chatbot builder with visual flow designer and conversation m
 - WhatsApp Business API integration
 - **WhatsApp Flows Management**
   - Create and manage WhatsApp Flows
+  - **Visual Flow Builder** with drag-and-drop interface
+  - Real-time validation with error reporting
+  - Export/Import Flow JSON
   - Sync flows from Meta/Facebook API
   - Publish and preview flows
   - Use flows in ChatBot nodes

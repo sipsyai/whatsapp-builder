@@ -33,11 +33,15 @@ frontend/src/
 │   ├── App.css                   # Global app styles
 │   └── main.tsx                  # Entry point
 ├── features/                     # Feature modules
-│   ├── builder/                  # Flow builder
+│   ├── builder/                  # ChatBot flow builder (ReactFlow-based)
+│   ├── flow-builder/             # WhatsApp Flow visual builder (NEW)
 │   ├── chat/                     # Conversation UI
 │   ├── chatbots/                 # Chatbot list/management
 │   ├── conversations/            # Conversation list
-│   ├── nodes/                    # ReactFlow custom nodes
+│   ├── flows/                    # WhatsApp Flows management
+│   ├── sessions/                 # Chatbot session tracking
+│   ├── nodes/                    # ReactFlow custom nodes (ChatBot builder)
+│   ├── edges/                    # ReactFlow custom edges
 │   ├── users/                    # User management
 │   ├── settings/                 # App settings
 │   └── landing/                  # Landing page
@@ -2500,6 +2504,108 @@ interface Props {
   />
 ))}
 ```
+
+---
+
+### Feature: Flow Builder (WhatsApp Flow Visual Editor)
+**Location**: `/home/ali/whatsapp-builder/frontend/src/features/flow-builder/`
+
+#### Overview
+The Flow Builder is a comprehensive visual editor for creating and editing WhatsApp Flows. Unlike the chatbot builder (which uses ReactFlow for conversation flows), the Flow Builder focuses on creating WhatsApp-native interactive forms and flows as per the WhatsApp Flows API specification.
+
+#### Structure
+```
+flow-builder/
+├── FlowBuilderPage.tsx               # Main builder page
+├── components/
+│   ├── canvas/
+│   │   ├── FlowCanvas.tsx            # Main ReactFlow canvas
+│   │   ├── ScreenNode.tsx            # Custom screen node
+│   │   └── useFlowCanvas.ts          # Canvas state management
+│   ├── palette/
+│   │   ├── ComponentPalette.tsx      # Component palette sidebar
+│   │   └── DraggableComponent.tsx    # Draggable component items
+│   ├── editor/
+│   │   ├── ScreenEditor.tsx          # Screen property editor
+│   │   ├── ComponentList.tsx         # Component list with DnD
+│   │   └── ComponentConfigModals.tsx # Component configuration
+│   ├── preview/
+│   │   ├── FlowPreview.tsx           # Interactive flow preview
+│   │   ├── PhoneFrame.tsx            # iPhone frame wrapper
+│   │   ├── ScreenPreview.tsx         # Screen rendering
+│   │   └── renderers/                # Component renderers
+│   │       ├── TextRenderers.tsx
+│   │       ├── InputRenderers.tsx
+│   │       ├── SelectionRenderers.tsx
+│   │       └── ActionRenderers.tsx
+│   └── validation/
+│       └── ValidationPanel.tsx       # Validation error display
+├── constants/
+│   ├── character-limits.ts           # WhatsApp API character limits
+│   ├── data-source-limits.ts         # Component count limits
+│   └── component-defaults.ts         # Default component values
+├── hooks/
+│   ├── useFlowBuilder.ts             # Main state management
+│   ├── useFlowValidation.ts          # Validation logic
+│   └── useFlowHistory.ts             # Undo/redo support
+├── utils/
+│   ├── flowJsonGenerator.ts          # Builder → WhatsApp Flow JSON
+│   ├── flowJsonParser.ts             # WhatsApp Flow JSON → Builder
+│   └── validation-rules.ts           # Validation rule engine
+├── types/
+│   ├── flow-json.types.ts            # WhatsApp Flow JSON types
+│   └── builder.types.ts              # Builder-specific types
+└── README.md
+```
+
+#### Architecture Principles
+
+1. **Separation of Concerns**:
+   - **Builder State** (BuilderScreen/BuilderComponent): Internal representation optimized for editing
+   - **Flow JSON** (FlowJSON/Screen/Component): WhatsApp API-compliant format
+   - **Transform Layer**: Bidirectional converters between formats
+
+2. **Component Categories**:
+   - **Text**: TextHeading, TextSubheading, TextBody, TextCaption, RichText
+   - **Text Entry**: TextInput, TextArea
+   - **Selection**: CheckboxGroup, RadioButtonsGroup, Dropdown, ChipsSelector
+   - **Date**: DatePicker, CalendarPicker
+   - **Media**: Image, ImageCarousel
+   - **Navigation**: NavigationList
+   - **Action**: Footer, OptIn, EmbeddedLink
+   - **Conditional**: If, Switch
+
+3. **Validation System**:
+   - Character limit validation (per WhatsApp API specs)
+   - Data source count validation
+   - Screen-level rules (max components, footer requirements)
+   - Terminal screen validation
+   - Component-specific validation
+
+#### Key Dependencies
+
+**New Packages Added**:
+- `@dnd-kit/core`: ^6.3.1 - Core drag & drop primitives
+- `@dnd-kit/sortable`: ^10.0.0 - Sortable list functionality
+- `@dnd-kit/utilities`: ^3.2.2 - Utility functions
+
+**Existing Packages Used**:
+- `@xyflow/react`: ^12.3.5 - Flow canvas visualization
+- `react`: ^19.2.0 - Core framework
+
+#### Integration with Flows Feature
+
+**Navigation Flow**:
+1. User navigates to Flows page (`/flows`)
+2. Clicks "Edit in Builder" on a Flow card
+3. App.tsx sets `selectedFlow` state and navigates to `flowBuilder` view
+4. FlowBuilderPage receives `initialFlowId` and `initialFlowData`
+5. Builder loads Flow data and displays in canvas
+6. User edits Flow visually
+7. On save, `onSave` callback updates Flow via API
+8. App.tsx navigates back to Flows page
+
+**For detailed documentation, see**: `11-flow-builder-feature.md`
 
 ---
 

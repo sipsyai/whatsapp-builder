@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import { flowsApi, type WhatsAppFlow, type SyncResult } from '../api';
 
-export const FlowsPage = () => {
+export interface FlowsPageProps {
+  onEditInBuilder?: (flow: WhatsAppFlow) => void;
+}
+
+export const FlowsPage = ({ onEditInBuilder }: FlowsPageProps) => {
   const [flows, setFlows] = useState<WhatsAppFlow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -209,6 +213,15 @@ export const FlowsPage = () => {
 
                   {/* Action Buttons - Top Right */}
                   <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {onEditInBuilder && (
+                      <button
+                        onClick={() => onEditInBuilder(flow)}
+                        className="p-2 bg-white dark:bg-zinc-800 text-primary hover:bg-primary/10 dark:hover:bg-primary/20 rounded-lg transition-colors shadow-lg"
+                        title="Edit in Builder"
+                      >
+                        <span className="material-symbols-outlined text-xl">edit_note</span>
+                      </button>
+                    )}
                     {flow.status === 'DRAFT' && (
                       <button
                         onClick={() => handlePublish(flow.id)}
