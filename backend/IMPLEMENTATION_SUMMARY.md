@@ -8,6 +8,7 @@ This document summarizes the PostgreSQL and TypeORM implementation for the Whats
 - `@nestjs/typeorm` - NestJS integration with TypeORM
 - `typeorm` - TypeORM ORM framework
 - `pg` - PostgreSQL driver
+- `@nestjs/schedule` - Task scheduling and cron job support
 
 ### 2. Database Configuration
 
@@ -89,6 +90,52 @@ This document summarizes the PostgreSQL and TypeORM implementation for the Whats
 - `ormconfig.ts` - Migration configuration
 - Migration scripts in package.json
 
+### 5. ChatBot Flow Execution (NEW)
+
+#### Context Expiration System
+- **Purpose**: Prevent hanging contexts from stuck flows or unresponsive users
+- **Mechanism**: Cron job runs every minute to deactivate expired contexts
+- **Timeout Values**: WhatsApp Flows: 10 minutes
+- **Database**: Partial index on `expiresAt` for efficient cleanup queries
+
+#### Skip Command Support
+- **User Commands**: skip, cancel, iptal, atla, vazgec, vazgec
+- **Behavior**:
+  - Active context -> Skip current waiting node
+  - No active context -> Ignore command
+- **Safety**: Skip only works on Flow/Question nodes
+
+#### Debug Endpoints
+- `GET /api/chatbots/debug/contexts` - List all active contexts
+- `GET /api/chatbots/debug/contexts/stats` - Context statistics
+- `POST /api/chatbots/debug/contexts/:contextId/force-complete` - Force complete
+- `POST /api/chatbots/debug/cleanup` - Manual cleanup trigger
+- `POST /api/chatbots/conversations/:conversationId/skip` - Skip current node
+
+#### ConversationContext Entity (Updated)
+- UUID primary key
+- UUID for ConversationId and ChatBotId
+- `currentNodeId` for tracking flow position
+- JSONB for variables and nodeHistory
+- `isActive` boolean
+- **NEW**: `expiresAt` timestamp with time zone (nullable)
+  - Set when Flow node executes (10 min timeout)
+  - Cleared when Flow completes or context ends
+  - Used by cleanup cron job
+- Timestamps (createdAt, updatedAt)
+
+#### Migration: AddExpiresAtToConversationContext
+**File**: `1732560000000-AddExpiresAtToConversationContext.ts`
+
+**Changes**:
+1. Adds `expiresAt` column (timestamp with time zone, nullable)
+2. Creates partial index for efficient cleanup:
+   ```sql
+   CREATE INDEX IDX_conversation_context_expires_at
+   ON conversation_contexts (expiresAt)
+   WHERE expiresAt IS NOT NULL AND isActive = true
+   ```
+
 ## Architecture Decisions
 
 1. **UUID Primary Keys** - Better security and scalability
@@ -96,6 +143,7 @@ This document summarizes the PostgreSQL and TypeORM implementation for the Whats
 3. **Timestamp with Time Zone** - Proper timezone handling
 4. **Cascade Deletes** - Maintain referential integrity
 5. **Repository Pattern** - Clean separation of concerns
+6. **Scheduled Cleanup** - Automatic context timeout handling via cron jobs
 
 ## Next Steps
 

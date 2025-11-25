@@ -7,6 +7,7 @@ import { AppointmentService } from './appointment.service';
 import { MockCalendarService } from './mock-calendar.service';
 import { ProductCatalogService } from './product-catalog.service';
 import { ChatBotExecutionService } from './services/chatbot-execution.service';
+import { ContextCleanupService } from './services/context-cleanup.service';
 import { WhatsAppModule } from '../whatsapp/whatsapp.module';
 import { MessagesModule } from '../messages/messages.module';
 import { ChatBot } from '../../entities/chatbot.entity';
@@ -34,6 +35,7 @@ import { WhatsAppFlow } from '../../entities/whatsapp-flow.entity';
     MockCalendarService,
     ProductCatalogService,
     ChatBotExecutionService,
+    ContextCleanupService,
   ],
   exports: [ChatBotExecutionService],
 })

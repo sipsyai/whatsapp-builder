@@ -22,6 +22,7 @@ import {
 } from '@nestjs/swagger';
 import { ChatBotsService } from './chatbots.service';
 import { ChatBotExecutionService } from './services/chatbot-execution.service';
+import { ContextCleanupService } from './services/context-cleanup.service';
 import { CreateChatBotDto } from './dto/create-chatbot.dto';
 import { UpdateChatBotDto } from './dto/update-chatbot.dto';
 import { QueryChatBotsDto } from './dto/query-chatbots.dto';
@@ -33,6 +34,7 @@ export class ChatBotsController {
   constructor(
     private readonly chatbotsService: ChatBotsService,
     private readonly executionService: ChatBotExecutionService,
+    private readonly cleanupService: ContextCleanupService,
   ) {}
 
   @Post()
@@ -139,5 +141,55 @@ export class ChatBotsController {
   async stopChatBot(@Param('conversationId') conversationId: string) {
     await this.executionService.stopChatBot(conversationId);
     return { message: 'Chatbot stopped successfully', conversationId };
+  }
+
+  // ==================== DEBUG ENDPOINTS ====================
+
+  @Get('debug/contexts')
+  @ApiOperation({ summary: 'Get all active contexts', description: 'Returns all active conversation contexts for debugging' })
+  @ApiResponse({ status: 200, description: 'Active contexts returned successfully' })
+  async getActiveContexts() {
+    return this.executionService.getAllActiveContexts();
+  }
+
+  @Get('debug/contexts/stats')
+  @ApiOperation({ summary: 'Get context statistics', description: 'Returns statistics about active and expired contexts' })
+  @ApiResponse({ status: 200, description: 'Context stats returned successfully' })
+  async getContextStats() {
+    return this.cleanupService.getContextStats();
+  }
+
+  @Post('debug/contexts/:contextId/force-complete')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Force complete a context', description: 'Forces a stuck context to move to next node or complete' })
+  @ApiParam({ name: 'contextId', description: 'Context UUID', type: 'string' })
+  @ApiResponse({ status: 200, description: 'Context force completed successfully' })
+  @ApiResponse({ status: 404, description: 'Context not found' })
+  async forceCompleteContext(@Param('contextId') contextId: string) {
+    await this.executionService.forceCompleteContext(contextId);
+    return { message: 'Context force completed successfully', contextId };
+  }
+
+  @Post('debug/cleanup')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Force cleanup expired contexts', description: 'Manually triggers cleanup of expired contexts' })
+  @ApiResponse({ status: 200, description: 'Cleanup completed successfully' })
+  async forceCleanup() {
+    const cleanedCount = await this.cleanupService.forceCleanup();
+    return { message: 'Cleanup completed', cleanedCount };
+  }
+
+  @Post('conversations/:conversationId/skip')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Skip current node', description: 'Skips the current node for a stuck conversation' })
+  @ApiParam({ name: 'conversationId', description: 'Conversation UUID', type: 'string' })
+  @ApiResponse({ status: 200, description: 'Node skipped successfully' })
+  @ApiResponse({ status: 404, description: 'Conversation not found or nothing to skip' })
+  async skipCurrentNode(@Param('conversationId') conversationId: string) {
+    const result = await this.executionService.skipCurrentNode(conversationId);
+    if (!result) {
+      return { message: 'Nothing to skip', conversationId, skipped: false };
+    }
+    return { message: 'Node skipped successfully', conversationId, skipped: true };
   }
 }

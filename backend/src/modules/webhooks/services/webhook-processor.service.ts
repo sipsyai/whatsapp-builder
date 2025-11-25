@@ -151,6 +151,9 @@ export class WebhookProcessorService {
     await this.executeFlow(parsedMessage, conversation);
   }
 
+  // Skip commands that allow users to skip stuck flows
+  private readonly SKIP_COMMANDS = ['skip', 'cancel', 'iptal', 'atla', 'vazgec', 'vazgeç'];
+
   /**
    * Execute flow logic for incoming message
    */
@@ -189,7 +192,33 @@ export class WebhookProcessorService {
         conversation.id,
       );
 
+      // Extract message text early for skip check
+      const messageText = (parsedMessage.content?.body || '').toLowerCase().trim();
+
       if (hasContext) {
+        // Check for manual skip command ONLY when there's an active context
+        if (this.SKIP_COMMANDS.includes(messageText)) {
+          this.logger.log(
+            `Skip command received for conversation ${conversation.id}`,
+          );
+
+          const skipResult = await this.chatbotExecutionService.skipCurrentNode(
+            conversation.id,
+          );
+
+          if (skipResult) {
+            this.logger.log(
+              `Successfully skipped node for conversation ${conversation.id}`,
+            );
+          } else {
+            this.logger.warn(
+              `Skip failed for conversation ${conversation.id} - no waiting state`,
+            );
+          }
+          // Always return after skip command - don't process as normal message
+          return;
+        }
+
         // User is in middle of flow, process their response
         this.logger.debug(
           `Active flow context found for conversation ${conversation.id}`,
@@ -206,7 +235,7 @@ export class WebhookProcessorService {
         }
 
         // Extract message text (handle different message types)
-        const messageText = parsedMessage.content?.body ||
+        const userMessage = parsedMessage.content?.body ||
                            parsedMessage.content?.buttonTitle ||
                            parsedMessage.content?.listTitle ||
                            parsedMessage.content?.caption ||
@@ -214,7 +243,7 @@ export class WebhookProcessorService {
 
         await this.chatbotExecutionService.processUserResponse(
           conversation.id,
-          messageText,
+          userMessage,
           buttonId,
           listRowId,
         );
@@ -223,7 +252,15 @@ export class WebhookProcessorService {
           `Processed user response for conversation ${conversation.id}`,
         );
       } else {
-        // No active flow, start new flow
+        // No active flow - check if skip command (ignore it)
+        if (this.SKIP_COMMANDS.includes(messageText)) {
+          this.logger.log(
+            `Skip command received but no active flow for conversation ${conversation.id}, ignoring`,
+          );
+          return;
+        }
+
+        // Start new flow
         this.logger.debug(
           `No active flow context for conversation ${conversation.id}, starting new flow`,
         );

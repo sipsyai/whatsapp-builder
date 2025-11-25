@@ -41,6 +41,9 @@ export class ConversationContext {
   @Column({ type: 'boolean', default: true })
   isActive: boolean;
 
+  @Column({ type: 'timestamp with time zone', nullable: true })
+  expiresAt: Date | null;
+
   @CreateDateColumn({ type: 'timestamp with time zone' })
   createdAt: Date;
 

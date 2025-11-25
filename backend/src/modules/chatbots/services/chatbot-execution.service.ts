@@ -564,24 +564,47 @@ export class ChatBotExecutionService {
       this.logger.log(
         `Sent WhatsApp Flow ${flow.whatsappFlowId} to ${recipientPhone}`,
       );
+
+      // DO NOT move to next node - wait for Flow completion
+      // Save the output variable name for later use when Flow completes
+      if (flowOutputVariable) {
+        context.variables['__awaiting_flow_response__'] = flowOutputVariable;
+      }
+
+      // Set timeout: 10 minutes for Flow completion
+      const FLOW_TIMEOUT_MINUTES = 10;
+      context.expiresAt = new Date(
+        Date.now() + FLOW_TIMEOUT_MINUTES * 60 * 1000,
+      );
+      await this.contextRepo.save(context);
+
+      this.logger.log(
+        `Waiting for Flow completion. Timeout at: ${context.expiresAt.toISOString()}`,
+      );
     } catch (error) {
       this.logger.error(
         `Failed to send Flow to ${recipientPhone}: ${error.message}`,
         error.stack,
       );
-      throw error;
-    }
 
-    // DO NOT move to next node - wait for Flow completion
-    // Save the output variable name for later use when Flow completes
-    if (flowOutputVariable) {
-      context.variables['__awaiting_flow_response__'] = flowOutputVariable;
-    }
-    await this.contextRepo.save(context);
+      // CRITICAL: Don't leave context hanging if send fails
+      // Move to next node OR deactivate context
+      const nextNode = this.findNextNode(context.chatbot, node.id);
 
-    this.logger.log(
-      `Waiting for Flow completion to save in variable: ${flowOutputVariable || 'none'}`,
-    );
+      if (nextNode) {
+        this.logger.warn(
+          'Flow send failed, moving to next node via default path',
+        );
+        context.currentNodeId = nextNode.id;
+        context.nodeHistory.push(node.id);
+        await this.contextRepo.save(context);
+        await this.executeCurrentNode(context.id);
+      } else {
+        this.logger.warn('Flow send failed and no next node, ending chatbot');
+        context.isActive = false;
+        await this.contextRepo.save(context);
+      }
+    }
   }
 
   /**
@@ -927,5 +950,151 @@ export class ChatBotExecutionService {
       { conversationId, isActive: true },
       { isActive: false },
     );
+  }
+
+  /**
+   * Skip current node (for stuck flows or user request)
+   * Returns true if skip was successful, false if nothing to skip
+   */
+  async skipCurrentNode(conversationId: string): Promise<boolean> {
+    this.logger.log(`Attempting to skip current node for conversation ${conversationId}`);
+
+    const context = await this.contextRepo.findOne({
+      where: { conversationId, isActive: true },
+      relations: ['conversation', 'chatbot'],
+    });
+
+    if (!context) {
+      this.logger.warn(`No active context found for conversation ${conversationId}`);
+      return false;
+    }
+
+    // Get current node to check if it's skippable
+    const currentNode = this.findNodeById(context.chatbot, context.currentNodeId);
+    const nodeType = currentNode?.type || currentNode?.data?.type;
+
+    this.logger.log(`Current node type: ${nodeType}, id: ${context.currentNodeId}`);
+
+    // Check if context is waiting for flow or question response
+    const isWaitingForFlow = !!context.variables['__awaiting_flow_response__'];
+    const isWaitingForQuestion = !!context.variables['__awaiting_variable__'];
+
+    // Allow skip if:
+    // 1. Waiting for flow/question response, OR
+    // 2. Current node is WHATSAPP_FLOW or QUESTION (even if waiting state not set - for stuck cases)
+    const isSkippableNodeType = [
+      NodeDataType.WHATSAPP_FLOW,
+      NodeDataType.QUESTION,
+    ].includes(nodeType);
+
+    if (!isWaitingForFlow && !isWaitingForQuestion && !isSkippableNodeType) {
+      this.logger.warn(
+        `Context is not waiting and node type ${nodeType} is not skippable`,
+      );
+      return false;
+    }
+
+    this.logger.log(
+      `Skipping node - waitingForFlow: ${isWaitingForFlow}, waitingForQuestion: ${isWaitingForQuestion}, skippableType: ${isSkippableNodeType}`,
+    );
+
+    // Clear waiting states
+    delete context.variables['__awaiting_flow_response__'];
+    delete context.variables['__awaiting_variable__'];
+    context.expiresAt = null;
+
+    // Add current node to history
+    context.nodeHistory.push(context.currentNodeId);
+
+    // Find next node (use default path first, then any path)
+    let nextNode = this.findNextNode(context.chatbot, context.currentNodeId, 'default');
+
+    if (!nextNode) {
+      // Try without specific handle
+      nextNode = this.findNextNode(context.chatbot, context.currentNodeId);
+    }
+
+    if (!nextNode) {
+      this.logger.log('No next node after skip, ending chatbot');
+      context.isActive = false;
+      await this.contextRepo.save(context);
+      return true;
+    }
+
+    context.currentNodeId = nextNode.id;
+    await this.contextRepo.save(context);
+
+    this.logger.log(`Skipped to next node: ${context.currentNodeId}`);
+
+    // Execute next node
+    await this.executeCurrentNode(context.id);
+
+    return true;
+  }
+
+  /**
+   * Get active context for a conversation (for debugging)
+   */
+  async getActiveContext(conversationId: string): Promise<ConversationContext | null> {
+    return this.contextRepo.findOne({
+      where: { conversationId, isActive: true },
+      relations: ['chatbot'],
+    });
+  }
+
+  /**
+   * Get all active contexts (for debugging/admin)
+   */
+  async getAllActiveContexts(): Promise<any[]> {
+    const contexts = await this.contextRepo.find({
+      where: { isActive: true },
+      relations: ['chatbot'],
+    });
+
+    return contexts.map((ctx) => ({
+      id: ctx.id,
+      conversationId: ctx.conversationId,
+      chatbotName: ctx.chatbot?.name,
+      currentNodeId: ctx.currentNodeId,
+      isWaitingForFlow: !!ctx.variables['__awaiting_flow_response__'],
+      isWaitingForQuestion: !!ctx.variables['__awaiting_variable__'],
+      expiresAt: ctx.expiresAt,
+      isExpired: ctx.expiresAt ? new Date() > ctx.expiresAt : false,
+      createdAt: ctx.createdAt,
+      updatedAt: ctx.updatedAt,
+      ageMinutes: Math.floor((Date.now() - ctx.updatedAt.getTime()) / 60000),
+    }));
+  }
+
+  /**
+   * Force complete a context (for admin/debug)
+   */
+  async forceCompleteContext(contextId: string): Promise<void> {
+    const context = await this.contextRepo.findOne({
+      where: { id: contextId },
+      relations: ['chatbot', 'conversation'],
+    });
+
+    if (!context) {
+      throw new NotFoundException('Context not found');
+    }
+
+    // Clear waiting states
+    delete context.variables['__awaiting_flow_response__'];
+    delete context.variables['__awaiting_variable__'];
+    context.expiresAt = null;
+
+    // Move to next node or deactivate
+    const nextNode = this.findNextNode(context.chatbot, context.currentNodeId);
+
+    if (nextNode) {
+      context.nodeHistory.push(context.currentNodeId);
+      context.currentNodeId = nextNode.id;
+      await this.contextRepo.save(context);
+      await this.executeCurrentNode(context.id);
+    } else {
+      context.isActive = false;
+      await this.contextRepo.save(context);
+    }
   }
 }

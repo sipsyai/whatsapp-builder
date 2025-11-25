@@ -481,12 +481,74 @@ curl -X POST http://localhost:3000/api/webhooks/whatsapp \
 - This is normal - webhook uses whatsappMessageId for idempotency
 - Duplicates are automatically detected and skipped
 
+## Skip Command Handling (NEW)
+
+The webhook processor supports user skip commands for stuck chatbot flows.
+
+### Supported Commands
+- English: `skip`, `cancel`
+- Turkish: `iptal`, `atla`, `vazgec`, `vazgec`
+
+### Behavior
+
+When a skip command is received:
+
+1. **Active Context Exists**:
+   ```typescript
+   // Webhook detects skip command
+   if (SKIP_COMMANDS.includes(messageText)) {
+     const skipResult = await chatbotExecutionService.skipCurrentNode(conversationId);
+     return; // Don't process as normal message
+   }
+   ```
+   - Current waiting node is skipped
+   - Flow moves to next node
+   - Execution continues
+
+2. **No Active Context**:
+   - Command is ignored
+   - No new flow is started
+
+### Implementation Details
+
+```typescript
+// webhook-processor.service.ts
+private readonly SKIP_COMMANDS = [
+  'skip', 'cancel', 'iptal', 'atla', 'vazgec', 'vazgec'
+];
+
+// In processMessages():
+const messageText = message.content.body.toLowerCase().trim();
+
+if (hasContext && SKIP_COMMANDS.includes(messageText)) {
+  await chatbotExecutionService.skipCurrentNode(conversationId);
+  return; // Early return
+}
+```
+
+### Safety Features
+- Skip only works with active chatbot context
+- Only Flow and Question nodes can be skipped
+- Normal messages are not affected
+- Case-insensitive matching
+
+### Testing
+
+Send any skip command while in a flow:
+```
+User: Hi
+Bot: [Flow starts, sends WhatsApp Flow]
+User: skip
+Bot: [Skips to next node]
+```
+
 ## Related Modules
 
 - **ConversationsModule**: Manages conversation entities
 - **MessagesModule**: Handles message queries and storage
 - **UsersModule**: Manages user entities
 - **WhatsAppModule**: Sends outgoing messages
+- **ChatBotsModule**: Handles chatbot flow execution and context management
 
 ## API Reference
 
