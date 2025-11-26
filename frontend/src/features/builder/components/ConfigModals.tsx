@@ -54,6 +54,14 @@ export const ConfigQuestion = ({ data, onClose, onSave }: any) => {
         { id: 's1', title: 'Section 1', rows: [{ id: 'r1', title: 'Option 1', description: '' }] }
     ]);
 
+    // Dynamic List/Buttons Support
+    const [listMode, setListMode] = useState<'static' | 'dynamic'>(
+        data.dynamicListSource ? 'dynamic' : 'static'
+    );
+    const [dynamicListSource, setDynamicListSource] = useState(data.dynamicListSource || '');
+    const [dynamicLabelField, setDynamicLabelField] = useState(data.dynamicLabelField || 'name');
+    const [dynamicDescField, setDynamicDescField] = useState(data.dynamicDescField || '');
+
     const addBtn = () => {
         if (newBtn.trim() && buttons.length < 3) {
             setButtons([...buttons, { id: `btn-${buttons.length}`, title: newBtn.trim() }]);
@@ -106,16 +114,33 @@ export const ConfigQuestion = ({ data, onClose, onSave }: any) => {
     const isList = data.questionType === 'list';
 
     const handleSave = () => {
-        onSave({
+        const saveData: any = {
             ...data,
             content,
             variable,
-            buttons: isButtons ? buttons : undefined,
-            listSections: isList ? sections : undefined,
-            listButtonText: isList ? listButtonText : undefined,
             headerText: (isButtons || isList) ? headerText : undefined,
             footerText: (isButtons || isList) ? footerText : undefined
-        });
+        };
+
+        if (isButtons) {
+            saveData.buttons = buttons;
+        } else if (isList) {
+            if (listMode === 'dynamic') {
+                saveData.dynamicListSource = dynamicListSource;
+                saveData.dynamicLabelField = dynamicLabelField || 'name';
+                saveData.dynamicDescField = dynamicDescField || undefined;
+                saveData.listButtonText = listButtonText;
+                delete saveData.listSections; // Remove static sections
+            } else {
+                saveData.listSections = sections;
+                saveData.listButtonText = listButtonText;
+                delete saveData.dynamicListSource; // Remove dynamic config
+                delete saveData.dynamicLabelField;
+                delete saveData.dynamicDescField;
+            }
+        }
+
+        onSave(saveData);
         onClose();
     };
 
@@ -196,6 +221,85 @@ export const ConfigQuestion = ({ data, onClose, onSave }: any) => {
                                 <input className="w-full mt-1 p-2 border rounded dark:bg-black/20 dark:text-white dark:border-white/10" value={listButtonText} onChange={e => setListButtonText(e.target.value)} placeholder="e.g. Open Menu" maxLength={20} />
                             </label>
 
+                            {/* List Mode Toggle */}
+                            <div className="block">
+                                <label className="block text-sm font-medium dark:text-white mb-2">List Mode</label>
+                                <div className="flex gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setListMode('static')}
+                                        className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${listMode === 'static'
+                                            ? 'bg-green-500 text-white'
+                                            : 'bg-gray-200 dark:bg-white/10 dark:text-white hover:bg-gray-300 dark:hover:bg-white/20'}`}
+                                    >
+                                        Static
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setListMode('dynamic')}
+                                        className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${listMode === 'dynamic'
+                                            ? 'bg-green-500 text-white'
+                                            : 'bg-gray-200 dark:bg-white/10 dark:text-white hover:bg-gray-300 dark:hover:bg-white/20'}`}
+                                    >
+                                        Dynamic
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Dynamic Mode UI */}
+                            {listMode === 'dynamic' && (
+                                <div className="space-y-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                                    <div>
+                                        <label className="block text-sm font-medium dark:text-white mb-2">
+                                            Source Variable (API response)
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={dynamicListSource}
+                                            onChange={(e) => setDynamicListSource(e.target.value)}
+                                            className="w-full p-3 border dark:border-white/20 rounded-lg dark:bg-black/20 dark:text-white"
+                                            placeholder="e.g., categories, products, brands"
+                                        />
+                                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                            Variable name from REST API Node output
+                                        </p>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium dark:text-white mb-2">
+                                                Label Field
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={dynamicLabelField}
+                                                onChange={(e) => setDynamicLabelField(e.target.value)}
+                                                className="w-full p-3 border dark:border-white/20 rounded-lg dark:bg-black/20 dark:text-white"
+                                                placeholder="name"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium dark:text-white mb-2">
+                                                Description Field (optional)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={dynamicDescField}
+                                                onChange={(e) => setDynamicDescField(e.target.value)}
+                                                className="w-full p-3 border dark:border-white/20 rounded-lg dark:bg-black/20 dark:text-white"
+                                                placeholder="description"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="text-xs text-blue-800 dark:text-blue-300 space-y-1">
+                                        <p>• Source variable must contain an array of objects</p>
+                                        <p>• Label field will be used for option titles</p>
+                                        <p>• Description field is optional</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Static Mode UI */}
+                            {listMode === 'static' && (
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm font-bold dark:text-white">List Sections (Max 10)</span>
@@ -255,6 +359,7 @@ export const ConfigQuestion = ({ data, onClose, onSave }: any) => {
                                     </div>
                                 ))}
                             </div>
+                            )}
                         </div>
                     )}
 

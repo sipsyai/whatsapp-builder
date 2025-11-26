@@ -60,7 +60,8 @@ export const ConfigRestApi = ({ data, onClose, onSave }: any) => {
                 if (h.key) headersObj[h.key] = h.value;
             });
 
-            const response = await fetch('/api/chatbots/test-rest-api', {
+            const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+            const response = await fetch(`${apiBaseUrl}/api/chatbots/test-rest-api`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

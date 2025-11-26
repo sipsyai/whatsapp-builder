@@ -409,74 +409,152 @@ export class ChatBotExecutionService {
           break;
 
         case QuestionType.BUTTONS:
-          // Send button message
-          const buttons = node.data?.buttons || [];
-          const buttonItems = buttons.map((button: any, index: number) => ({
-            id: button.id || `btn-${index}`,
-            title: (typeof button === 'string' ? button : button.title).substring(0, 20), // Max 20 chars
-          }));
+          let buttonItems;
 
-          const buttonResult = await this.interactiveMessageService.sendButtonMessage({
-            to: recipientPhone,
-            bodyText: message,
-            headerText: node.data?.headerText,
-            footerText: node.data?.footerText,
-            buttons: buttonItems,
-          });
+          // Check for dynamic buttons source
+          if (node.data?.dynamicButtonsSource) {
+            const dynamicData = context.variables[node.data.dynamicButtonsSource];
+            buttonItems = this.transformArrayToButtons(
+              dynamicData,
+              node.data?.dynamicLabelField
+            );
+          } else {
+            // Static buttons
+            const buttons = node.data?.buttons || [];
+            buttonItems = buttons.map((button: any, index: number) => ({
+              id: button.id || `btn-${index}`,
+              title: (typeof button === 'string' ? button : button.title).substring(0, 20),
+            }));
+          }
 
-          // Save button message to database
-          const businessUser = await this.getBusinessUser(context.conversation);
-          await this.messagesService.create({
-            conversationId: context.conversation.id,
-            senderId: businessUser.id,
-            type: MessageType.INTERACTIVE,
-            content: {
-              whatsappMessageId: buttonResult.response.messages[0].id,
-              ...buttonResult.content,
-            },
-            status: MessageStatus.SENT,
-            timestamp: new Date(),
-          });
+          if (buttonItems.length === 0) {
+            this.logger.warn('No items for buttons, falling back to text input');
+            const fallbackResult = await this.textMessageService.sendTextMessage({
+              to: recipientPhone,
+              text: message + '\n\n(Lütfen seçiminizi yazarak belirtin)',
+            });
 
-          this.logger.log(`Sent button question to ${recipientPhone}`);
+            // Save text message to database
+            const fallbackBusinessUser = await this.getBusinessUser(context.conversation);
+            await this.messagesService.create({
+              conversationId: context.conversation.id,
+              senderId: fallbackBusinessUser.id,
+              type: MessageType.TEXT,
+              content: {
+                whatsappMessageId: fallbackResult.messages?.[0]?.id,
+                body: message + '\n\n(Lütfen seçiminizi yazarak belirtin)',
+              },
+              status: MessageStatus.SENT,
+              timestamp: new Date(),
+            });
+          } else {
+            const buttonResult = await this.interactiveMessageService.sendButtonMessage({
+              to: recipientPhone,
+              bodyText: message,
+              headerText: node.data?.headerText,
+              footerText: node.data?.footerText,
+              buttons: buttonItems,
+            });
+
+            // Save button message to database
+            const businessUser = await this.getBusinessUser(context.conversation);
+            await this.messagesService.create({
+              conversationId: context.conversation.id,
+              senderId: businessUser.id,
+              type: MessageType.INTERACTIVE,
+              content: {
+                whatsappMessageId: buttonResult.response.messages[0].id,
+                ...buttonResult.content,
+              },
+              status: MessageStatus.SENT,
+              timestamp: new Date(),
+            });
+
+            this.logger.log(`Sent button question to ${recipientPhone}`);
+          }
           break;
 
         case QuestionType.LIST:
-          // Send list message
-          const listSections = node.data?.listSections || [];
-          const sections = listSections.map((section: any) => ({
-            title: section.title.substring(0, 24), // Max 24 chars
-            rows: section.rows.map((row: any) => ({
-              id: row.id,
-              title: row.title.substring(0, 24),
-              description: row.description?.substring(0, 72), // Max 72 chars
-            })),
-          }));
+          let sections;
 
-          const listResult = await this.interactiveMessageService.sendListMessage({
-            to: recipientPhone,
-            bodyText: message,
-            listButtonText: node.data?.listButtonText || 'Choose',
-            headerText: node.data?.headerText,
-            footerText: node.data?.footerText,
-            sections,
-          });
+          // Check for dynamic list source
+          if (node.data?.dynamicListSource) {
+            const dynamicData = context.variables[node.data.dynamicListSource];
+            // Get current page from context variables (default to 1)
+            const pageVarName = `${node.data.dynamicListSource}_page`;
+            const currentPage = context.variables[pageVarName] || 1;
 
-          // Save list message to database
-          const businessUserForList = await this.getBusinessUser(context.conversation);
-          await this.messagesService.create({
-            conversationId: context.conversation.id,
-            senderId: businessUserForList.id,
-            type: MessageType.INTERACTIVE,
-            content: {
-              whatsappMessageId: listResult.response.messages[0].id,
-              ...listResult.content,
-            },
-            status: MessageStatus.SENT,
-            timestamp: new Date(),
-          });
+            this.logger.log(`Dynamic list: source=${node.data.dynamicListSource}, page=${currentPage}, dataLength=${Array.isArray(dynamicData) ? dynamicData.length : 'not array'}`);
 
-          this.logger.log(`Sent list question to ${recipientPhone}`);
+            sections = this.transformArrayToListSections(
+              dynamicData,
+              node.data?.dynamicLabelField,  // optional: which field to use for title
+              node.data?.dynamicDescField,   // optional: which field to use for description
+              currentPage,                    // current page number
+              9                               // items per page (9 to leave room for navigation)
+            );
+
+            this.logger.debug(`List sections for page ${currentPage}: ${JSON.stringify(sections)}`);
+          } else {
+            // Static list sections
+            const listSections = node.data?.listSections || [];
+            sections = listSections.map((section: any) => ({
+              title: section.title.substring(0, 24),
+              rows: section.rows.map((row: any) => ({
+                id: row.id,
+                title: row.title.substring(0, 24),
+                description: row.description?.substring(0, 72),
+              })),
+            }));
+          }
+
+          if (sections.length === 0 || sections[0].rows.length === 0) {
+            this.logger.warn('No items for interactive list, falling back to text input');
+            // Fallback to text input if no items
+            const fallbackListResult = await this.textMessageService.sendTextMessage({
+              to: recipientPhone,
+              text: message + '\n\n(Lütfen seçiminizi yazarak belirtin)',
+            });
+
+            // Save text message to database
+            const fallbackListBusinessUser = await this.getBusinessUser(context.conversation);
+            await this.messagesService.create({
+              conversationId: context.conversation.id,
+              senderId: fallbackListBusinessUser.id,
+              type: MessageType.TEXT,
+              content: {
+                whatsappMessageId: fallbackListResult.messages?.[0]?.id,
+                body: message + '\n\n(Lütfen seçiminizi yazarak belirtin)',
+              },
+              status: MessageStatus.SENT,
+              timestamp: new Date(),
+            });
+          } else {
+            const listResult = await this.interactiveMessageService.sendListMessage({
+              to: recipientPhone,
+              bodyText: message,
+              headerText: node.data?.headerText,
+              footerText: node.data?.footerText,
+              listButtonText: node.data?.listButtonText || 'Seçin',
+              sections,
+            });
+
+            // Save list message to database
+            const businessUserForList = await this.getBusinessUser(context.conversation);
+            await this.messagesService.create({
+              conversationId: context.conversation.id,
+              senderId: businessUserForList.id,
+              type: MessageType.INTERACTIVE,
+              content: {
+                whatsappMessageId: listResult.response.messages[0].id,
+                ...listResult.content,
+              },
+              status: MessageStatus.SENT,
+              timestamp: new Date(),
+            });
+
+            this.logger.log(`Sent list question to ${recipientPhone}`);
+          }
           break;
 
         default:
@@ -534,32 +612,38 @@ export class ChatBotExecutionService {
 
     switch (conditionOp) {
       case '==':
+      case 'eq':
       case 'equals':
         conditionResult = String(varValue) === String(conditionVal);
         break;
       case '!=':
+      case 'neq':
       case 'not_equals':
         conditionResult = String(varValue) !== String(conditionVal);
         break;
       case 'contains':
-        conditionResult = String(varValue).includes(String(conditionVal));
+        conditionResult = String(varValue).toLowerCase().includes(String(conditionVal).toLowerCase());
         break;
       case 'not_contains':
-        conditionResult = !String(varValue).includes(String(conditionVal));
+        conditionResult = !String(varValue).toLowerCase().includes(String(conditionVal).toLowerCase());
         break;
       case '>':
+      case 'gt':
       case 'greater':
         conditionResult = Number(varValue) > Number(conditionVal);
         break;
       case '<':
+      case 'lt':
       case 'less':
         conditionResult = Number(varValue) < Number(conditionVal);
         break;
       case '>=':
+      case 'gte':
       case 'greater_or_equal':
         conditionResult = Number(varValue) >= Number(conditionVal);
         break;
       case '<=':
+      case 'lte':
       case 'less_or_equal':
         conditionResult = Number(varValue) <= Number(conditionVal);
         break;
@@ -1047,6 +1131,33 @@ export class ChatBotExecutionService {
       }
     } else if (questionType === QuestionType.LIST) {
       if (listRowId) {
+        this.logger.log(`LIST selection received - listRowId: "${listRowId}"`);
+
+        // Check if this is a pagination navigation selection
+        const pageMatch = listRowId.match(/^__PAGE_(PREV|NEXT)__(\d+)$/);
+        this.logger.log(`Page match result: ${pageMatch ? JSON.stringify(pageMatch) : 'null'}`);
+
+        if (pageMatch) {
+          const newPage = parseInt(pageMatch[2]);
+          const dynamicListSource = currentNode.data?.dynamicListSource;
+
+          if (dynamicListSource) {
+            // Update page variable and re-execute current node (show new page)
+            const pageVarName = `${dynamicListSource}_page`;
+            context.variables[pageVarName] = newPage;
+
+            // Don't save user message as variable value, and don't move to next node
+            delete context.variables[variable];
+
+            this.logger.log(`Pagination: navigating to page ${newPage} for ${dynamicListSource}`);
+
+            // Save context and re-execute current node
+            await this.contextRepo.save(context);
+            await this.executeCurrentNode(context.id);
+            return;
+          }
+        }
+
         // User selected from list - use the row ID
         sourceHandle = listRowId;
       } else {
@@ -1167,16 +1278,226 @@ export class ChatBotExecutionService {
   }
 
   /**
+   * Transform array data to WhatsApp list sections format with pagination
+   * @param data - Array of items to display
+   * @param labelField - Field name to use as title
+   * @param descField - Field name to use as description
+   * @param page - Current page number (1-based), default 1
+   * @param itemsPerPage - Items per page (max 9 to leave room for navigation), default 9
+   * @returns Array with sections including navigation options if needed
+   */
+  private transformArrayToListSections(
+    data: any[],
+    labelField?: string,
+    descField?: string,
+    page: number = 1,
+    baseItemsPerPage: number = 9
+  ): any[] {
+    if (!Array.isArray(data)) {
+      this.logger.warn('Dynamic list source is not an array');
+      return [];
+    }
+
+    const totalItems = data.length;
+
+    // WhatsApp limit: max 10 rows total across all sections
+    // Calculate how many nav buttons we'll need for each page position
+    // First page: only "next" (1 nav) -> 9 items
+    // Middle pages: "prev" + "next" (2 nav) -> 8 items
+    // Last page: only "prev" (1 nav) -> 9 items
+
+    // For simplicity, use 8 items per page to always have room for 2 nav buttons
+    const itemsPerPage = 8;
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const currentPage = Math.max(1, Math.min(page, totalPages));
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+
+    // Get items for current page
+    const pageItems = data.slice(startIndex, endIndex);
+
+    const rows = pageItems.map((item, index) => {
+      // Support for different object shapes
+      const label = (labelField && item[labelField]) || item.name || item.title || item.label || `Item ${index + 1}`;
+      const desc = descField ? item[descField] : (item.description || '');
+      const id = item.id?.toString() || item.slug || label;
+
+      return {
+        id: id.substring(0, 200),
+        title: String(label).substring(0, 24),
+        description: desc ? String(desc).substring(0, 72) : undefined,
+      };
+    });
+
+    // Add navigation options if there are multiple pages
+    if (totalPages > 1) {
+      // Add navigation rows directly to the items section (all in one section)
+      // This ensures total rows <= 10 (8 items + 2 nav max)
+
+      // Add "Previous Page" if not on first page
+      if (currentPage > 1) {
+        rows.push({
+          id: `__PAGE_PREV__${currentPage - 1}`,
+          title: `Onceki Sayfa`,
+          description: `Sayfa ${currentPage - 1}/${totalPages}`,
+        });
+      }
+
+      // Add "Next Page" if not on last page
+      if (currentPage < totalPages) {
+        rows.push({
+          id: `__PAGE_NEXT__${currentPage + 1}`,
+          title: `Sonraki Sayfa`,
+          description: `Sayfa ${currentPage + 1}/${totalPages}`,
+        });
+      }
+
+      return [{
+        title: `Sayfa ${currentPage}/${totalPages}`,
+        rows,
+      }];
+    }
+
+    return [{
+      title: 'Seçenekler',
+      rows,
+    }];
+  }
+
+  /**
+   * Transform array data to WhatsApp buttons format
+   */
+  private transformArrayToButtons(data: any[], labelField?: string): any[] {
+    if (!Array.isArray(data)) {
+      this.logger.warn('Dynamic buttons source is not an array');
+      return [];
+    }
+
+    return data.slice(0, 3).map((item, index) => {
+      const label = (labelField && item[labelField]) || item.name || item.title || item.label || `Option ${index + 1}`;
+      const id = item.id?.toString() || item.slug || `btn-${index}`;
+
+      return {
+        id: id.substring(0, 256),
+        title: String(label).substring(0, 20),
+      };
+    });
+  }
+
+  /**
    * Replace variables in text with values from context
+   * Supports nested paths like {{product.name}} and {{product.stock}}
    */
   private replaceVariables(
     text: string,
     variables: Record<string, any>,
   ): string {
-    return text.replace(/\{\{(\w+)\}\}/g, (match, varName) => {
-      const value = variables[varName];
-      return value !== undefined ? String(value) : match;
+    return text.replace(/\{\{([\w.]+)\}\}/g, (match, varPath) => {
+      const value = this.getNestedValue(variables, varPath);
+      if (value === undefined || value === null) {
+        return match;
+      }
+      // Handle arrays and objects - format them nicely
+      if (Array.isArray(value)) {
+        return this.formatArrayForDisplay(value);
+      }
+      if (typeof value === 'object') {
+        return this.formatObjectForDisplay(value);
+      }
+      return String(value);
     });
+  }
+
+  /**
+   * Get nested value from object using dot notation
+   * e.g., getNestedValue({product: {name: 'Test'}}, 'product.name') => 'Test'
+   */
+  private getNestedValue(obj: Record<string, any>, path: string): any {
+    const parts = path.split('.');
+    let current: any = obj;
+
+    for (const part of parts) {
+      if (current === undefined || current === null) {
+        return undefined;
+      }
+      // Handle array index notation like items[0]
+      const arrayMatch = part.match(/^(\w+)\[(\d+)\]$/);
+      if (arrayMatch) {
+        current = current[arrayMatch[1]]?.[parseInt(arrayMatch[2])];
+      } else {
+        current = current[part];
+      }
+    }
+
+    return current;
+  }
+
+  /**
+   * Format an array for display in WhatsApp messages
+   */
+  private formatArrayForDisplay(arr: any[]): string {
+    if (arr.length === 0) return '(boş liste)';
+
+    // Check if items have common display properties
+    const firstItem = arr[0];
+    if (typeof firstItem === 'object' && firstItem !== null) {
+      // Try to find name, title, or label property
+      const displayProp = ['name', 'title', 'label', 'displayName', 'sku', 'id'].find(
+        prop => firstItem[prop] !== undefined
+      );
+
+      if (displayProp) {
+        return arr.map((item, i) => {
+          const name = item[displayProp];
+          // Include additional useful info if available
+          const extras: string[] = [];
+          if (item.description) extras.push(item.description);
+          if (item.price) extras.push(`${item.price} TL`);
+          if (item.stock !== undefined) extras.push(`Stok: ${item.stock}`);
+
+          const extraInfo = extras.length > 0 ? ` - ${extras.join(', ')}` : '';
+          return `${i + 1}. ${name}${extraInfo}`;
+        }).join('\n');
+      }
+    }
+
+    // Simple array of primitives
+    if (typeof firstItem !== 'object') {
+      return arr.map((item, i) => `${i + 1}. ${item}`).join('\n');
+    }
+
+    // Fallback: JSON but formatted
+    return arr.map((item, i) => `${i + 1}. ${JSON.stringify(item)}`).join('\n');
+  }
+
+  /**
+   * Format an object for display in WhatsApp messages
+   */
+  private formatObjectForDisplay(obj: any): string {
+    if (obj === null) return '(boş)';
+
+    // If it has a name or title, use that primarily
+    if (obj.name || obj.title) {
+      const name = obj.name || obj.title;
+      const extras: string[] = [];
+      if (obj.description) extras.push(obj.description);
+      if (obj.price) extras.push(`${obj.price} TL`);
+      if (obj.stock !== undefined) extras.push(`Stok: ${obj.stock}`);
+
+      return extras.length > 0 ? `${name}\n${extras.join('\n')}` : name;
+    }
+
+    // Format as key-value pairs
+    const entries = Object.entries(obj)
+      .filter(([key]) => !key.startsWith('_') && !key.startsWith('__'))
+      .slice(0, 10); // Limit to prevent overly long messages
+
+    if (entries.length === 0) return '(boş obje)';
+
+    return entries.map(([key, value]) => {
+      const displayValue = typeof value === 'object' ? JSON.stringify(value) : value;
+      return `${key}: ${displayValue}`;
+    }).join('\n');
   }
 
   /**
@@ -1520,3 +1841,4 @@ export class ChatBotExecutionService {
     }
   }
 }
+// trigger recompile Wed Nov 26 15:11:12 UTC 2025

@@ -14,12 +14,31 @@ export class RestApiExecutorService {
   private readonly logger = new Logger(RestApiExecutorService.name);
 
   /**
-   * Replace {{variable}} in string
+   * Replace {{variable}} and {{variable.nested.path}} in string
+   * Also supports simple math expressions like {{var1}} + {{var2}}
    */
   replaceVariables(template: string, variables: Record<string, any>): string {
-    return template.replace(/\{\{(\w+)\}\}/g, (match, varName) => {
-      return variables[varName] !== undefined ? String(variables[varName]) : match;
+    // First replace all variable references with their values
+    let result = template.replace(/\{\{([\w.]+)\}\}/g, (match, varPath) => {
+      const value = this.extractByPath(variables, varPath);
+      return value !== undefined ? String(value) : match;
     });
+
+    // Check if there are any arithmetic expressions to evaluate
+    // Pattern: number operator number (e.g., "15 + 5" or "10 - 3")
+    result = result.replace(/(\d+)\s*([+\-*/])\s*(\d+)/g, (match, num1, op, num2) => {
+      const n1 = parseFloat(num1);
+      const n2 = parseFloat(num2);
+      switch (op) {
+        case '+': return String(n1 + n2);
+        case '-': return String(Math.max(0, n1 - n2)); // Prevent negative stock
+        case '*': return String(n1 * n2);
+        case '/': return String(n2 !== 0 ? n1 / n2 : 0);
+        default: return match;
+      }
+    });
+
+    return result;
   }
 
   /**

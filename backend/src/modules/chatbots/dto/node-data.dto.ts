@@ -118,6 +118,27 @@ export class NodeDataDto {
   @Type(() => ListSectionDto)
   listSections?: ListSectionDto[];
 
+  // Dynamic List/Buttons Fields
+  @ApiPropertyOptional({ description: 'Variable name containing array data for dynamic list', example: 'categories' })
+  @IsOptional()
+  @IsString()
+  dynamicListSource?: string;
+
+  @ApiPropertyOptional({ description: 'Variable name containing array data for dynamic buttons', example: 'options' })
+  @IsOptional()
+  @IsString()
+  dynamicButtonsSource?: string;
+
+  @ApiPropertyOptional({ description: 'Field name to use as label from dynamic data items', example: 'name' })
+  @IsOptional()
+  @IsString()
+  dynamicLabelField?: string;
+
+  @ApiPropertyOptional({ description: 'Field name to use as description from dynamic data items', example: 'description' })
+  @IsOptional()
+  @IsString()
+  dynamicDescField?: string;
+
   @ApiPropertyOptional({ description: 'WhatsApp Flow ID from Meta', example: '1234567890' })
   @IsOptional()
   @IsString()
