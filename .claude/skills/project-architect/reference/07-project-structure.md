@@ -189,7 +189,9 @@ whatsapp-builder/
         │   │   │   ├── QuestionTypeModal.tsx
         │   │   │   └── FlowTester.tsx
         │   │   ├── utils/
-        │   │   │   └── flowValidation.ts
+        │   │   │   ├── flowValidation.ts
+        │   │   │   ├── autoLayout.ts
+        │   │   │   └── index.ts
         │   │   └── index.ts
         │   │
         │   ├── chat/                 # Conversation UI

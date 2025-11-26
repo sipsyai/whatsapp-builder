@@ -21,6 +21,7 @@ import { FlowTester } from "./FlowTester";
 import type { NodeDataType } from "../../../shared/types";
 import type { ChatBot } from "../../chatbots/api";
 import { validateFlow, type ValidationError } from "../utils/flowValidation";
+import { getLayoutedElements, type LayoutDirection } from "../utils/autoLayout";
 import { generateUUID } from "../../../utils/uuid";
 
 const nodeTypes = {
@@ -71,6 +72,9 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
 
     // Test Mode State
     const [testMode, setTestMode] = useState(false);
+
+    // Auto Layout State
+    const [isLayouting, setIsLayouting] = useState(false);
 
     // Load initial flow when provided
     useEffect(() => {
@@ -399,6 +403,35 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
         setNodes((nds) => [...nds, newNode]);
     };
 
+    // Auto Layout Handler
+    const handleAutoLayout = useCallback((direction: LayoutDirection = 'TB') => {
+        if (nodes.length === 0) return;
+
+        setIsLayouting(true);
+
+        // Small delay for UI feedback
+        setTimeout(() => {
+            const { nodes: layoutedNodes } = getLayoutedElements(nodes, edges, {
+                direction,
+                nodeWidth: 280,
+                nodeHeight: 80,
+                rankSeparation: 100,
+                nodeSeparation: 60,
+            });
+
+            setNodes(layoutedNodes);
+
+            // Fit view after layout
+            if (reactFlowInstance) {
+                setTimeout(() => {
+                    reactFlowInstance.fitView({ padding: 0.2, duration: 300 });
+                }, 50);
+            }
+
+            setIsLayouting(false);
+        }, 100);
+    }, [nodes, edges, setNodes, reactFlowInstance]);
+
     return (
         <div className="flex h-screen w-full flex-col">
             {/* Header */}
@@ -441,6 +474,49 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
                     >
                         <span className="material-symbols-outlined text-sm">check_circle</span> Validate
                     </button>
+                    <div className="relative group">
+                        <button
+                            onClick={() => handleAutoLayout('TB')}
+                            disabled={isLayouting || nodes.length === 0}
+                            className="px-4 py-2 bg-teal-600 text-white rounded-lg flex items-center gap-2 text-sm font-bold hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <span className="material-symbols-outlined text-sm">
+                                {isLayouting ? 'sync' : 'account_tree'}
+                            </span>
+                            {isLayouting ? 'Layouting...' : 'Auto Layout'}
+                        </button>
+                        {/* Dropdown for layout directions */}
+                        <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#193322] border border-zinc-200 dark:border-white/10 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 min-w-[160px]">
+                            <button
+                                onClick={() => handleAutoLayout('TB')}
+                                className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-white hover:bg-zinc-100 dark:hover:bg-[#23482f] flex items-center gap-2 rounded-t-lg"
+                            >
+                                <span className="material-symbols-outlined text-sm">arrow_downward</span>
+                                Top to Bottom
+                            </button>
+                            <button
+                                onClick={() => handleAutoLayout('LR')}
+                                className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-white hover:bg-zinc-100 dark:hover:bg-[#23482f] flex items-center gap-2"
+                            >
+                                <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                                Left to Right
+                            </button>
+                            <button
+                                onClick={() => handleAutoLayout('BT')}
+                                className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-white hover:bg-zinc-100 dark:hover:bg-[#23482f] flex items-center gap-2"
+                            >
+                                <span className="material-symbols-outlined text-sm">arrow_upward</span>
+                                Bottom to Top
+                            </button>
+                            <button
+                                onClick={() => handleAutoLayout('RL')}
+                                className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-white hover:bg-zinc-100 dark:hover:bg-[#23482f] flex items-center gap-2 rounded-b-lg"
+                            >
+                                <span className="material-symbols-outlined text-sm">arrow_back</span>
+                                Right to Left
+                            </button>
+                        </div>
+                    </div>
                     <button onClick={() => setShowAIModal(true)} className="px-4 py-2 bg-purple-600 text-white rounded-lg flex items-center gap-2 text-sm font-bold hover:bg-purple-700 transition-colors">
                         <span className="material-symbols-outlined text-sm">auto_awesome</span> AI Build
                     </button>

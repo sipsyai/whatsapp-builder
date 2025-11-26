@@ -85,7 +85,13 @@ frontend/src/
   - Custom node types
   - Edge validation
   - Drag-and-drop interface
-  - Auto-layout support
+  - Auto-layout support (Dagre algorithm)
+- **dagre**: 0.8.5
+  - Graph layout algorithm
+  - Automatic node positioning
+  - Multiple layout directions (TB, LR, BT, RL)
+- **@types/dagre**: 0.7.53
+  - TypeScript type definitions for Dagre
 
 ### State Management
 - **React Hooks**: useState, useEffect, useCallback, useMemo
@@ -294,7 +300,9 @@ builder/
 │   ├── QuestionTypeModal.tsx    # Question type selector
 │   └── FlowTester.tsx           # In-app flow testing
 ├── utils/
-│   └── flowValidation.ts        # Flow validation logic
+│   ├── flowValidation.ts        # Flow validation logic
+│   ├── autoLayout.ts            # Dagre-based auto layout
+│   └── index.ts                 # Utility exports
 └── index.ts                     # Public exports
 ```
 
@@ -307,7 +315,8 @@ builder/
 3. **Node Configuration**: Modal-based editing
 4. **Flow Validation**: Real-time validation with error panel
 5. **AI Generation**: Gemini-powered flow generation
-6. **Backend Integration**: Save/load flows via API
+6. **Auto Layout**: Dagre-based automatic node positioning with 4 layout directions
+7. **Backend Integration**: Save/load flows via API
 
 #### ConfigCondition Component
 **File**: `/home/ali/whatsapp-builder/frontend/src/features/builder/components/ConfigModals.tsx`
@@ -1155,6 +1164,192 @@ catch (e) {
 - API key stored in environment variable (not committed)
 - Client-side API calls (key exposed to browser)
 - For production: Consider server-side proxy for API key protection
+
+**Auto Layout**:
+
+The builder includes an automatic layout feature powered by the Dagre graph layout algorithm. This feature automatically arranges nodes in a clean, hierarchical structure with multiple direction options.
+
+**Implementation Location**: `/home/ali/whatsapp-builder/frontend/src/features/builder/utils/autoLayout.ts`
+
+**Dagre Algorithm**:
+- **Library**: dagre (^0.8.5)
+- **Algorithm**: Directed graph layout with configurable ranking
+- **Customization**: Node dimensions, spacing, and direction
+
+**Layout Directions**:
+```typescript
+export type LayoutDirection = 'TB' | 'LR' | 'BT' | 'RL';
+
+export const LAYOUT_DIRECTIONS = [
+  { value: 'TB', label: 'Top to Bottom', icon: 'arrow_downward' },
+  { value: 'LR', label: 'Left to Right', icon: 'arrow_forward' },
+  { value: 'BT', label: 'Bottom to Top', icon: 'arrow_upward' },
+  { value: 'RL', label: 'Right to Left', icon: 'arrow_back' },
+];
+```
+
+**Layout Options**:
+```typescript
+interface LayoutOptions {
+  direction?: LayoutDirection;    // TB, LR, BT, or RL
+  nodeWidth?: number;             // Default: 280px
+  nodeHeight?: number;            // Default: 80px
+  rankSeparation?: number;        // Vertical spacing (default: 100px)
+  nodeSeparation?: number;        // Horizontal spacing (default: 50px)
+}
+```
+
+**Core Function**:
+```typescript
+export const getLayoutedElements = (
+  nodes: Node[],
+  edges: Edge[],
+  options: LayoutOptions = {}
+): { nodes: Node[]; edges: Edge[] } => {
+  const {
+    direction = 'TB',
+    nodeWidth = 280,
+    nodeHeight = 80,
+    rankSeparation = 100,
+    nodeSeparation = 50,
+  } = options;
+
+  // Create Dagre graph
+  const dagreGraph = new Dagre.graphlib.Graph();
+  dagreGraph.setDefaultEdgeLabel(() => ({}));
+
+  // Configure layout
+  dagreGraph.setGraph({
+    rankdir: direction,
+    ranksep: rankSeparation,
+    nodesep: nodeSeparation,
+    marginx: 50,
+    marginy: 50,
+  });
+
+  // Add nodes and edges
+  nodes.forEach((node) => {
+    dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
+  });
+  edges.forEach((edge) => {
+    dagreGraph.setEdge(edge.source, edge.target);
+  });
+
+  // Run layout algorithm
+  Dagre.layout(dagreGraph);
+
+  // Apply calculated positions
+  const layoutedNodes = nodes.map((node) => {
+    const nodeWithPosition = dagreGraph.node(node.id);
+    return {
+      ...node,
+      position: {
+        x: nodeWithPosition.x - nodeWidth / 2,
+        y: nodeWithPosition.y - nodeHeight / 2,
+      },
+    };
+  });
+
+  return { nodes: layoutedNodes, edges };
+};
+```
+
+**User Interface**:
+```typescript
+// Auto Layout button in BuilderPage header
+<button
+  onClick={() => handleAutoLayout('TB')}
+  disabled={isLayouting || nodes.length === 0}
+  className="..."
+>
+  <span className="material-symbols-outlined">
+    {isLayouting ? 'sync' : 'account_tree'}
+  </span>
+  {isLayouting ? 'Layouting...' : 'Auto Layout'}
+</button>
+
+// Dropdown menu for direction selection
+<div className="dropdown-menu">
+  <button onClick={() => handleAutoLayout('TB')}>
+    <span className="material-symbols-outlined">arrow_downward</span>
+    Top to Bottom
+  </button>
+  <button onClick={() => handleAutoLayout('LR')}>
+    <span className="material-symbols-outlined">arrow_forward</span>
+    Left to Right
+  </button>
+  <button onClick={() => handleAutoLayout('BT')}>
+    <span className="material-symbols-outlined">arrow_upward</span>
+    Bottom to Top
+  </button>
+  <button onClick={() => handleAutoLayout('RL')}>
+    <span className="material-symbols-outlined">arrow_back</span>
+    Right to Left
+  </button>
+</div>
+```
+
+**Handler Implementation in BuilderPage**:
+```typescript
+const [isLayouting, setIsLayouting] = useState(false);
+
+const handleAutoLayout = useCallback((direction: LayoutDirection = 'TB') => {
+  if (nodes.length === 0) return;
+
+  setIsLayouting(true);
+
+  // Small delay for UI feedback
+  setTimeout(() => {
+    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
+      nodes,
+      edges,
+      { direction }
+    );
+
+    setNodes(layoutedNodes);
+    setEdges(layoutedEdges);
+    setIsLayouting(false);
+  }, 100);
+}, [nodes, edges]);
+```
+
+**Use Cases**:
+1. **Complex Flow Cleanup**: Reorganize messy flows with many nodes
+2. **AI-Generated Flows**: Apply layout to AI-generated structures
+3. **Direction Change**: Switch between horizontal and vertical layouts
+4. **Quick Prototyping**: Focus on logic, auto-arrange visually
+
+**Features**:
+- Preserves all node data and edges
+- Non-destructive (can be undone manually)
+- Respects edge connections
+- Centers nodes on calculated positions
+- Loading state prevents double-clicks
+- Disabled when no nodes present
+
+**Performance**:
+- Efficient for graphs up to 100+ nodes
+- Synchronous calculation with UI feedback delay
+- No backend dependency
+
+**Best Practices**:
+1. Use auto layout after AI generation for clean structure
+2. Apply layout early when building flows manually
+3. Choose direction based on flow complexity:
+   - TB: Default, works for most flows
+   - LR: Wide flows with many parallel branches
+   - BT/RL: Reverse flows for presentation purposes
+4. Fine-tune positions manually after auto layout if needed
+
+**Vite Configuration**:
+```typescript
+// vite.config.ts
+export default defineConfig({
+  optimizeDeps: {
+    include: ['dagre'],  // Pre-bundle dagre for faster dev server
+  },
+});
+```
 
 ---
 

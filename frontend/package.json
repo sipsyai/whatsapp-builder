@@ -14,8 +14,10 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@google/genai": "^1.30.0",
+    "@types/dagre": "^0.7.53",
     "@xyflow/react": "^12.3.5",
     "axios": "^1.13.2",
+    "dagre": "^0.8.5",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "socket.io-client": "^4.8.1"

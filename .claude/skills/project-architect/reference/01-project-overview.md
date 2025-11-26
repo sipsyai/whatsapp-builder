@@ -53,6 +53,7 @@
   - `CONDITION`: Branch based on variable values
   - `WHATSAPP_FLOW`: Send interactive WhatsApp Flows (forms)
   - `REST_API`: Execute external API calls within chatbot flow - **NEW**
+- **Auto Layout**: Dagre-powered automatic node positioning with 4 layout directions (TB, LR, BT, RL)
 - **Real-time Validation**: Instant feedback on flow structure and node configurations
 - **Flow Testing**: Built-in test interface to simulate conversations before deployment
 
@@ -159,7 +160,12 @@
 **Flow Builder**: @xyflow/react 12.3.x (ReactFlow)
 - Custom node components
 - Edge validation
-- Auto-layout support
+- Auto-layout support (Dagre algorithm)
+
+**Layout Algorithm**: dagre 0.8.x
+- Directed graph layout
+- Multiple directions (TB, LR, BT, RL)
+- Automatic node positioning
 
 **State Management**: React hooks + context
 - Local component state
@@ -348,6 +354,8 @@ Backend (message received) → MessagesGateway.emitMessageReceived()
   - Example: `/api/chatbots/test-rest-api` for REST API testing
 - **Add Database Column**: Create TypeORM migration, update entity
 - **Add Real-time Event**: Add event handler in `messages.gateway.ts`, emit in service
+- **Customize Auto Layout**: Modify spacing/direction in `autoLayout.ts` utility
+  - See `14-chatbot-builder-auto-layout.md` for details
 
 ---
 
@@ -363,6 +371,10 @@ Backend (message received) → MessagesGateway.emitMessageReceived()
 - Module Relationships: `08-module-relationships.md`
 - Development Guide: `09-development-guide.md`
 - Deployment Architecture: `10-deployment-architecture.md`
+- WhatsApp Flow Builder: `11-flow-builder-feature.md`
+- Session Tracking: `12-session-tracking-feature.md`
+- REST API Node: `13-rest-api-node-feature.md`
+- ChatBot Builder Auto Layout: `14-chatbot-builder-auto-layout.md`
 
 ### External Documentation
 - [WhatsApp Business API](https://developers.facebook.com/docs/whatsapp)
