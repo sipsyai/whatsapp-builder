@@ -20,6 +20,7 @@ import { FlowTester } from "./FlowTester";
 import type { NodeDataType } from "../../../shared/types";
 import type { ChatBot } from "../../chatbots/api";
 import { validateFlow, type ValidationError } from "../utils/flowValidation";
+import { generateUUID } from "../../../utils/uuid";
 
 const nodeTypes = {
     start: StartNode,
@@ -141,7 +142,7 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
             }
 
             const newNode: Node = {
-                id: crypto.randomUUID(),
+                id: generateUUID(),
                 type,
                 position,
                 data: { label: `New ${type}`, type },
@@ -160,7 +161,7 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
         if (subType === 'list') label = "List";
 
         const newNode: Node = {
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             type: 'question',
             position: pendingDropPos,
             data: {
@@ -387,7 +388,7 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
         }
 
         const newNode: Node = {
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             type,
             position,
             data: { label: `New ${type}`, type },

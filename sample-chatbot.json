@@ -1,0 +1,89 @@
+{
+  "name": "Müşteri Destek Botu",
+  "description": "Müşteri sorularını yanıtlayan örnek chatbot",
+  "nodes": [
+    {
+      "id": "start-1",
+      "type": "start",
+      "position": { "x": 250, "y": 0 },
+      "data": { "label": "Başlangıç", "type": "start" }
+    },
+    {
+      "id": "welcome-msg",
+      "type": "message",
+      "position": { "x": 250, "y": 100 },
+      "data": {
+        "label": "Hoşgeldin Mesajı",
+        "type": "message",
+        "content": "Merhaba! WhatsApp Builder Destek Hattına hoşgeldiniz. Size nasıl yardımcı olabilirim?"
+      }
+    },
+    {
+      "id": "main-menu",
+      "type": "question",
+      "position": { "x": 250, "y": 220 },
+      "data": {
+        "label": "Ana Menü",
+        "type": "question",
+        "questionType": "buttons",
+        "content": "Lütfen aşağıdaki seçeneklerden birini seçin:",
+        "buttons": [
+          { "id": "btn_tech", "title": "Teknik Destek" },
+          { "id": "btn_price", "title": "Fiyat Bilgisi" },
+          { "id": "btn_info", "title": "Hakkimizda" }
+        ],
+        "variable": "menu_selection"
+      }
+    },
+    {
+      "id": "tech-response",
+      "type": "message",
+      "position": { "x": 50, "y": 380 },
+      "data": {
+        "label": "Teknik Destek Yanıtı",
+        "type": "message",
+        "content": "Teknik Destek - Teknik destek ekibimiz size yardımcı olmaktan mutluluk duyar! Email: destek@example.com - Telefon: +90 555 123 4567 - Calisma Saatleri: 09:00 - 18:00. En kısa sürede size dönüş yapacağız!"
+      }
+    },
+    {
+      "id": "price-response",
+      "type": "message",
+      "position": { "x": 250, "y": 380 },
+      "data": {
+        "label": "Fiyat Bilgisi Yanıtı",
+        "type": "message",
+        "content": "Fiyat Bilgisi - Starter Paket: 99 TL/ay (1.000 mesaj, 1 chatbot) - Pro Paket: 299 TL/ay (10.000 mesaj, 5 chatbot, Flow destegi) - Enterprise: Iletisime gecin (Sinirsiz mesaj, Ozel cozumler)"
+      }
+    },
+    {
+      "id": "info-response",
+      "type": "message",
+      "position": { "x": 450, "y": 380 },
+      "data": {
+        "label": "Hakkımızda Yanıtı",
+        "type": "message",
+        "content": "Hakkimizda - WhatsApp Builder, isletmelerin WhatsApp uzerinden musterileriyle etkilesimini kolaylastiran bir platformdur. Kolay chatbot olusturma, Drag & drop arayuz, WhatsApp Flow destegi, Gercek zamanli analitik."
+      }
+    },
+    {
+      "id": "goodbye-msg",
+      "type": "message",
+      "position": { "x": 250, "y": 520 },
+      "data": {
+        "label": "Veda Mesajı",
+        "type": "message",
+        "content": "Bizi tercih ettiginiz icin tesekkurler! Baska bir sorunuz olursa tekrar yazabilirsiniz. Iyi gunler!"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "start-1", "target": "welcome-msg" },
+    { "id": "e2", "source": "welcome-msg", "target": "main-menu" },
+    { "id": "e3", "source": "main-menu", "target": "tech-response", "sourceHandle": "btn_tech" },
+    { "id": "e4", "source": "main-menu", "target": "price-response", "sourceHandle": "btn_price" },
+    { "id": "e5", "source": "main-menu", "target": "info-response", "sourceHandle": "btn_info" },
+    { "id": "e6", "source": "tech-response", "target": "goodbye-msg" },
+    { "id": "e7", "source": "price-response", "target": "goodbye-msg" },
+    { "id": "e8", "source": "info-response", "target": "goodbye-msg" }
+  ]
+}

@@ -8,7 +8,14 @@ async function bootstrap() {
     rawBody: true, // Enable raw body for webhook signature verification
   });
 
-  app.enableCors();
+  app.enableCors({
+    origin: [
+      'http://localhost:5173',
+      'http://192.168.1.20:5173',
+      process.env.FRONTEND_URL,
+    ].filter(Boolean),
+    credentials: true,
+  });
 
   // Configure JSON body parser with raw body support
   app.use(json({
@@ -43,8 +50,8 @@ async function bootstrap() {
   });
 
   const port = process.env.PORT || 3000;
-  await app.listen(port);
-  console.log(`Application is running on: http://localhost:${port}`);
+  await app.listen(port, '0.0.0.0');
+  console.log(`Application is running on: http://0.0.0.0:${port}`);
   console.log(`Swagger API Documentation: http://localhost:${port}/api/docs`);
 }
 bootstrap();

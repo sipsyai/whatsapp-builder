@@ -10,6 +10,7 @@ import { ReactFlow, Background, Controls, Node, Edge } from '@xyflow/react';
 import { ComponentPalette } from './ComponentPalette';
 import type { Component } from '../../types/flow-json.types';
 import type { BuilderComponent, BuilderScreen } from '../../types/builder.types';
+import { generateUUID } from '../../../../utils/uuid';
 
 // Example: Complete Flow Builder Page with ComponentPalette
 export const FlowBuilderPageExample = () => {
@@ -42,7 +43,7 @@ export const FlowBuilderPageExample = () => {
 
       // Create new component with default config
       const newComponent: BuilderComponent = {
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         type: componentType,
         config: createDefaultConfig(componentType),
         validation: {
@@ -95,7 +96,7 @@ export const FlowBuilderPageExample = () => {
 
       // Create new component
       const newComponent: BuilderComponent = {
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         type: componentType,
         config: createDefaultConfig(componentType),
         position,
