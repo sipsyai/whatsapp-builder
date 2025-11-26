@@ -86,11 +86,18 @@
 - **Flow Traversal**: Graph-based navigation through conversation nodes
 - **Variable Substitution**: Dynamic content with `{{variableName}}` syntax
 - **Conditional Logic**: Branch conversations based on user responses
-- **REST API Integration**: Call external APIs within chatbot flows - **NEW**
+- **REST API Integration**: Call external APIs within chatbot flows
   - Supports GET, POST, PUT, DELETE methods
   - Variable interpolation in URL, headers, and body
-  - JSON path extraction from responses
+  - JSON path extraction from responses (supports nested paths and array indexing)
   - Success/error branching with dual output handles
+  - Math expressions in templates (e.g., `{{page + 1}}`)
+- **Dynamic Lists and Buttons**: Data-driven interactive messages
+  - Dynamic list generation from API responses or variables
+  - Dynamic button generation with automatic pagination
+  - Field mapping for labels and descriptions
+  - Page navigation with Next/Previous buttons
+  - Variable-based content population
 - **Node History**: Track conversation path for debugging and analytics
 
 ### 5. WhatsApp Flows Management
@@ -367,6 +374,6 @@ Backend (message received) → MessagesGateway.emitMessageReceived()
 
 ---
 
-**Last Updated**: 2025-11-24
-**Document Version**: 1.0
+**Last Updated**: 2025-11-26
+**Document Version**: 1.1
 **Maintainer**: Project Architecture Team

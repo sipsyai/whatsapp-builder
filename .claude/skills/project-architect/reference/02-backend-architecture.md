@@ -179,6 +179,21 @@ Manages chatbot flows (formerly called "flows") and executes conversation logic 
         ```
       - Automatically converts strings to `{ id: 'btn-{index}', title: 'text' }`
       - Preserves custom IDs from frontend when available
+    - **Dynamic Lists and Buttons**:
+      - Supports data-driven interactive messages from variables or API responses
+      - **Dynamic List Mode** (`dynamicListSource` configured):
+        - Fetches array data from context variables
+        - Maps fields using `dynamicLabelField` and `dynamicDescField`
+        - Implements automatic pagination (max 10 items per page)
+        - Adds Next/Previous navigation buttons when needed
+        - Stores current page in `{variable}_page` context variable
+      - **Dynamic Button Mode** (`dynamicButtonsSource` configured):
+        - Generates buttons from array data (max 3 buttons)
+        - Uses `dynamicLabelField` for button titles
+        - Supports pagination with Next/Previous buttons
+      - **Field Mapping Examples**:
+        - `dynamicLabelField: "name"` → uses `item.name` as title
+        - `dynamicDescField: "description"` → uses `item.description` for list rows
   - `processConditionNode()`: Evaluates condition, branches accordingly
     - **Current Implementation**: Supports legacy single-condition format (`conditionVar`, `conditionOp`, `conditionVal`)
     - **Frontend Compatibility**: Frontend saves both legacy and new formats for backward compatibility
@@ -204,11 +219,14 @@ Manages chatbot flows (formerly called "flows") and executes conversation logic 
 - **Flow Navigation**: `findNextNode(chatbot, nodeId, sourceHandle)` - traverses edges
 - **Variable System**: `replaceVariables(text, variables)` - replaces `{{varName}}` syntax
 
-**RestApiExecutorService** (`services/rest-api-executor.service.ts`) - **NEW**
+**RestApiExecutorService** (`services/rest-api-executor.service.ts`)
 - **Purpose**: Execute REST API calls with variable replacement and error handling
 - **Key Features**:
   - Variable interpolation: `replaceVariables(template, variables)` - replaces `{{variableName}}` in strings
-  - JSON Path extraction: `extractByPath(obj, path)` - supports dot notation and array indexing
+  - **Nested path support**: Access nested objects with dot notation (e.g., `data.user.name`)
+  - **Array indexing**: Access array elements (e.g., `items[0].title`)
+  - **Math expressions**: Simple arithmetic in templates (e.g., `{{page + 1}}`, `{{index - 1}}`)
+  - JSON Path extraction: `extractByPath(obj, path)` - supports complex nested structures
   - HTTP client: Axios-based with timeout and error handling
 - **Methods**:
   - `execute(config, variables)`: Main execution method
@@ -216,6 +234,10 @@ Manages chatbot flows (formerly called "flows") and executes conversation logic 
     - Makes HTTP request with specified method (GET/POST/PUT/DELETE)
     - Returns `RestApiResult` with success flag, data, error, status code, and response time
     - Default timeout: 30 seconds (configurable)
+  - `replaceVariables(template, variables)`: Enhanced variable replacement
+    - Supports nested paths: `{{user.profile.email}}`
+    - Supports array access: `{{items[0].name}}`
+    - Supports math expressions: `{{page + 1}}`, `{{count * 2}}`
 - **Result Interface**:
   ```typescript
   interface RestApiResult {
@@ -231,6 +253,7 @@ Manages chatbot flows (formerly called "flows") and executes conversation logic 
   - Submit form data to external systems
   - Validate user input against external services
   - Dynamic content generation based on API responses
+  - Pagination with dynamic page calculations
 
 **Execution Flow Example**:
 ```typescript
@@ -282,8 +305,8 @@ export class ChatBotsController {
 - `ChatBotEdgeDto`: id, source, target, sourceHandle, targetHandle
 - `NodeDataDto`: type, content, variable, questionType, buttons, whatsappFlowId, flowMode, flowCta, flowOutputVariable, etc.
   - **WHATSAPP_FLOW type fields**: whatsappFlowId (UUID), flowMode ('draft'|'published'), flowCta (string), flowOutputVariable (string)
-  - **REST_API type fields** - **NEW**:
-    - `apiUrl` (string): REST API endpoint (supports `{{variable}}` interpolation)
+  - **REST_API type fields**:
+    - `apiUrl` (string): REST API endpoint (supports `{{variable}}` interpolation, nested paths, math expressions)
     - `apiMethod` (string): HTTP method (GET, POST, PUT, DELETE)
     - `apiHeaders` (Record<string, string>): Custom request headers
     - `apiBody` (string): Request body for POST/PUT (JSON string)
@@ -291,6 +314,11 @@ export class ChatBotsController {
     - `apiResponsePath` (string): JSON path to extract (e.g., "data", "data.items[0].name")
     - `apiErrorVariable` (string): Variable name to store error message
     - `apiTimeout` (number): Request timeout in milliseconds (default: 30000)
+  - **Dynamic List/Button fields**:
+    - `dynamicListSource` (string): Variable name containing array data for dynamic lists
+    - `dynamicButtonsSource` (string): Variable name containing array data for dynamic buttons
+    - `dynamicLabelField` (string): Field name to use as label from dynamic data items
+    - `dynamicDescField` (string): Field name to use as description from dynamic data items
 - `TestRestApiDto` - **NEW**: DTO for testing REST API configuration
   - `url` (string): API endpoint
   - `method` (string): HTTP method

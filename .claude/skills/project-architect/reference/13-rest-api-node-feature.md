@@ -17,7 +17,11 @@ The REST API Node is a powerful feature that enables chatbot flows to interact w
 
 ### Key Capabilities
 - **HTTP Methods**: Full support for GET, POST, PUT, DELETE
-- **Variable Interpolation**: Dynamic URL, headers, and body using `{{variableName}}` syntax
+- **Advanced Variable Interpolation**: Dynamic URL, headers, and body with:
+  - Simple variables: `{{variableName}}`
+  - Nested paths: `{{user.profile.email}}`
+  - Array access: `{{items[0].name}}`
+  - Math expressions: `{{page + 1}}`, `{{count * 2}}`
 - **JSON Path Extraction**: Extract specific data from nested API responses
 - **Dual Branching**: Success and error output handles for robust flow control
 - **Live Testing**: Test API calls within the builder before deployment
@@ -159,11 +163,31 @@ export class NodeDataDto {
 @Injectable()
 export class RestApiExecutorService {
   /**
-   * Replace {{variable}} in string
+   * Replace {{variable}} in string with support for:
+   * - Simple variables: {{varName}}
+   * - Nested paths: {{user.profile.email}}
+   * - Array access: {{items[0].name}}
+   * - Math expressions: {{page + 1}}, {{count * 2}}
    */
   replaceVariables(template: string, variables: Record<string, any>): string {
-    return template.replace(/\{\{(\w+)\}\}/g, (match, varName) => {
-      return variables[varName] !== undefined ? String(variables[varName]) : match;
+    return template.replace(/\{\{([^}]+)\}\}/g, (match, expression) => {
+      // Handle nested paths and array access
+      if (expression.includes('.') || expression.includes('[')) {
+        return this.extractByPath(variables, expression) || match;
+      }
+
+      // Handle simple math expressions
+      if (/^[\w\s+\-*/()]+$/.test(expression)) {
+        try {
+          const result = new Function(...Object.keys(variables), `return ${expression}`)(...Object.values(variables));
+          return result !== undefined ? String(result) : match;
+        } catch {
+          return match;
+        }
+      }
+
+      // Simple variable replacement
+      return variables[expression] !== undefined ? String(variables[expression]) : match;
     });
   }
 
@@ -563,7 +587,9 @@ export const RestApiNode = ({ data }: NodeProps) => {
    - Execute error handling node
 ```
 
-### Variable Interpolation Example
+### Variable Interpolation Examples
+
+#### Example 1: Simple Variables
 
 **Configuration**:
 ```json
@@ -589,6 +615,87 @@ export const RestApiNode = ({ data }: NodeProps) => {
 GET https://api.example.com/users/12345/orders
 Headers:
   Authorization: Bearer abc123xyz
+```
+
+#### Example 2: Nested Paths
+
+**Configuration**:
+```json
+{
+  "apiUrl": "https://api.example.com/users/{{user.profile.id}}/settings",
+  "apiHeaders": {
+    "X-User-Email": "{{user.profile.email}}"
+  }
+}
+```
+
+**Context Variables**:
+```json
+{
+  "user": {
+    "profile": {
+      "id": "12345",
+      "email": "user@example.com"
+    }
+  }
+}
+```
+
+**Executed Request**:
+```
+GET https://api.example.com/users/12345/settings
+Headers:
+  X-User-Email: user@example.com
+```
+
+#### Example 3: Array Access
+
+**Configuration**:
+```json
+{
+  "apiUrl": "https://api.example.com/products/{{products[0].id}}",
+  "apiBody": "{\"name\": \"{{products[0].name}}\"}"
+}
+```
+
+**Context Variables**:
+```json
+{
+  "products": [
+    {"id": "prod-123", "name": "Widget A"},
+    {"id": "prod-456", "name": "Widget B"}
+  ]
+}
+```
+
+**Executed Request**:
+```
+GET https://api.example.com/products/prod-123
+Body:
+  {"name": "Widget A"}
+```
+
+#### Example 4: Math Expressions (Pagination)
+
+**Configuration**:
+```json
+{
+  "apiUrl": "https://api.example.com/items?page={{page + 1}}&limit={{limit}}",
+  "apiMethod": "GET"
+}
+```
+
+**Context Variables**:
+```json
+{
+  "page": 0,
+  "limit": 10
+}
+```
+
+**Executed Request**:
+```
+GET https://api.example.com/items?page=1&limit=10
 ```
 
 ### JSON Path Extraction Example
@@ -720,6 +827,48 @@ REST API Node: Fetch weather
   ↓ success
 Message Node: "Temperature in {{city}}: {{temperature}}°C"
 ```
+
+### 6. Paginated API with Dynamic Lists (Advanced)
+
+**Scenario**: Fetch paginated products and display with automatic pagination
+
+**Initial Configuration** (Page 0):
+- URL: `https://api.example.com/products?page={{page}}&limit=10`
+- Method: GET
+- Response Path: `data.items`
+- Output Variable: `products`
+
+**Question Node Configuration**:
+- Question Type: List
+- Dynamic List Source: `products`
+- Dynamic Label Field: `name`
+- Dynamic Desc Field: `description`
+- Variable: `selectedProduct`
+
+**Flow**:
+```
+Message Node: Set page=0
+  ↓
+REST API Node: Fetch products (page={{page}})
+  ↓ success (stores in products variable)
+Question Node: Display dynamic list
+  - Shows 10 products per page
+  - Auto-adds "Next Page" button if more than 10 items
+  ↓ (user selects "Next Page")
+Message Node: Set page={{page + 1}}
+  ↓
+REST API Node: Fetch next page
+  ↓ success
+Question Node: Display dynamic list (page 2)
+  - Shows next 10 products
+  - Auto-adds "Previous Page" and "Next Page" buttons
+```
+
+**Backend Handling**:
+- ChatBotExecutionService detects dynamic list with pagination
+- Automatically slices array to show 10 items per page
+- Adds navigation buttons (Previous/Next)
+- Stores current page in `{variable}_page` context variable
 
 ---
 
@@ -986,5 +1135,9 @@ interface RestApiResult {
 ---
 
 **Last Updated**: 2025-11-26
-**Document Version**: 1.0
+**Document Version**: 1.1
 **Maintainer**: Project Architecture Team
+
+**Change Log**:
+- v1.1 (2025-11-26): Added nested paths, array access, math expressions support
+- v1.0 (2025-11-24): Initial REST API Node documentation
