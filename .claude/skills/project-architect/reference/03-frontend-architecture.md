@@ -143,7 +143,7 @@ export interface ConditionGroup {
 ```typescript
 export interface NodeData {
     label: string;                    // Display label for the node
-    type?: NodeDataType;              // Logical type: "start" | "message" | "question" | "condition" | "whatsapp_flow"
+    type?: NodeDataType;              // Logical type: "start" | "message" | "question" | "condition" | "whatsapp_flow" | "rest_api"
     content?: string;                 // Message content or question text
     variable?: string;                // Variable name to store user response (Question nodes)
 
@@ -168,6 +168,16 @@ export interface NodeData {
     flowCta?: string;                 // CTA button text (e.g., "Book Appointment")
     flowMode?: string;                // 'draft' | 'published' - Flow mode
     flowOutputVariable?: string;      // Variable name to store Flow response data
+
+    // REST API Node Fields - NEW
+    apiUrl?: string;                  // REST API endpoint (supports {{variable}})
+    apiMethod?: 'GET' | 'POST' | 'PUT' | 'DELETE';  // HTTP method
+    apiHeaders?: Record<string, string>;  // Custom request headers
+    apiBody?: string;                 // Request body (JSON string, POST/PUT only)
+    apiOutputVariable?: string;       // Variable to store successful response
+    apiResponsePath?: string;         // JSON path to extract (e.g., "data.items[0].name")
+    apiErrorVariable?: string;        // Variable to store error message
+    apiTimeout?: number;              // Request timeout in ms (default: 30000)
 
     // Component callbacks
     onConfig?: () => void;            // Open configuration modal
@@ -1907,6 +1917,12 @@ export const MessageNode = ({ data }: NodeProps) => {
    - Green-themed node for visual distinction
    - Displays Flow name, CTA button text, and mode (draft/published)
    - Configuration modal for Flow selection and settings
+6. **RestApiNode**: Executes external API calls, two outputs (success/error) - **NEW**
+   - Cyan-themed node for visual distinction
+   - Displays HTTP method, URL, and response variable
+   - Configuration modal with 4 tabs: Request, Headers, Response, Test
+   - Supports variable interpolation with {{variable}} syntax
+   - JSON path extraction for response data
 
 **Handle Configuration**:
 ```typescript
@@ -2086,6 +2102,244 @@ When a user reaches a WhatsAppFlowNode:
 5. WhatsApp sends webhook with Flow response
 6. Backend extracts response data and saves to `flowOutputVariable`
 7. Resumes chatbot execution from next node
+
+---
+
+#### RestApiNode Component - **NEW**
+**File**: `/home/ali/whatsapp-builder/frontend/src/features/nodes/RestApiNode/RestApiNode.tsx`
+
+The RestApiNode enables chatbot flows to make external REST API calls, allowing integration with third-party services, databases, or custom backends. It supports full HTTP method flexibility and provides robust error handling with dual output handles for success/error branching.
+
+**Visual Design**:
+- **Cyan Theme**: Distinct cyan color (#06B6D4) to differentiate from other nodes
+- **Icon**: "api" Material Symbol icon
+- **Dual Handles**: Success (bottom) and Error (right) output handles
+- **Compact Display**: Shows HTTP method badge, truncated URL, and response variable
+
+**Component Structure**:
+```typescript
+export const RestApiNode = ({ data }: NodeProps) => {
+  return (
+    <div className="node-wrapper rest-api-node">
+      <Handle type="target" position={Position.Top} />
+
+      <div className="node-content">
+        <div className="node-icon" style={{ backgroundColor: '#06B6D4' }}>
+          <span className="material-symbols-outlined">api</span>
+        </div>
+        <div className="node-label">{data.label || 'REST API'}</div>
+
+        {/* Display API details */}
+        <div className="node-details">
+          {data.apiMethod && (
+            <span className="method-badge" style={{ backgroundColor: getMethodColor(data.apiMethod) }}>
+              {data.apiMethod}
+            </span>
+          )}
+          {data.apiUrl && (
+            <div className="api-url" title={data.apiUrl}>
+              {truncateUrl(data.apiUrl, 30)}
+            </div>
+          )}
+          {data.apiOutputVariable && (
+            <div className="output-var">→ {data.apiOutputVariable}</div>
+          )}
+        </div>
+      </div>
+
+      <div className="node-actions">
+        <button onClick={() => data.onConfig?.()}>
+          <span className="material-symbols-outlined">edit</span>
+        </button>
+        <button onClick={() => data.onDelete?.()}>
+          <span className="material-symbols-outlined">delete</span>
+        </button>
+      </div>
+
+      {/* Success handle (bottom) */}
+      <Handle type="source" position={Position.Bottom} id="success" />
+
+      {/* Error handle (right) */}
+      <Handle type="source" position={Position.Right} id="error" />
+    </div>
+  );
+};
+```
+
+**Configuration Modal (ConfigRestApi.tsx)**:
+**File**: `/home/ali/whatsapp-builder/frontend/src/features/builder/components/ConfigRestApi.tsx`
+
+The ConfigRestApi component provides a comprehensive 4-tab interface for configuring REST API nodes:
+
+**1. Request Tab**:
+- **Label Input**: Node display label
+- **HTTP Method Selector**: GET, POST, PUT, DELETE (button group)
+- **URL Input**: API endpoint with {{variable}} interpolation support
+  - Placeholder: `http://192.168.1.18:1337/api/categories`
+  - Help text: "Use {{variable}} for dynamic values"
+- **Body Textarea**: JSON request body (visible for POST/PUT only)
+  - Syntax: JSON string
+  - Height: 8rem (h-32)
+- **Timeout Input**: Request timeout in milliseconds (default: 30000)
+
+**2. Headers Tab**:
+- **Dynamic Header List**: Add/remove custom headers
+- **Header Inputs**: Key-value pairs
+  - Key: Header name (e.g., "Authorization", "Content-Type")
+  - Value: Header value with {{variable}} support
+- **Add Header Button**: Adds new header row
+- **Remove Header Button**: Deletes header row (per-row delete icon)
+
+**3. Response Tab**:
+- **Output Variable**: Variable name to store successful response
+  - Placeholder: `api_result`
+  - Help text: "Variable name to store successful response"
+- **JSON Path (Optional)**: Dot notation path to extract specific data
+  - Examples: "data", "data.items", "data.items[0].name"
+  - Help text: "Extract specific data from response"
+- **Error Variable**: Variable name to store error message on failure
+  - Placeholder: `api_error`
+  - Help text: "Variable name to store error message on failure"
+
+**4. Test Tab**:
+- **Warning Banner**: Yellow banner warning about real requests
+- **Run Test Button**: Execute API call with current configuration
+  - Disabled if URL is empty
+  - Shows spinner animation during test
+- **Test Result Display**:
+  - **Success Result** (green background):
+    - Status code and response time (e.g., "Success (200) - 245ms")
+    - Formatted JSON response in code block
+  - **Error Result** (red background):
+    - Error icon and "Failed" message
+    - Error message text
+
+**Modal Layout**:
+- **Header**: Cyan icon, title "Configure REST API", close button
+- **Tabs**: Horizontal tab bar with icons (send, code, output, play_arrow)
+- **Content Area**: Scrollable content (flex-1, overflow-y-auto)
+- **Footer**: Cancel and Save buttons (Save disabled if URL empty)
+
+**State Management**:
+```typescript
+const [activeTab, setActiveTab] = useState<'request' | 'headers' | 'response' | 'test'>('request');
+
+// Request state
+const [label, setLabel] = useState(data.label || "REST API");
+const [apiMethod, setApiMethod] = useState<'GET' | 'POST' | 'PUT' | 'DELETE'>(data.apiMethod || 'GET');
+const [apiUrl, setApiUrl] = useState(data.apiUrl || "");
+const [apiBody, setApiBody] = useState(data.apiBody || "");
+const [apiTimeout, setApiTimeout] = useState(data.apiTimeout || 30000);
+
+// Headers state
+const [headers, setHeaders] = useState<Header[]>(() => {
+  if (data.apiHeaders) {
+    return Object.entries(data.apiHeaders).map(([key, value]) => ({ key, value: String(value) }));
+  }
+  return [{ key: '', value: '' }];
+});
+
+// Response state
+const [apiOutputVariable, setApiOutputVariable] = useState(data.apiOutputVariable || "");
+const [apiResponsePath, setApiResponsePath] = useState(data.apiResponsePath || "");
+const [apiErrorVariable, setApiErrorVariable] = useState(data.apiErrorVariable || "api_error");
+
+// Test state
+const [testResult, setTestResult] = useState<any>(null);
+const [testing, setTesting] = useState(false);
+```
+
+**Test Functionality**:
+```typescript
+const handleTest = async () => {
+  setTesting(true);
+  setTestResult(null);
+
+  try {
+    const headersObj: Record<string, string> = {};
+    headers.forEach(h => {
+      if (h.key) headersObj[h.key] = h.value;
+    });
+
+    const response = await fetch('/api/chatbots/test-rest-api', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        method: apiMethod,
+        url: apiUrl,
+        headers: headersObj,
+        body: apiBody || undefined,
+        responsePath: apiResponsePath,
+        timeout: apiTimeout,
+      }),
+    });
+
+    const result = await response.json();
+    setTestResult(result);
+  } catch (error: any) {
+    setTestResult({ success: false, error: error.message });
+  } finally {
+    setTesting(false);
+  }
+};
+```
+
+**Save Functionality**:
+```typescript
+const handleSave = () => {
+  const headersObj: Record<string, string> = {};
+  headers.forEach(h => {
+    if (h.key) headersObj[h.key] = h.value;
+  });
+
+  onSave({
+    ...data,
+    label,
+    apiMethod,
+    apiUrl,
+    apiHeaders: Object.keys(headersObj).length > 0 ? headersObj : undefined,
+    apiBody: apiBody || undefined,
+    apiOutputVariable: apiOutputVariable || undefined,
+    apiResponsePath: apiResponsePath || undefined,
+    apiErrorVariable: apiErrorVariable || undefined,
+    apiTimeout,
+  });
+  onClose();
+};
+```
+
+**Key Features**:
+1. **Variable Interpolation**: Supports {{variable}} syntax in URL, headers, and body
+2. **HTTP Methods**: Full support for GET, POST, PUT, DELETE
+3. **Custom Headers**: Unlimited custom headers with key-value pairs
+4. **JSON Path Extraction**: Extract nested data from responses (e.g., "data.items[0].name")
+5. **Dual Branching**: Success/error handles for flow control
+6. **Live Testing**: Test API calls before saving configuration
+7. **Timeout Control**: Configurable timeout (default: 30 seconds)
+8. **Dark Mode Support**: Full dark theme compatibility
+
+**Integration with ChatBot Execution**:
+When a user reaches a RestApiNode:
+1. Backend executes `processRestApiNode()` in ChatBotExecutionService
+2. RestApiExecutorService replaces {{variables}} in URL, headers, and body
+3. Makes HTTP request with configured method and parameters
+4. On success:
+   - Extracts data using JSON path (if configured)
+   - Stores result in `apiOutputVariable`
+   - Follows success handle to next node
+5. On error:
+   - Stores error message in `apiErrorVariable`
+   - Follows error handle to error handling node
+6. Continues chatbot execution from branched path
+
+**Use Cases**:
+- Fetch product catalog from external API
+- Validate user credentials against authentication service
+- Submit form data to CRM or database
+- Check inventory availability
+- Fetch personalized recommendations
+- Integrate with payment gateways
+- Query real-time data (weather, stock prices, etc.)
 
 ---
 

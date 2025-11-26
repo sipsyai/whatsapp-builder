@@ -15,6 +15,7 @@ import { NodeDataType, QuestionType } from '../dto/node-data.dto';
 import { WhatsAppFlow } from '../../../entities/whatsapp-flow.entity';
 import { SessionHistoryService } from './session-history.service';
 import { SessionGateway } from '../../websocket/session.gateway';
+import { RestApiExecutorService } from './rest-api-executor.service';
 
 @Injectable()
 export class ChatBotExecutionService {
@@ -37,6 +38,7 @@ export class ChatBotExecutionService {
     private readonly messagesService: MessagesService,
     private readonly sessionHistoryService: SessionHistoryService,
     private readonly sessionGateway: SessionGateway,
+    private readonly restApiExecutor: RestApiExecutorService,
   ) {}
 
   /**
@@ -199,6 +201,9 @@ export class ChatBotExecutionService {
         break;
       case NodeDataType.WHATSAPP_FLOW:
         await this.processWhatsAppFlowNode(context, currentNode);
+        break;
+      case NodeDataType.REST_API:
+        await this.processRestApiNode(context, currentNode);
         break;
       default:
         this.logger.error(`Unknown node type: ${nodeType}`);
@@ -770,6 +775,97 @@ export class ChatBotExecutionService {
         await this.contextRepo.save(context);
       }
     }
+  }
+
+  /**
+   * Process REST_API node - make HTTP request and store response
+   */
+  private async processRestApiNode(
+    context: ConversationContext,
+    node: any,
+  ): Promise<void> {
+    this.logger.log(`Processing REST_API node ${node.id}`);
+
+    const { apiUrl, apiMethod, apiHeaders, apiBody, apiOutputVariable, apiResponsePath, apiErrorVariable, apiTimeout } = node.data || {};
+
+    if (!apiUrl) {
+      this.logger.error('REST API URL not specified');
+      throw new Error('REST API URL is required');
+    }
+
+    const result = await this.restApiExecutor.execute(
+      {
+        url: apiUrl,
+        method: apiMethod || 'GET',
+        headers: apiHeaders,
+        body: apiBody,
+        timeout: apiTimeout,
+        responsePath: apiResponsePath,
+      },
+      context.variables,
+    );
+
+    // Store result in variables
+    if (result.success) {
+      if (apiOutputVariable) {
+        context.variables[apiOutputVariable] = result.data;
+      }
+      context.variables['__last_api_status__'] = result.statusCode;
+    } else {
+      if (apiErrorVariable) {
+        context.variables[apiErrorVariable] = result.error;
+      }
+      context.variables['__last_api_error__'] = result.error;
+    }
+
+    // Add to history
+    context.nodeHistory.push(node.id);
+
+    // Find next node based on success/error
+    const sourceHandle = result.success ? 'success' : 'error';
+    let nextNode = this.findNextNode(context.chatbot, node.id, sourceHandle);
+
+    // Fallback to default edge if no specific handle found
+    if (!nextNode) {
+      nextNode = this.findNextNode(context.chatbot, node.id);
+    }
+
+    if (!nextNode) {
+      this.logger.log('No next node after REST_API. ChatBot ended.');
+      const previousStatus = context.status;
+      context.isActive = false;
+      context.status = 'completed';
+      context.completedAt = new Date();
+      context.completionReason = result.success ? 'flow_completed' : 'api_error';
+      await this.contextRepo.save(context);
+
+      // Emit completion events
+      this.sessionGateway.emitSessionStatusChanged({
+        sessionId: context.id,
+        previousStatus,
+        newStatus: 'completed',
+        currentNodeId: context.currentNodeId,
+        updatedAt: new Date(),
+      });
+
+      this.sessionGateway.emitSessionCompleted({
+        sessionId: context.id,
+        conversationId: context.conversationId,
+        completedAt: context.completedAt,
+        completionReason: context.completionReason,
+        totalNodes: context.nodeHistory.length,
+        totalMessages: 0,
+        duration: context.completedAt.getTime() - context.createdAt.getTime(),
+      });
+      return;
+    }
+
+    context.currentNodeId = nextNode.id;
+    context.status = 'running';
+    await this.contextRepo.save(context);
+
+    // Continue to next node
+    await this.executeCurrentNode(context.id);
   }
 
   /**

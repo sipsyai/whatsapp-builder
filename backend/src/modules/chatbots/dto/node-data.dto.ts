@@ -16,6 +16,7 @@ export enum NodeDataType {
   QUESTION = 'question',
   CONDITION = 'condition',
   WHATSAPP_FLOW = 'whatsapp_flow',
+  REST_API = 'rest_api',
 }
 
 export enum QuestionType {
@@ -160,4 +161,43 @@ export class NodeDataDto {
   @IsOptional()
   @IsString()
   flowOutputVariable?: string;
+
+  // REST API Fields
+  @ApiPropertyOptional({ description: 'REST API URL (supports {{variable}})', example: 'http://192.168.1.18:1337/api/categories' })
+  @IsOptional()
+  @IsString()
+  apiUrl?: string;
+
+  @ApiPropertyOptional({ description: 'HTTP Method', enum: ['GET', 'POST', 'PUT', 'DELETE'] })
+  @IsOptional()
+  @IsString()
+  apiMethod?: string;
+
+  @ApiPropertyOptional({ description: 'Request headers' })
+  @IsOptional()
+  apiHeaders?: Record<string, string>;
+
+  @ApiPropertyOptional({ description: 'Request body (JSON string)' })
+  @IsOptional()
+  @IsString()
+  apiBody?: string;
+
+  @ApiPropertyOptional({ description: 'Variable to store response', example: 'api_result' })
+  @IsOptional()
+  @IsString()
+  apiOutputVariable?: string;
+
+  @ApiPropertyOptional({ description: 'JSON path to extract (e.g., "data")', example: 'data' })
+  @IsOptional()
+  @IsString()
+  apiResponsePath?: string;
+
+  @ApiPropertyOptional({ description: 'Variable to store error', example: 'api_error' })
+  @IsOptional()
+  @IsString()
+  apiErrorVariable?: string;
+
+  @ApiPropertyOptional({ description: 'Request timeout in ms', example: 30000 })
+  @IsOptional()
+  apiTimeout?: number;
 }

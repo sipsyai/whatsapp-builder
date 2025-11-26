@@ -10,6 +10,7 @@ import { ProductCatalogService } from './product-catalog.service';
 import { ChatBotExecutionService } from './services/chatbot-execution.service';
 import { ContextCleanupService } from './services/context-cleanup.service';
 import { SessionHistoryService } from './services/session-history.service';
+import { RestApiExecutorService } from './services/rest-api-executor.service';
 import { WhatsAppModule } from '../whatsapp/whatsapp.module';
 import { MessagesModule } from '../messages/messages.module';
 import { WebSocketModule } from '../websocket/websocket.module';
@@ -43,7 +44,8 @@ import { Message } from '../../entities/message.entity';
     ChatBotExecutionService,
     ContextCleanupService,
     SessionHistoryService,
+    RestApiExecutorService,
   ],
-  exports: [ChatBotExecutionService, SessionHistoryService],
+  exports: [ChatBotExecutionService, SessionHistoryService, RestApiExecutorService],
 })
 export class ChatBotsModule {}

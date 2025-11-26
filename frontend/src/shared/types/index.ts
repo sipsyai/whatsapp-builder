@@ -1,5 +1,5 @@
 export type ViewState = "landing" | "builder" | "chat" | "settings";
-export type NodeDataType = "start" | "message" | "question" | "condition" | "whatsapp_flow";
+export type NodeDataType = "start" | "message" | "question" | "condition" | "whatsapp_flow" | "rest_api";
 
 export interface ButtonItem {
   id: string;      // "btn-0", "btn-1", "btn-2"
@@ -67,6 +67,16 @@ export interface NodeData {
     flowHeaderText?: string;
     flowBodyText?: string;
     flowFooterText?: string;
+
+    // REST API Fields
+    apiUrl?: string;
+    apiMethod?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+    apiHeaders?: Record<string, string>;
+    apiBody?: string;
+    apiOutputVariable?: string;
+    apiResponsePath?: string;
+    apiErrorVariable?: string;
+    apiTimeout?: number;
 
     // Methods to trigger modal or actions from within node component
     onConfig?: () => void;

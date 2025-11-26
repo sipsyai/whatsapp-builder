@@ -10,6 +10,7 @@ export enum NodeType {
   QUESTION = 'question',
   CONDITION = 'condition',
   WHATSAPP_FLOW = 'whatsapp_flow',
+  REST_API = 'rest_api',
 }
 
 export class ChatBotNodeDto {

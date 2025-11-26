@@ -23,9 +23,11 @@ import {
 import { ChatBotsService } from './chatbots.service';
 import { ChatBotExecutionService } from './services/chatbot-execution.service';
 import { ContextCleanupService } from './services/context-cleanup.service';
+import { RestApiExecutorService } from './services/rest-api-executor.service';
 import { CreateChatBotDto } from './dto/create-chatbot.dto';
 import { UpdateChatBotDto } from './dto/update-chatbot.dto';
 import { QueryChatBotsDto } from './dto/query-chatbots.dto';
+import { TestRestApiDto } from './dto/test-rest-api.dto';
 
 @ApiTags('Chatbots')
 @Controller('api/chatbots')
@@ -35,6 +37,7 @@ export class ChatBotsController {
     private readonly chatbotsService: ChatBotsService,
     private readonly executionService: ChatBotExecutionService,
     private readonly cleanupService: ContextCleanupService,
+    private readonly restApiExecutor: RestApiExecutorService,
   ) {}
 
   @Post()
@@ -191,5 +194,24 @@ export class ChatBotsController {
       return { message: 'Nothing to skip', conversationId, skipped: false };
     }
     return { message: 'Node skipped successfully', conversationId, skipped: true };
+  }
+
+  @Post('test-rest-api')
+  @ApiOperation({ summary: 'Test a REST API call' })
+  @ApiBody({ type: TestRestApiDto })
+  @ApiResponse({ status: 200, description: 'API test result' })
+  async testRestApi(@Body() dto: TestRestApiDto) {
+    const result = await this.restApiExecutor.execute(
+      {
+        url: dto.url,
+        method: dto.method,
+        headers: dto.headers,
+        body: dto.body,
+        timeout: dto.timeout,
+        responsePath: dto.responsePath,
+      },
+      dto.testVariables || {},
+    );
+    return result;
   }
 }

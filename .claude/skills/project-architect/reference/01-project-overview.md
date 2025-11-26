@@ -52,6 +52,7 @@
   - `QUESTION`: Collect user input (text, buttons, lists)
   - `CONDITION`: Branch based on variable values
   - `WHATSAPP_FLOW`: Send interactive WhatsApp Flows (forms)
+  - `REST_API`: Execute external API calls within chatbot flow - **NEW**
 - **Real-time Validation**: Instant feedback on flow structure and node configurations
 - **Flow Testing**: Built-in test interface to simulate conversations before deployment
 
@@ -85,6 +86,11 @@
 - **Flow Traversal**: Graph-based navigation through conversation nodes
 - **Variable Substitution**: Dynamic content with `{{variableName}}` syntax
 - **Conditional Logic**: Branch conversations based on user responses
+- **REST API Integration**: Call external APIs within chatbot flows - **NEW**
+  - Supports GET, POST, PUT, DELETE methods
+  - Variable interpolation in URL, headers, and body
+  - JSON path extraction from responses
+  - Success/error branching with dual output handles
 - **Node History**: Track conversation path for debugging and analytics
 
 ### 5. WhatsApp Flows Management
@@ -329,8 +335,10 @@ Backend (message received) → MessagesGateway.emitMessageReceived()
 
 ### Common Development Tasks
 - **Add New Node Type**: Create component in `/frontend/src/features/nodes/`, add handler in `chatbot-execution.service.ts`
+  - Example: REST API Node (see `13-rest-api-node-feature.md`)
 - **Add WhatsApp Message Type**: Create service in `/backend/src/modules/whatsapp/services/message-types/`
 - **Add API Endpoint**: Create controller method with DTO validation
+  - Example: `/api/chatbots/test-rest-api` for REST API testing
 - **Add Database Column**: Create TypeORM migration, update entity
 - **Add Real-time Event**: Add event handler in `messages.gateway.ts`, emit in service
 

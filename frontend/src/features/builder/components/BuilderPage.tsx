@@ -12,10 +12,11 @@ import {
     type Connection,
 } from "@xyflow/react";
 import { GoogleGenAI } from "@google/genai";
-import { StartNode, MessageNode, QuestionNode, ConditionNode, WhatsAppFlowNode } from "../../nodes";
+import { StartNode, MessageNode, QuestionNode, ConditionNode, WhatsAppFlowNode, RestApiNode } from "../../nodes";
 import { DeletableEdge } from "../../edges";
 import { QuestionTypeModal } from "./QuestionTypeModal";
 import { ConfigMessage, ConfigQuestion, ConfigCondition, ConfigWhatsAppFlow } from "./ConfigModals";
+import { ConfigRestApi } from "./ConfigRestApi";
 import { FlowTester } from "./FlowTester";
 import type { NodeDataType } from "../../../shared/types";
 import type { ChatBot } from "../../chatbots/api";
@@ -28,6 +29,7 @@ const nodeTypes = {
     question: QuestionNode,
     condition: ConditionNode,
     whatsapp_flow: WhatsAppFlowNode,
+    rest_api: RestApiNode,
 };
 
 const edgeTypes = {
@@ -528,6 +530,16 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
                                 <span className="material-symbols-outlined">add</span>
                             </button>
                         </div>
+
+                        <div className="flex items-center gap-2">
+                            <div className="flex-1 p-3 bg-white dark:bg-[#23482f] rounded-lg cursor-grab border dark:border-transparent shadow-sm flex items-center gap-3" onDragStart={(event) => event.dataTransfer.setData('application/reactflow', 'rest_api')} draggable>
+                                <span className="material-symbols-outlined text-cyan-500">api</span>
+                                <span className="dark:text-white font-medium">REST API</span>
+                            </div>
+                            <button onClick={() => addNode('rest_api')} className="p-3 bg-white dark:bg-[#23482f] rounded-lg border dark:border-transparent shadow-sm hover:bg-gray-50 dark:hover:bg-[#1a3523] text-primary">
+                                <span className="material-symbols-outlined">add</span>
+                            </button>
+                        </div>
                     </div>
 
                     <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
@@ -588,6 +600,9 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
             )}
             {configNode && configNode.type === 'whatsapp_flow' && (
                 <ConfigWhatsAppFlow data={configNode.data} onClose={() => setConfigNode(null)} onSave={updateNodeData} />
+            )}
+            {configNode && configNode.type === 'rest_api' && (
+                <ConfigRestApi data={configNode.data} onClose={() => setConfigNode(null)} onSave={updateNodeData} />
             )}
 
             {showAIModal && (

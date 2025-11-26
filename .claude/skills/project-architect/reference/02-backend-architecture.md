@@ -138,6 +138,7 @@ Manages chatbot flows (formerly called "flows") and executes conversation logic 
   providers: [
     ChatBotsService,           // Main CRUD service
     ChatBotExecutionService,   // Flow execution engine
+    RestApiExecutorService,    // REST API execution (NEW)
     AppointmentService,        // Domain-specific logic
     MockCalendarService,       // Mock calendar integration
   ],
@@ -189,12 +190,47 @@ Manages chatbot flows (formerly called "flows") and executes conversation logic 
     - Sends interactive Flow message via WhatsApp API
     - **Saves Flow message** with detailed content: `{ whatsappMessageId, type: 'flow', body, header, footer, action }`
     - Waits for user to complete Flow and webhook to process response
+  - `processRestApiNode()`: **NEW** - Executes REST API calls within chatbot flow
+    - Calls `RestApiExecutorService.execute()` with node configuration and context variables
+    - Supports variable interpolation in URL, headers, and body using `{{variableName}}` syntax
+    - Stores response in `apiOutputVariable` on success, error message in `apiErrorVariable` on failure
+    - Branches execution based on success/error handle
+    - **Configuration**: HTTP method (GET/POST/PUT/DELETE), URL, headers, body, timeout, response path
+    - **JSON Path Extraction**: Supports dot notation (e.g., "data.items[0].name") to extract specific values
   - `processFlowResponse()`: Handles Flow completion webhook
     - **UUID-aware flow_token parsing**: Splits token into 5+5 parts for UUID format
     - Logs contextId and nodeId after parsing for debugging
     - Saves Flow response data to context variables
 - **Flow Navigation**: `findNextNode(chatbot, nodeId, sourceHandle)` - traverses edges
 - **Variable System**: `replaceVariables(text, variables)` - replaces `{{varName}}` syntax
+
+**RestApiExecutorService** (`services/rest-api-executor.service.ts`) - **NEW**
+- **Purpose**: Execute REST API calls with variable replacement and error handling
+- **Key Features**:
+  - Variable interpolation: `replaceVariables(template, variables)` - replaces `{{variableName}}` in strings
+  - JSON Path extraction: `extractByPath(obj, path)` - supports dot notation and array indexing
+  - HTTP client: Axios-based with timeout and error handling
+- **Methods**:
+  - `execute(config, variables)`: Main execution method
+    - Replaces variables in URL, headers, and body
+    - Makes HTTP request with specified method (GET/POST/PUT/DELETE)
+    - Returns `RestApiResult` with success flag, data, error, status code, and response time
+    - Default timeout: 30 seconds (configurable)
+- **Result Interface**:
+  ```typescript
+  interface RestApiResult {
+    success: boolean;
+    data?: any;           // Extracted response data
+    error?: string;       // Error message if failed
+    statusCode?: number;  // HTTP status code
+    responseTime?: number; // Request duration in ms
+  }
+  ```
+- **Use Cases**:
+  - Fetch external data (APIs, databases)
+  - Submit form data to external systems
+  - Validate user input against external services
+  - Dynamic content generation based on API responses
 
 **Execution Flow Example**:
 ```typescript
@@ -229,6 +265,7 @@ export class ChatBotsController {
   @Delete(':id')             // Delete (soft) chatbot
   @Patch(':id/status')       // Update status
   @Post('conversations/:conversationId/stop')  // Stop active chatbot execution
+  @Post('test-rest-api')     // NEW: Test REST API configuration
 }
 ```
 
@@ -245,6 +282,22 @@ export class ChatBotsController {
 - `ChatBotEdgeDto`: id, source, target, sourceHandle, targetHandle
 - `NodeDataDto`: type, content, variable, questionType, buttons, whatsappFlowId, flowMode, flowCta, flowOutputVariable, etc.
   - **WHATSAPP_FLOW type fields**: whatsappFlowId (UUID), flowMode ('draft'|'published'), flowCta (string), flowOutputVariable (string)
+  - **REST_API type fields** - **NEW**:
+    - `apiUrl` (string): REST API endpoint (supports `{{variable}}` interpolation)
+    - `apiMethod` (string): HTTP method (GET, POST, PUT, DELETE)
+    - `apiHeaders` (Record<string, string>): Custom request headers
+    - `apiBody` (string): Request body for POST/PUT (JSON string)
+    - `apiOutputVariable` (string): Variable name to store successful response
+    - `apiResponsePath` (string): JSON path to extract (e.g., "data", "data.items[0].name")
+    - `apiErrorVariable` (string): Variable name to store error message
+    - `apiTimeout` (number): Request timeout in milliseconds (default: 30000)
+- `TestRestApiDto` - **NEW**: DTO for testing REST API configuration
+  - `url` (string): API endpoint
+  - `method` (string): HTTP method
+  - `headers` (Record<string, string>): Request headers
+  - `body` (string): Request body
+  - `responsePath` (string): JSON path extraction
+  - `timeout` (number): Request timeout
 
 #### Session DTOs (`dto/session.dto.ts`)
 - `SessionDto`: Session overview data
@@ -940,7 +993,8 @@ export class FlowsController {
 │   ├── PATCH  /:id/status     Update status
 │   ├── PATCH  /:id/toggle-active  Toggle active state
 │   ├── PATCH  /:id/restore    Restore soft-deleted chatbot
-│   └── POST   /conversations/:conversationId/stop  Stop active chatbot
+│   ├── POST   /conversations/:conversationId/stop  Stop active chatbot
+│   └── POST   /test-rest-api  Test REST API configuration (NEW)
 │
 ├── /flows
 │   ├── GET    /               List flows
