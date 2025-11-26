@@ -1,6 +1,6 @@
-# WhatsApp Flow Builder - Constants & Validation
+# Chatbot Flow Builder
 
-This directory contains constants, default values, and validation rules for WhatsApp Flow components based on the official WhatsApp Flows documentation.
+Visual drag-and-drop interface for building WhatsApp chatbot conversation flows using ReactFlow.
 
 ## Directory Structure
 

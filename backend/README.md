@@ -11,10 +11,22 @@ This backend provides a comprehensive API for managing WhatsApp chatbots, handli
 - **ChatBot Management**: Create, update, and manage chatbot flows with visual node-edge structures
 - **Real-time Communication**: Socket.IO gateway for live message sync and typing indicators
 - **WhatsApp Integration**: Full WhatsApp Business API integration with webhook processing
+  - Interactive messages (buttons, lists)
+  - Dynamic list and button generation
+  - WhatsApp Flows integration
+  - Media upload support
 - **Conversation Management**: Track conversations, messages, and 24-hour messaging windows
+  - Session tracking and monitoring
+  - Conversation context management
+  - Message metadata and history
 - **Chatbot Execution**: State-based execution engine with variable storage and conditional logic
+  - REST API node support
+  - Dynamic content generation
+  - Variable substitution
+  - Conditional branching
 - **Database Migrations**: TypeORM migrations for schema management
 - **User Management**: Automatic user registration from WhatsApp contacts
+- **API Documentation**: Comprehensive OpenAPI/Swagger documentation
 
 ## Technology Stack
 
@@ -98,9 +110,27 @@ npm run migration:generate -- src/migrations/MigrationName
 
 ### Available Migrations
 
-- `CreateWhatsAppConfigTable` - WhatsApp configuration storage
-- `CreateConversationContextTable` - Chatbot execution context
-- `RenameFlowsToChatBots` - Terminology migration from flows to chatbots
+1. `CreateWhatsAppConfigTable` - WhatsApp Business API configuration storage
+2. `AddWindowTrackingToConversation` - 24-hour messaging window tracking
+3. `CreateConversationContextTable` - Chatbot execution state and variables
+4. `CreateWhatsAppFlowsTable` - WhatsApp Flows entity and relationships
+5. `AddExpiresAtToConversationContext` - Conversation context expiration tracking
+6. `AddSessionHistoryFields` - Session history and metadata fields
+7. `AddCascadeDeleteToMessageSender` - Cascade delete for message sender relationships
+8. `RenameFlowsToChatBots` - Terminology migration from flows to chatbots
+
+### Advanced Migration Commands
+
+```bash
+# Create empty migration (for custom SQL)
+npm run migration:create -- src/migrations/CustomMigrationName
+
+# Show migration status (requires manual typeorm CLI)
+npx typeorm migration:show -d ormconfig.ts
+
+# Drop entire schema (WARNING: destroys all data)
+npx typeorm schema:drop -d ormconfig.ts
+```
 
 ## Running the Application
 
@@ -110,20 +140,20 @@ npm run migration:generate -- src/migrations/MigrationName
 # Standard development mode
 npm run start:dev
 
-# With watch mode (auto-restart on changes)
-npm run start:dev
+# Debug mode with inspector
+npm run start:debug
+
+# Production mode
+npm run start:prod
 ```
 
 The server will start on `http://localhost:3000` (or the port specified in `.env`).
 
-### Production Mode
+### Build
 
 ```bash
 # Build the application
 npm run build
-
-# Run production build
-npm run start:prod
 ```
 
 ## Webhook Development
@@ -204,6 +234,8 @@ http://localhost:3000/api
 - `PATCH /chatbots/:id/status` - Update status
 - `PATCH /chatbots/:id/toggle-active` - Toggle active state
 - `PATCH /chatbots/:id/restore` - Restore soft-deleted chatbot
+- `GET /chatbots/:id/sessions` - Get active sessions
+- `POST /chatbots/:id/sessions/:sessionId/stop` - Stop active session
 
 #### Conversations
 - `GET /conversations` - List conversations
@@ -229,6 +261,16 @@ http://localhost:3000/api
 #### Media
 - `POST /media/upload` - Upload media file
 
+#### Flows (WhatsApp Flows)
+- `GET /flows` - List all WhatsApp Flows
+- `POST /flows` - Create new flow
+- `GET /flows/:id` - Get flow by ID
+- `PUT /flows/:id` - Update flow
+- `DELETE /flows/:id` - Delete flow
+- `POST /flows/sync` - Sync flows from Meta API
+- `POST /flows/:id/publish` - Publish flow to WhatsApp
+- `POST /flows/:id/unpublish` - Unpublish flow
+
 ### WebSocket Events
 
 Connect to `http://localhost:3000/messages` namespace.
@@ -252,14 +294,58 @@ Connect to `http://localhost:3000/messages` namespace.
 # Unit tests
 npm run test
 
+# Watch mode (auto-rerun on changes)
+npm run test:watch
+
+# Test coverage report
+npm run test:cov
+
 # End-to-end tests
 npm run test:e2e
 
-# Test coverage
-npm run test:cov
+# Debug tests
+npm run test:debug
+```
 
-# Watch mode
-npm run test:watch
+## Code Quality
+
+```bash
+# Format code with Prettier
+npm run format
+
+# Lint and fix with ESLint
+npm run lint
+```
+
+## Development Scripts
+
+### WhatsApp Testing
+
+```bash
+# Test WhatsApp Flow publishing
+npm run flow:publish
+
+# Send test Flow message
+npm run flow:send-test
+
+# Send test text message
+npm run test:send-text
+
+# Test media upload
+npm run test:media-upload
+```
+
+### Webhook Management
+
+```bash
+# Start webhook tunnel and backend
+npm run webhook:start
+
+# Stop webhook tunnel
+npm run webhook:stop
+
+# Get current webhook URL
+npm run webhook:url
 ```
 
 ## Module Structure
@@ -270,79 +356,251 @@ backend/src/
 ├── main.ts                 # Application entry point
 ├── config/                 # Configuration modules
 ├── database/               # Database module
-├── entities/               # TypeORM entities
+├── entities/               # TypeORM entities (8 entities)
 │   ├── chatbot.entity.ts
 │   ├── conversation.entity.ts
+│   ├── conversation-context.entity.ts
 │   ├── message.entity.ts
 │   ├── user.entity.ts
-│   ├── conversation-context.entity.ts
-│   └── whatsapp-config.entity.ts
-├── modules/
-│   ├── chatbots/          # ChatBot management
+│   ├── whatsapp-config.entity.ts
+│   └── whatsapp-flow.entity.ts
+├── modules/                # 9 feature modules
+│   ├── chatbots/          # ChatBot management & execution engine
+│   │   ├── controllers/
+│   │   │   ├── chatbots.controller.ts
+│   │   │   └── chatbot-webhook.controller.ts
+│   │   ├── services/
+│   │   │   ├── chatbots.service.ts
+│   │   │   ├── chatbot-execution.service.ts
+│   │   │   ├── rest-api-executor.service.ts
+│   │   │   ├── session-history.service.ts
+│   │   │   ├── appointment.service.ts
+│   │   │   └── mock-calendar.service.ts
+│   │   ├── dto/
+│   │   └── chatbots.module.ts
 │   ├── conversations/     # Conversation handling
 │   ├── messages/          # Message management
 │   ├── users/             # User management
 │   ├── webhooks/          # Webhook processing
+│   │   ├── controllers/
+│   │   │   ├── webhooks.controller.ts
+│   │   │   └── flow-endpoint.controller.ts
+│   │   ├── services/
+│   │   │   ├── webhook-processor.service.ts
+│   │   │   ├── webhook-parser.service.ts
+│   │   │   ├── webhook-signature.service.ts
+│   │   │   └── flow-endpoint.service.ts
+│   │   └── webhooks.module.ts
 │   ├── websocket/         # Socket.IO gateway
+│   │   ├── messages.gateway.ts
+│   │   ├── filters/ws-exception.filter.ts
+│   │   └── websocket.module.ts
 │   ├── whatsapp/          # WhatsApp API integration
+│   │   ├── services/
+│   │   │   ├── whatsapp-api.service.ts
+│   │   │   ├── whatsapp-config.service.ts
+│   │   │   ├── whatsapp-message.service.ts
+│   │   │   ├── whatsapp-flow.service.ts
+│   │   │   ├── flow-encryption.service.ts
+│   │   │   └── message-types/
+│   │   │       ├── text-message.service.ts
+│   │   │       └── interactive-message.service.ts
+│   │   └── whatsapp.module.ts
+│   ├── flows/             # WhatsApp Flows lifecycle
+│   │   ├── flows.controller.ts
+│   │   ├── flows.service.ts
+│   │   └── flows.module.ts
 │   └── media/             # Media upload
-└── migrations/            # TypeORM migrations
+├── migrations/            # TypeORM migrations (6 migrations)
+└── scripts/               # Development & testing scripts
+    ├── whatsapp/
+    └── media/
 ```
 
 ## Key Services
 
 ### ChatBotExecutionService
+**Location**: `modules/chatbots/services/chatbot-execution.service.ts`
+
 Executes chatbot logic based on node-edge flow structures:
-- Processes START, MESSAGE, QUESTION, and CONDITION nodes
-- Manages conversation state and variables
-- Handles conditional branching
-- Supports variable substitution with `{{variableName}}`
+- **Node Types**: Processes START, MESSAGE, QUESTION, CONDITION, WHATSAPP_FLOW, and REST_API nodes
+- **State Management**: Manages conversation state via ConversationContext entity
+- **Variable System**: Supports variable substitution with `{{variableName}}` syntax
+- **Conditional Logic**: Multi-condition support with AND/OR operators
+- **Message Persistence**: Saves all bot messages to database with WhatsApp message IDs
+- **Dynamic Content**: REST API integration for data-driven messages
+- **WhatsApp Flows**: Complex interactive experiences
+
+**Execution Flow**:
+```
+startChatBot() → processStartNode() → processMessageNode() → processQuestionNode() → WAIT
+                                                                        ↓
+User responds → processUserResponse() → save to variables → executeCurrentNode() [resume]
+```
+
+### RestApiExecutorService
+**Location**: `modules/chatbots/services/rest-api-executor.service.ts`
+
+REST API execution with advanced variable interpolation:
+- **HTTP Methods**: GET, POST, PUT, PATCH, DELETE
+- **Variable Interpolation**: Replaces `{{variableName}}` in URL, headers, and body
+- **Nested Paths**: Supports `data.user.name`, `items[0].title`
+- **Math Expressions**: Evaluates `{{page + 1}}`, `{{count * 2}}`
+- **Error Handling**: Captures errors in apiErrorVariable
+- **Response Extraction**: Extracts data from specific JSON paths
 
 ### WebhookProcessorService
+**Location**: `modules/webhooks/services/webhook-processor.service.ts`
+
 Processes incoming WhatsApp webhook events:
-- Validates webhook signatures
-- Handles message events (text, interactive, media)
-- Triggers chatbot execution
-- Emits real-time events via Socket.IO
+- **Signature Verification**: HMAC SHA256 validation
+- **Message Parsing**: Text, interactive buttons/lists, media, reactions, Flow completions
+- **User Management**: Find or create user from WhatsApp contact
+- **Conversation Tracking**: Find or create conversation
+- **Message Persistence**: Save incoming messages to database
+- **Real-time Events**: Emit Socket.IO events for live updates
+- **Chatbot Trigger**: Execute chatbot logic based on message content
+- **Flow Response Processing**: UUID-aware flow_token parsing (`{contextId}-{nodeId}`)
+
+**Processing Pipeline**:
+```
+Webhook → Verify Signature → Parse → Find/Create User → Find/Create Conversation
+  → Save Message → Emit Socket.IO → Execute ChatBot → Send Response → Emit Response Event
+```
 
 ### WhatsAppMessageService
+**Location**: `modules/whatsapp/services/whatsapp-message.service.ts`
+
 Sends messages to WhatsApp Business API:
-- Text messages
-- Interactive buttons and lists
-- Media messages (images, videos, documents, audio)
-- Reactions and stickers
-- WhatsApp Flows
+- **Text Messages**: Plain text with emoji support
+- **Interactive Buttons**: Up to 3 buttons (20 char limit)
+- **Interactive Lists**: Up to 10 rows per section (24/72 char limits)
+- **Dynamic Lists/Buttons**: Data-driven generation from REST API responses
+- **Media Messages**: Images, videos, documents, audio
+- **Reactions**: Message reactions
+- **WhatsApp Flows**: Complex interactive flows
+
+**Related Services**:
+- `TextMessageService`: Text message formatting
+- `InteractiveMessageService`: Button/list generation with character validation
+
+### WhatsAppFlowService
+**Location**: `modules/whatsapp/services/whatsapp-flow.service.ts`
+
+Manages WhatsApp Flow lifecycle:
+- **Create**: Create flow in WhatsApp Business Manager
+- **Update**: Modify flow JSON (resets to DRAFT status)
+- **Publish**: Publish flow to production
+- **Deprecate**: Mark flow as deprecated
+- **Delete**: Smart deletion (deprecate if PUBLISHED → delete from WhatsApp → delete local)
+- **Preview**: Generate preview URL for testing
+- **Status Tracking**: DRAFT → PUBLISHED → DEPRECATED → DELETED
+
+### FlowEncryptionService
+**Location**: `modules/whatsapp/services/flow-encryption.service.ts`
+
+Handles Flow webhook encryption/decryption:
+- **Decryption**: RSA + AES-128-GCM decryption of incoming Flow data
+- **Encryption**: Encrypt response data for Flow endpoint
+- **Signature Verification**: Verify request signatures from WhatsApp
+- **Key Management**: Public/private key pair handling
+
+### SessionHistoryService
+**Location**: `modules/chatbots/services/session-history.service.ts`
+
+Tracks chatbot execution sessions:
+- **Active Sessions**: Monitor running chatbot sessions
+- **Session Details**: View node execution history
+- **Message Metadata**: Enhanced message data with bot detection flags
+- **Session Termination**: Stop active sessions
 
 ### MessagesGateway
-Real-time WebSocket communication:
-- Broadcasts message updates
-- Manages user connections and rooms
-- Emits typing indicators
-- Provides online/offline status
+**Location**: `modules/websocket/messages.gateway.ts`
+
+Real-time WebSocket communication via Socket.IO:
+- **Namespace**: `/messages`
+- **User Tracking**: Map<userId, Set<socketId>> for multi-device support
+- **Room Management**: Conversation-based rooms and session rooms
+- **Connection Lifecycle**: Online/offline status broadcasting
+
+**Server → Client Events**:
+- `message:received`, `message:status`
+- `user:online`, `user:offline`
+- `session:message-sent`, `session:node-executed`, `session:status-changed`, `session:completed`
+
+**Client → Server Events**:
+- `conversation:join`, `conversation:leave`
+- `typing:start`, `typing:stop`
+- `session:join`, `session:leave`
 
 ## Architecture Highlights
 
-### Modular Design
-- Each feature module is self-contained
-- Dependency injection for loose coupling
-- Shared entities and services
+### Modular Design (NestJS Best Practices)
+- **9 Feature Modules**: Each module is self-contained with clear boundaries
+- **Dependency Injection**: Constructor-based DI throughout the application
+- **forwardRef() Pattern**: Circular dependencies resolved properly (ConversationsModule ↔ WebSocketModule)
+- **Shared Entities**: TypeORM entities shared across modules via TypeOrmModule.forFeature()
+- **Module Exports**: Services exported from modules for cross-module usage
+- **Single Responsibility**: Each service has a single, well-defined purpose
 
 ### Database-Driven
-- TypeORM for type-safe database operations
-- Migration-based schema management
-- UUID primary keys
-- JSONB columns for flexible data (nodes/edges)
+- **TypeORM**: Type-safe database operations with repository pattern
+- **Migration-based**: Schema management with versioned migrations
+- **UUID Primary Keys**: All entities use UUID for better scalability
+- **JSONB Columns**: Flexible data storage (nodes/edges, variables)
+- **Entity Relationships**: Proper foreign keys and cascade operations
+- **Connection Pooling**: Optimized database connection management
 
 ### Real-time Communication
-- Socket.IO for bidirectional communication
-- Room-based message isolation
-- Optimistic UI updates support
+- **Socket.IO Gateway**: Dedicated WebSocketModule with namespace isolation
+- **Room-based Isolation**: Conversation and session rooms for targeted events
+- **User Tracking**: Multi-device support with Map<userId, Set<socketId>>
+- **Exception Filter**: Custom WebSocket exception filter for error handling
+- **Optimistic UI**: Support for optimistic updates with status events
 
 ### WhatsApp Integration
-- Webhook signature verification
-- Retry logic for message delivery
-- Support for all WhatsApp message types
-- 24-hour messaging window tracking
+- **Signature Verification**: HMAC SHA256 webhook signature validation
+- **Message Types**: Support for all WhatsApp message types (text, interactive, media, flows)
+- **24-hour Window**: Automatic tracking of messaging window
+- **Flow Encryption**: RSA + AES-128-GCM encryption for Flow webhooks
+- **Dynamic Content**: REST API integration for data-driven messages
+- **Error Handling**: Comprehensive error handling and retry logic
+
+### Dependency Injection Pattern
+```typescript
+// Example of proper NestJS DI pattern
+@Injectable()
+export class ChatBotExecutionService {
+  constructor(
+    @InjectRepository(ChatBot) private chatBotRepository: Repository<ChatBot>,
+    @InjectRepository(ConversationContext) private contextRepository: Repository<ConversationContext>,
+    private whatsappMessageService: WhatsAppMessageService,
+    private restApiExecutorService: RestApiExecutorService,
+    private readonly logger: Logger,
+  ) {}
+}
+```
+
+### Module Dependency Graph
+```
+AppModule
+  ├─→ ConfigModule (global)
+  ├─→ DatabaseModule
+  ├─→ WhatsAppModule
+  │     └─→ TypeOrmModule.forFeature([WhatsAppConfig, WhatsAppFlow])
+  ├─→ ChatBotsModule
+  │     ├─→ WhatsAppModule
+  │     └─→ TypeOrmModule.forFeature([ChatBot, ConversationContext, Conversation, User, WhatsAppFlow])
+  ├─→ FlowsModule
+  │     ├─→ WhatsAppModule
+  │     └─→ TypeOrmModule.forFeature([WhatsAppFlow])
+  ├─→ ConversationsModule ↔ WebSocketModule (forwardRef)
+  ├─→ WebhooksModule
+  │     ├─→ ChatBotsModule
+  │     ├─→ WhatsAppModule
+  │     └─→ WebSocketModule (forwardRef)
+  ├─→ MessagesModule, MediaModule, UsersModule
+```
 
 ## Troubleshooting
 
@@ -362,14 +620,14 @@ cat .env | grep DB_
 ### Migration Errors
 
 ```bash
-# Check migration status
-npm run migration:show
+# Check migration status (using TypeORM CLI directly)
+npx typeorm migration:show -d ormconfig.ts
 
 # Revert last migration
 npm run migration:revert
 
 # Drop database and recreate (⚠️ destroys data)
-npm run schema:drop
+npx typeorm schema:drop -d ormconfig.ts
 npm run migration:run
 ```
 
@@ -401,29 +659,227 @@ PORT=3001
 
 ## Development Guidelines
 
-### Creating a New Module
+### Creating a New Module (NestJS Best Practices)
 
 ```bash
-# Generate module, controller, and service
+# 1. Generate module, controller, and service
 nest g module modules/my-feature
-nest g controller modules/my-feature
-nest g service modules/my-feature
+nest g controller modules/my-feature --no-spec  # Add --no-spec if you don't want test files
+nest g service modules/my-feature --no-spec
+
+# 2. Create DTOs directory
+mkdir src/modules/my-feature/dto
+
+# 3. Register TypeORM entities in the module
+# Edit my-feature.module.ts:
 ```
+
+```typescript
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { MyFeatureController } from './my-feature.controller';
+import { MyFeatureService } from './my-feature.service';
+import { MyFeatureEntity } from '../../entities/my-feature.entity';
+
+@Module({
+  imports: [
+    TypeOrmModule.forFeature([MyFeatureEntity]), // Register entity repository
+  ],
+  controllers: [MyFeatureController],
+  providers: [MyFeatureService],
+  exports: [MyFeatureService], // Export if other modules need this service
+})
+export class MyFeatureModule {}
+```
+
+**Best Practices:**
+- Use constructor-based dependency injection
+- Keep services focused on single responsibility
+- Use DTOs for all request/response data
+- Implement proper error handling with NestJS exceptions
+- Add Swagger decorators for API documentation
+
+### Creating DTOs with Validation
+
+```typescript
+// create-my-feature.dto.ts
+import { IsString, IsNotEmpty, IsOptional, IsNumber, Min, Max } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
+export class CreateMyFeatureDto {
+  @ApiProperty({ description: 'Feature name', example: 'My Feature' })
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @ApiPropertyOptional({ description: 'Feature description' })
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @ApiProperty({ description: 'Priority level', minimum: 1, maximum: 10 })
+  @IsNumber()
+  @Min(1)
+  @Max(10)
+  priority: number;
+}
+```
+
+**DTO Best Practices:**
+- Use class-validator decorators for validation
+- Add Swagger decorators (@ApiProperty, @ApiPropertyOptional)
+- Create separate DTOs for create/update operations
+- Use PartialType for update DTOs: `export class UpdateMyFeatureDto extends PartialType(CreateMyFeatureDto) {}`
 
 ### Creating a New Migration
 
 ```bash
-# Make changes to entities, then generate migration
+# 1. Create or modify entities in src/entities/
+# 2. Generate migration from entity changes
 npm run migration:generate -- src/migrations/DescribeYourChanges
+
+# 3. Review generated migration file
+# 4. Run migration
 npm run migration:run
+
+# If migration fails, revert it
+npm run migration:revert
 ```
+
+**Migration Best Practices:**
+- Use descriptive names (e.g., AddUserEmailVerification)
+- Review generated SQL before running
+- Test migrations on development database first
+- Never modify existing migrations after deployment
+- Use transactions for complex migrations
 
 ### Adding a New API Endpoint
 
-1. Create DTO in `modules/[feature]/dto/`
-2. Add controller method with validation decorators
-3. Implement service logic
-4. Update this README's API documentation
+**1. Create DTO** (`modules/[feature]/dto/`)
+```typescript
+export class CreateItemDto {
+  @ApiProperty()
+  @IsString()
+  name: string;
+}
+```
+
+**2. Add Controller Method**
+```typescript
+import { Controller, Post, Body, Get, Param, Patch, Delete, ParseUUIDPipe } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+
+@ApiTags('my-feature')
+@Controller('my-feature')
+export class MyFeatureController {
+  constructor(private readonly myFeatureService: MyFeatureService) {}
+
+  @Post()
+  @ApiOperation({ summary: 'Create new item' })
+  @ApiResponse({ status: 201, description: 'Item created successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid input' })
+  create(@Body() createDto: CreateItemDto) {
+    return this.myFeatureService.create(createDto);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get item by ID' })
+  @ApiResponse({ status: 200, description: 'Item found' })
+  @ApiResponse({ status: 404, description: 'Item not found' })
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
+    return this.myFeatureService.findOne(id);
+  }
+}
+```
+
+**3. Implement Service Logic**
+```typescript
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+
+@Injectable()
+export class MyFeatureService {
+  constructor(
+    @InjectRepository(MyFeatureEntity)
+    private readonly repository: Repository<MyFeatureEntity>,
+  ) {}
+
+  async create(createDto: CreateItemDto): Promise<MyFeatureEntity> {
+    const entity = this.repository.create(createDto);
+    return this.repository.save(entity);
+  }
+
+  async findOne(id: string): Promise<MyFeatureEntity> {
+    const entity = await this.repository.findOne({ where: { id } });
+    if (!entity) {
+      throw new NotFoundException(`Item with ID ${id} not found`);
+    }
+    return entity;
+  }
+}
+```
+
+**4. Update Documentation**
+- Add endpoint to API Documentation section in README
+- Update Swagger tags if new feature
+- Document any new environment variables
+
+### Code Style Guidelines
+
+**Follow NestJS Conventions:**
+- Use decorators for configuration (@Injectable, @Controller, @Get, etc.)
+- Implement proper error handling with HTTP exceptions
+- Use ValidationPipe globally for DTO validation
+- Leverage TypeScript types and interfaces
+- Use async/await for asynchronous operations
+
+**File Naming:**
+- Controllers: `feature-name.controller.ts`
+- Services: `feature-name.service.ts`
+- DTOs: `create-feature.dto.ts`, `update-feature.dto.ts`
+- Entities: `feature-name.entity.ts`
+- Modules: `feature-name.module.ts`
+
+### Testing Guidelines
+
+```bash
+# Unit test example
+describe('MyFeatureService', () => {
+  let service: MyFeatureService;
+  let repository: Repository<MyFeatureEntity>;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        MyFeatureService,
+        {
+          provide: getRepositoryToken(MyFeatureEntity),
+          useValue: {
+            create: jest.fn(),
+            save: jest.fn(),
+            findOne: jest.fn(),
+          },
+        },
+      ],
+    }).compile();
+
+    service = module.get<MyFeatureService>(MyFeatureService);
+    repository = module.get<Repository<MyFeatureEntity>>(getRepositoryToken(MyFeatureEntity));
+  });
+
+  it('should create an item', async () => {
+    const dto = { name: 'Test' };
+    const entity = { id: 'uuid', ...dto };
+
+    jest.spyOn(repository, 'create').mockReturnValue(entity as any);
+    jest.spyOn(repository, 'save').mockResolvedValue(entity as any);
+
+    const result = await service.create(dto);
+    expect(result).toEqual(entity);
+  });
+});
+```
 
 ## Resources
 

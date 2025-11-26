@@ -12,7 +12,7 @@ import { FlowMessageService } from '../../whatsapp/services/message-types/flow-m
 import { FlowMode } from '../../whatsapp/dto/requests/send-flow-message.dto';
 import { MessagesService } from '../../messages/messages.service';
 import { NodeDataType, QuestionType } from '../dto/node-data.dto';
-import { WhatsAppFlow } from '../../../entities/whatsapp-flow.entity';
+import { WhatsAppFlow, WhatsAppFlowStatus } from '../../../entities/whatsapp-flow.entity';
 import { SessionHistoryService } from './session-history.service';
 import { SessionGateway } from '../../websocket/session.gateway';
 import { RestApiExecutorService } from './rest-api-executor.service';
@@ -707,6 +707,38 @@ export class ChatBotExecutionService {
     await this.executeCurrentNode(context.id);
   }
 
+  // Strapi API configuration for Flow data prefetching
+  private readonly strapiBaseUrl = 'http://192.168.1.18:1337';
+  private readonly strapiToken = 'd3a4028ba0d5f00b572132d037ada86fef5a735be3efad3db46cec5ab72c82f1f1bf5bd228af0257d93d4f7ab935d5cf8ce9564f5b7db50928d245f4a3fdeef4d7aa460a4ef200eb6106cf15dc9aaba9f716b074493a9a7b246ed5054c3a714b9160d3cc59bc33c0cf485d875216e4c28eeccf5573a1be888d8b5f9f67e4813c';
+
+  /**
+   * Fetch brands from Strapi API for Flow initial data
+   */
+  private async fetchBrandsFromStrapi(): Promise<{ id: string; title: string }[]> {
+    try {
+      const response = await fetch(`${this.strapiBaseUrl}/api/brands`, {
+        headers: {
+          Authorization: `Bearer ${this.strapiToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Strapi API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Transform Strapi response to Flow dropdown format
+      return (data.data || []).map((brand: any) => ({
+        id: brand.name || brand.id?.toString(),
+        title: brand.name,
+      }));
+    } catch (error) {
+      this.logger.error(`Failed to fetch brands from Strapi: ${error.message}`);
+      return [];
+    }
+  }
+
   /**
    * Process WHATSAPP_FLOW node - send WhatsApp Flow and WAIT for completion
    */
@@ -747,6 +779,17 @@ export class ChatBotExecutionService {
       );
     }
 
+    // Pre-fetch data for specific flows that need it
+    // "Fiyat Güncelleme" Flow - ID: 836194732500069
+    let initialScreen = node.data?.flowInitialScreen;
+    if (flowId === '836194732500069') {
+      this.logger.log('Fiyat Güncelleme Flow detected - fetching brands from Strapi');
+      const brands = await this.fetchBrandsFromStrapi();
+      this.logger.log(`Fetched ${brands.length} brands for Flow initial data`);
+      initialData = { ...initialData, brands };
+      initialScreen = 'BRAND_SCREEN';
+    }
+
     // Create flow_token: {contextId}-{nodeId}
     const flowToken = `${context.id}-${node.id}`;
 
@@ -762,6 +805,8 @@ export class ChatBotExecutionService {
       const headerText = node.data?.flowHeaderText || node.data?.headerText;
       const footerText = node.data?.flowFooterText || node.data?.footerText;
 
+      this.logger.debug(`Sending Flow with initialScreen: ${initialScreen}, initialData keys: ${Object.keys(initialData).join(', ')}`);
+
       const flowResult = await this.flowMessageService.sendFlowMessage({
         to: recipientPhone,
         flowId: flow.whatsappFlowId!, // Non-null: we query by whatsappFlowId so it exists
@@ -771,8 +816,9 @@ export class ChatBotExecutionService {
         footer: footerText,
         flowToken,
         mode: flowMode,
-        initialScreen: node.data?.flowInitialScreen,
+        initialScreen,
         initialData,
+        isDraft: flow.status === WhatsAppFlowStatus.DRAFT,
       });
 
       // Save Flow message to database
@@ -837,16 +883,22 @@ export class ChatBotExecutionService {
         error.stack,
       );
 
-      // CRITICAL: Don't leave context hanging if send fails
-      // Move to next node OR deactivate context
-      const nextNode = this.findNextNode(context.chatbot, node.id);
+      // Set error variable for error node to use
+      context.variables['api_error'] = error.message;
+      context.variables['__last_api_error__'] = error.message;
+      context.nodeHistory.push(node.id);
+
+      // Find next node via error edge first, then fallback to default
+      let nextNode = this.findNextNode(context.chatbot, node.id, 'error');
+      if (!nextNode) {
+        nextNode = this.findNextNode(context.chatbot, node.id);
+      }
 
       if (nextNode) {
         this.logger.warn(
-          'Flow send failed, moving to next node via default path',
+          `Flow send failed, moving to ${nextNode.id} via ${nextNode === this.findNextNode(context.chatbot, node.id, 'error') ? 'error' : 'default'} path`,
         );
         context.currentNodeId = nextNode.id;
-        context.nodeHistory.push(node.id);
         context.status = 'running';
         await this.contextRepo.save(context);
         await this.executeCurrentNode(context.id);
@@ -855,7 +907,7 @@ export class ChatBotExecutionService {
         context.isActive = false;
         context.status = 'completed';
         context.completedAt = new Date();
-        context.completionReason = 'flow_completed';
+        context.completionReason = 'flow_error';
         await this.contextRepo.save(context);
       }
     }

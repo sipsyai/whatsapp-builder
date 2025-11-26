@@ -137,14 +137,21 @@ FLOW_ENDPOINT_URL=https://your-domain.com/flow-webhook
 4. **Logging**: Service içindeki logger'ları kullanın
 5. **Configuration**: Environment variables'ları doğrudan kullanmayın, ConfigService kullanın
 
+## Mevcut Özellikler
+
+- ✅ Text message service
+- ✅ Flow message service
+- ✅ Interactive message service (buttons, lists)
+- ✅ Dynamic list and button generation
+- ✅ Webhook signature verification (webhook module)
+- ✅ Error mapping and handling
+
 ## Gelecek Geliştirmeler
 
 - [ ] Template message service
-- [ ] Interactive message service (buttons, lists)
 - [ ] Media message service (image, video, document)
-- [ ] Webhook signature verification
 - [ ] Rate limiting
 - [ ] Message builders (fluent API)
-- [ ] Retry logic
-- [ ] Unit tests
+- [ ] Retry logic with exponential backoff
+- [ ] Comprehensive unit tests
 - [ ] E2E tests

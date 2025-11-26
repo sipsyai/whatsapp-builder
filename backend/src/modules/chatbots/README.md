@@ -40,9 +40,12 @@ This module handles chatbot flow creation, execution, and management for WhatsAp
 - Multiple comparison operators
 - Default path support
 
-### 7. API Node (Planned)
-- Make external API calls
+### 7. REST API Node
+- Make external API calls (GET, POST, PUT, DELETE)
+- Dynamic URL and body with variable substitution
+- Custom headers support
 - Store response in variables
+- Automatic JSON parsing
 
 ## Architecture
 

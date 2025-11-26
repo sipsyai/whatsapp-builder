@@ -51,7 +51,9 @@ export class FlowMessageService {
             flow_token: dto.flowToken || `FLOW_TOKEN_${Date.now()}`,
             flow_id: dto.flowId,
             flow_cta: dto.ctaText,
-            flow_action: dto.mode || 'navigate',
+            flow_action: 'navigate', // Always use navigate as the flow action
+            // Add mode: draft for DRAFT flows (required for test users)
+            ...(dto.isDraft && { mode: 'draft' }),
             // flow_action_payload is optional - WhatsApp will show first screen automatically
             ...(dto.initialScreen && {
               flow_action_payload: {

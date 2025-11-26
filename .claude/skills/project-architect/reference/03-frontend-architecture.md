@@ -1,3088 +1,514 @@
 # Frontend Architecture - WhatsApp Builder
 
-## Table of Contents
-- [Overview](#overview)
-- [Technology Stack](#technology-stack)
-- [Application Structure](#application-structure)
-- [Feature-Based Organization](#feature-based-organization)
-- [State Management](#state-management)
-- [Real-time Integration](#real-time-integration)
-- [API Layer](#api-layer)
-- [Custom Hooks](#custom-hooks)
-- [Component Patterns](#component-patterns)
-
----
-
 ## Overview
 
-The frontend is a **React 19.2.x** single-page application (SPA) built with **Vite** for ultra-fast development and optimized production builds. The architecture follows a **feature-based** organization pattern, where each feature is self-contained with its own components, API clients, and types.
+React 19.2.x SPA with Vite, feature-based organization, and real-time Socket.IO integration.
 
-### Core Architectural Principles
-1. **Feature-based Organization**: Group by feature (builder, chat, chatbots) not by type (components/, hooks/)
-2. **Component Composition**: Small, reusable components composed into larger features
-3. **Type Safety**: Full TypeScript coverage with strict type checking
-4. **Real-time First**: Socket.IO integration for instant updates
-5. **Declarative UI**: React hooks for state management and side effects
-6. **Optimistic Updates**: Instant UI feedback with server reconciliation
+### Principles
+1. Feature-based Organization (not by type)
+2. Component Composition
+3. Type Safety (TypeScript strict mode)
+4. Real-time First (Socket.IO)
+5. Declarative UI (React hooks)
+6. Optimistic Updates
 
-### Project Structure
+### Structure
 ```
 frontend/src/
-├── app/                          # Root application
-│   ├── App.tsx                   # Main app component (routing logic)
-│   ├── App.css                   # Global app styles
-│   └── main.tsx                  # Entry point
-├── features/                     # Feature modules
-│   ├── builder/                  # ChatBot flow builder (ReactFlow-based)
-│   ├── flow-builder/             # WhatsApp Flow visual builder (NEW)
-│   ├── chat/                     # Conversation UI
-│   ├── chatbots/                 # Chatbot list/management
-│   ├── conversations/            # Conversation list
-│   ├── flows/                    # WhatsApp Flows management
-│   ├── sessions/                 # Chatbot session tracking
-│   ├── nodes/                    # ReactFlow custom nodes (ChatBot builder)
-│   ├── edges/                    # ReactFlow custom edges
-│   ├── users/                    # User management
-│   ├── settings/                 # App settings
-│   └── landing/                  # Landing page
-├── shared/                       # Shared code
-│   ├── components/               # Reusable UI components
-│   └── types/                    # Shared TypeScript types
-├── api/                          # API clients
-│   ├── client.ts                 # Axios instance
-│   ├── socket.ts                 # Socket.IO client
-│   ├── conversations.service.ts
-│   └── messages.service.ts
-├── hooks/                        # Custom React hooks
-│   └── useWebSocket.ts
-├── types/                        # TypeScript type definitions
-│   └── messages.ts
-├── shared/                       # Shared code
-│   ├── components/               # Reusable UI components
-│   └── types/                    # Shared TypeScript types
-│       └── index.ts              # Core type definitions
-├── utils/                        # Utility functions
-├── styles/                       # Global styles
-└── vite.config.ts                # Vite configuration
+├── app/                    # App.tsx (routing), main.tsx
+├── features/               # Feature modules
+│   ├── builder/            # ChatBot flow builder (ReactFlow)
+│   ├── flow-builder/       # WhatsApp Flow visual builder
+│   ├── chat/               # Conversation UI
+│   ├── chatbots/           # Chatbot list/management
+│   ├── conversations/      # Conversation list
+│   ├── flows/              # WhatsApp Flows management
+│   ├── sessions/           # Session tracking
+│   ├── nodes/              # Custom ReactFlow nodes (5 types)
+│   ├── edges/              # Custom ReactFlow edges
+│   ├── users/, settings/, landing/
+├── api/                    # Axios clients, Socket.IO
+├── hooks/                  # useWebSocket, useFlowValidation
+├── shared/                 # Reusable components, types
+└── vite.config.ts          # Vite configuration
 ```
 
 ---
 
 ## Technology Stack
 
-### Core Framework
-- **React**: 19.2.0 (with Concurrent Features)
-- **TypeScript**: 5.9.x
-- **Vite**: 7.x (using Rolldown for faster builds)
-
-### UI & Styling
-- **CSS**: Native CSS with CSS Variables for theming
-- **Icons**: Material Symbols (Google Fonts)
-- **Animations**: CSS transitions and animations
+### Core
+- React 19.2.0, TypeScript 5.9.x, Vite 7.x (Rolldown)
+- CSS with CSS Variables for theming
 
 ### Flow Builder
-- **@xyflow/react**: 12.3.5 (ReactFlow v12)
-  - Custom node types
-  - Edge validation
-  - Drag-and-drop interface
-  - Auto-layout support (Dagre algorithm)
-- **dagre**: 0.8.5
-  - Graph layout algorithm
-  - Automatic node positioning
-  - Multiple layout directions (TB, LR, BT, RL)
-- **@types/dagre**: 0.7.53
-  - TypeScript type definitions for Dagre
+- @xyflow/react 12.3.5 (ReactFlow v12)
+- dagre 0.8.5 (auto-layout algorithm)
 
-### State Management
-- **React Hooks**: useState, useEffect, useCallback, useMemo
-- **Context API**: For shared state (minimal usage)
-- **Local State**: Component-level state preferred
+### Communication
+- socket.io-client 4.8.1
+- Axios 1.13.2
 
-### Real-time Communication
-- **socket.io-client**: 4.8.1
-  - WebSocket connection
-  - Room-based messaging
-  - Event-driven architecture
-
-### HTTP Client
-- **Axios**: 1.13.2
-  - Request/response interceptors
-  - Centralized error handling
-
-### AI Integration
-- **@google/genai**: 1.30.0
-  - Gemini API for AI-generated flows
+### AI
+- @google/genai 1.30.0 (Gemini API for AI-generated flows)
 
 ---
 
-## Shared Type Definitions
+## Core Type Definitions
 
-### Core Types
-**File**: `/home/ali/whatsapp-builder/frontend/src/shared/types/index.ts`
+**File**: `/frontend/src/shared/types/index.ts`
 
-The shared types file defines the core data structures used throughout the application, ensuring type safety and consistency across all components.
-
-#### Condition Types
-
+### Condition Types
 ```typescript
-export interface Condition {
-    id: string;          // Unique identifier for the condition
-    variable: string;    // Variable name to check (from Question nodes)
-    operator: string;    // Comparison operator (==, !=, >, <, >=, <=, contains, not_contains)
-    value: string;       // Value to compare against
+interface Condition {
+    id: string;           // "cond-0", "cond-1"
+    variable: string;     // Variable from Question nodes
+    operator: string;     // ==, !=, >, <, >=, <=, contains, not_contains
+    value: string;
 }
 
-export interface ConditionGroup {
-    conditions: Condition[];           // Array of conditions to evaluate
-    logicalOperator: 'AND' | 'OR';    // How to combine multiple conditions
+interface ConditionGroup {
+    conditions: Condition[];           // Max 5 conditions
+    logicalOperator: 'AND' | 'OR';
 }
 ```
 
-**Usage**:
-- Used by Condition nodes in the flow builder
-- Stored in `NodeData.conditionGroup` field
-- Enables complex multi-condition logic with AND/OR operators
-- Maximum 5 conditions per group
-
-#### Node Data Types
-
+### Node Data Types
 ```typescript
-export interface NodeData {
-    label: string;                    // Display label for the node
-    type?: NodeDataType;              // Logical type: "start" | "message" | "question" | "condition" | "whatsapp_flow" | "rest_api"
-    content?: string;                 // Message content or question text
-    variable?: string;                // Variable name to store user response (Question nodes)
+interface NodeData {
+    label: string;
+    type?: NodeDataType;  // "start" | "message" | "question" | "condition" | "whatsapp_flow" | "rest_api"
+    content?: string;
+    variable?: string;
 
-    // Condition Node - New Structure
-    conditionGroup?: ConditionGroup;  // Multiple conditions with AND/OR logic
+    // Condition Node
+    conditionGroup?: ConditionGroup;          // New multi-condition
+    conditionVar/Op/Val?: string;             // Legacy single condition
 
-    // Condition Node - Legacy Structure (backward compatibility)
-    conditionVar?: string;            // Single condition variable
-    conditionOp?: string;             // Single condition operator
-    conditionVal?: string;            // Single condition value
-
-    // Question Node Types
+    // Question Node
     questionType?: "text" | "buttons" | "list";
-    headerText?: string;              // Optional header (buttons/list)
-    footerText?: string;              // Optional footer (buttons/list)
-    buttons?: ButtonItem[];           // Button options (max 3)
-    listButtonText?: string;          // List trigger button text
-    listSections?: SectionItem[];     // List sections (max 10)
+    headerText?, footerText?: string;
+    buttons?: ButtonItem[];                    // Max 3
+    listButtonText?: string;
+    listSections?: SectionItem[];              // Max 10
 
-    // WhatsApp Flow Node Fields
-    whatsappFlowId?: string;          // UUID of the Flow from flows table
-    flowCta?: string;                 // CTA button text (e.g., "Book Appointment")
-    flowMode?: string;                // 'draft' | 'published' - Flow mode
-    flowOutputVariable?: string;      // Variable name to store Flow response data
+    // Dynamic Lists/Buttons
+    dynamicListSource?, dynamicButtonsSource?: string;
+    dynamicLabelField?, dynamicDescField?: string;
 
-    // REST API Node Fields - NEW
-    apiUrl?: string;                  // REST API endpoint (supports {{variable}})
-    apiMethod?: 'GET' | 'POST' | 'PUT' | 'DELETE';  // HTTP method
-    apiHeaders?: Record<string, string>;  // Custom request headers
-    apiBody?: string;                 // Request body (JSON string, POST/PUT only)
-    apiOutputVariable?: string;       // Variable to store successful response
-    apiResponsePath?: string;         // JSON path to extract (e.g., "data.items[0].name")
-    apiErrorVariable?: string;        // Variable to store error message
-    apiTimeout?: number;              // Request timeout in ms (default: 30000)
+    // WhatsApp Flow Node
+    whatsappFlowId?: string;
+    flowCta?, flowMode?, flowOutputVariable?: string;
+
+    // REST API Node
+    apiUrl?, apiMethod?, apiBody?: string;
+    apiHeaders?: Record<string, string>;
+    apiOutputVariable?, apiResponsePath?, apiErrorVariable?: string;
+    apiTimeout?: number;
 
     // Component callbacks
-    onConfig?: () => void;            // Open configuration modal
-    onDelete?: () => void;            // Delete node
+    onConfig?, onDelete?: () => void;
 }
 ```
 
-**Key Design Decisions**:
-1. **Dual Condition Format**: Supports both legacy (`conditionVar/Op/Val`) and new (`conditionGroup`) formats for backward compatibility
-2. **Optional Fields**: Most fields are optional to support different node types
-3. **Type Safety**: TypeScript ensures all components use consistent data structures
-4. **Extensibility**: Easy to add new fields without breaking existing code
-
-#### Interactive Message Types
-
+### Interactive Message Types
 ```typescript
-export interface ButtonItem {
-    id: string;      // Unique ID: "btn_0", "btn_1", "btn_2" (frontend uses underscore)
-    title: string;   // Button text (max 20 chars for WhatsApp API)
+interface ButtonItem {
+    id: string;      // Frontend: "btn_0", Backend fallback: "btn-0"
+    title: string;   // Max 20 chars
 }
 
-// Button ID Format Convention:
-// - Frontend format: `btn_0`, `btn_1`, `btn_2` (underscore)
-// - Backend fallback: `btn-0`, `btn-1`, `btn-2` (hyphen)
-// - Custom IDs are preserved if provided
-
-export interface RowItem {
-    id: string;          // Unique ID: "row-0", "row-1", etc.
-    title: string;       // Row title (max 24 chars)
-    description?: string; // Optional description (max 72 chars)
+interface RowItem {
+    id: string;          // "row-0"
+    title: string;       // Max 24 chars
+    description?: string; // Max 72 chars
 }
 
-export interface SectionItem {
-    id: string;          // Unique ID: "section-0", etc.
-    title: string;       // Section title (max 24 chars)
-    rows: RowItem[];     // Row items (max 10 per section)
+interface SectionItem {
+    id: string;          // "section-0"
+    title: string;       // Max 24 chars
+    rows: RowItem[];     // Max 10
 }
 ```
 
-**WhatsApp API Constraints**:
-- Button titles: max 20 characters, max 3 buttons
-- List section titles: max 24 characters, max 10 sections
-- List row titles: max 24 characters, max 10 rows per section
-- List row descriptions: max 72 characters
+**WhatsApp Limits**: Buttons (max 3, 20 chars), Lists (max 10 rows/section, 24/72 char titles/desc)
 
 ---
 
 ## Application Structure
 
 ### Root Component: App.tsx
-**File**: `/home/ali/whatsapp-builder/frontend/src/app/App.tsx`
+**File**: `/frontend/src/app/App.tsx`
 
-The root component manages application routing using local state (no React Router).
-
+**Routing**: State-based (no React Router)
 ```typescript
-const App = () => {
-  // View state management (manual routing)
-  const [view, setView] = useState<ExtendedViewState>("chatbots");
-  const [selectedChatBot, setSelectedChatBot] = useState<ChatBot | null>(null);
+const [view, setView] = useState<ExtendedViewState>("chatbots");
+const [selectedChatBot, setSelectedChatBot] = useState<ChatBot | null>(null);
 
-  return (
-    <ReactFlowProvider> {/* Global ReactFlow context */}
-      <div className="h-screen flex overflow-hidden">
-        {/* Sidebar - shown on all pages except landing */}
-        {view !== "landing" && (
-          <SideBar
-            currentView={view}
-            onNavigate={(newView) => setView(newView)}
-          />
-        )}
-
-        {/* Route to different pages based on view state */}
-        <div className="flex-1 overflow-hidden">
-          {view === "landing" && <LandingPage onStart={() => setView("chatbots")} />}
-          {view === "builder" && <BuilderPage
-            initialFlow={selectedChatBot}
-            onFlowSaved={() => {/* ... */}}
-          />}
-          {view === "chat" && <ChatPage onBack={() => setView("builder")} />}
-          {view === "chatbots" && <ChatBotsListPage
-            onLoadChatBot={(chatbot) => {
-              setSelectedChatBot(chatbot);
-              setView("builder");
-            }}
-          />}
-          {view === "users" && <UsersPage />}
-          {view === "settings" && <WhatsappConfigPage />}
-        </div>
-      </div>
-    </ReactFlowProvider>
-  );
-};
+<ReactFlowProvider>
+  {view !== "landing" && <SideBar currentView={view} onNavigate={setView} />}
+  {view === "landing" && <LandingPage />}
+  {view === "builder" && <BuilderPage initialFlow={selectedChatBot} />}
+  {view === "chat" && <ChatPage />}
+  {view === "chatbots" && <ChatBotsListPage onLoadChatBot={...} />}
+  {/* ... */}
+</ReactFlowProvider>
 ```
-
-**Key Design Decisions**:
-- **No React Router**: Simple state-based routing for MVP
-- **ReactFlowProvider**: Wraps entire app for ReactFlow context
-- **Sidebar Navigation**: Persistent navigation component
-- **Callback Props**: Parent manages state, children notify via callbacks
 
 ---
 
-## Feature-Based Organization
+## Key Features
 
-### Feature: Builder (Flow Builder)
-**Location**: `/home/ali/whatsapp-builder/frontend/src/features/builder/`
+### 1. Flow Builder
+**Path**: `/frontend/src/features/builder/`
 
-#### Structure
-```
-builder/
-├── components/
-│   ├── BuilderPage.tsx          # Main builder interface
-│   ├── ConfigModals.tsx         # Node configuration modals
-│   ├── QuestionTypeModal.tsx    # Question type selector
-│   └── FlowTester.tsx           # In-app flow testing
-├── utils/
-│   ├── flowValidation.ts        # Flow validation logic
-│   ├── autoLayout.ts            # Dagre-based auto layout
-│   └── index.ts                 # Utility exports
-└── index.ts                     # Public exports
-```
+**Components**:
+- `BuilderPage.tsx`: Main canvas, drag-and-drop, validation, AI generation, auto-layout
+- `ConfigModals.tsx`: Node configuration modals
+- `QuestionTypeModal.tsx`: Interactive message type selector
+- `FlowTester.tsx`: In-app flow testing
 
-#### BuilderPage Component
-**File**: `/home/ali/whatsapp-builder/frontend/src/features/builder/components/BuilderPage.tsx`
-
-**Responsibilities**:
-1. **ReactFlow Canvas Management**: Nodes, edges, connections
-2. **Drag-and-Drop**: Node creation from sidebar
-3. **Node Configuration**: Modal-based editing
-4. **Flow Validation**: Real-time validation with error panel
-5. **AI Generation**: Gemini-powered flow generation
-6. **Auto Layout**: Dagre-based automatic node positioning with 4 layout directions
-7. **Backend Integration**: Save/load flows via API
-
-#### ConfigCondition Component
-**File**: `/home/ali/whatsapp-builder/frontend/src/features/builder/components/ConfigModals.tsx`
-
-The `ConfigCondition` component provides a comprehensive interface for configuring conditional branching logic in chatbot flows. It supports multiple conditions with AND/OR logical operators, enabling complex decision trees.
+**Utils**:
+- `flowValidation.ts`: Validates nodes/edges (checks START node, dead ends, disconnected nodes)
+- `autoLayout.ts`: Dagre-based layout with 4 directions (TB, LR, BT, RL)
 
 **Key Features**:
-
-1. **Multiple Conditions Support** (up to 5 conditions):
-   - Add multiple conditions to create complex logic
-   - Each condition can check a different variable
-   - Minimum 1 condition required, maximum 5
-
-2. **8 Comparison Operators**:
-   - `==` - Equal To
-   - `!=` - Not Equal To
-   - `>` - Greater Than
-   - `<` - Less Than
-   - `>=` - Greater Than or Equal
-   - `<=` - Less Than or Equal
-   - `contains` - Contains substring
-   - `not_contains` - Does Not Contain substring
-
-3. **Logical Operators**:
-   - `AND` - All conditions must be true
-   - `OR` - At least one condition must be true
-   - Applied between all conditions in the group
-
-4. **Variable Discovery**:
-   - Automatically scans all Question nodes in the flow
-   - Extracts variable names for use in conditions
-   - Displays warning if no variables are available
-   - Dropdown selection for easy variable picking
-
-5. **Real-time Preview**:
-   - Shows human-readable condition logic
-   - Format: `variable operator "value" AND/OR variable operator "value"`
-   - Updates as conditions are modified
-
-6. **Backward Compatibility**:
-   - Supports legacy single-condition format (`conditionVar`, `conditionOp`, `conditionVal`)
-   - Automatically migrates legacy data to new structure on edit
-   - Saves both old and new formats for compatibility
-
-**Data Structure**:
-```typescript
-interface Condition {
-    id: string;           // Unique ID: "cond-0", "cond-1", etc.
-    variable: string;     // Variable name from Question node
-    operator: string;     // One of 8 operators
-    value: string;        // Comparison value
-}
-
-interface ConditionGroup {
-    conditions: Condition[];           // Array of conditions
-    logicalOperator: 'AND' | 'OR';    // How to combine conditions
-}
-
-// Stored in NodeData as:
-interface NodeData {
-    // ... other fields
-    conditionGroup?: ConditionGroup;   // New structure
-    // Legacy fields (for backward compatibility):
-    conditionVar?: string;
-    conditionOp?: string;
-    conditionVal?: string;
-}
-```
-
-**State Management**:
-```typescript
-const [conditions, setConditions] = useState<Condition[]>(initConditions());
-const [logicalOperator, setLogicalOperator] = useState<'AND' | 'OR'>('AND');
-const [label, setLabel] = useState(data.label || "Condition");
-```
-
-**Initialization Logic**:
-```typescript
-const initConditions = (): Condition[] => {
-    // 1. Check if new structure exists
-    if (data.conditionGroup && data.conditionGroup.conditions.length > 0) {
-        return data.conditionGroup.conditions;
-    }
-    // 2. Migrate legacy structure
-    if (data.conditionVar) {
-        return [{
-            id: 'cond-0',
-            variable: data.conditionVar,
-            operator: data.conditionOp || '==',
-            value: data.conditionVal || ''
-        }];
-    }
-    // 3. Default empty condition
-    return [{
-        id: 'cond-0',
-        variable: availableVariables[0] || '',
-        operator: '==',
-        value: ''
-    }];
-};
-```
-
-**Variable Discovery**:
-```typescript
-const availableVariables = useMemo(() => {
-    const nodes = reactFlowInstance.getNodes();
-    const vars: string[] = [];
-
-    nodes.forEach(node => {
-        if (node.type === 'question' && node.data?.variable) {
-            vars.push(node.data.variable as string);
-        }
-    });
-
-    return vars;
-}, [reactFlowInstance]);
-```
-
-**Validation**:
-```typescript
-const handleSave = () => {
-    // Ensure all conditions have required fields
-    const isValid = conditions.every(c => c.variable && c.operator && c.value);
-    if (!isValid) {
-        alert("Please fill all condition fields");
-        return;
-    }
-
-    const conditionGroup: ConditionGroup = {
-        conditions,
-        logicalOperator
-    };
-
-    onSave({
-        ...data,
-        label,
-        conditionGroup,
-        // Keep legacy fields for backward compatibility
-        conditionVar: conditions[0]?.variable,
-        conditionOp: conditions[0]?.operator,
-        conditionVal: conditions[0]?.value,
-    });
-    onClose();
-};
-```
-
-**Preview Generation**:
-```typescript
-const previewText = useMemo(() => {
-    if (conditions.length === 0) return "No conditions defined";
-
-    return conditions.map((cond, idx) => {
-        const op = operators.find(o => o.value === cond.operator)?.label || cond.operator;
-        const condText = `${cond.variable} ${op} "${cond.value}"`;
-
-        if (idx === conditions.length - 1) return condText;
-        return `${condText} ${logicalOperator}`;
-    }).join(' ');
-}, [conditions, logicalOperator]);
-```
-
-**UI Features**:
-- **Dark Theme Support**: Fully styled for dark mode
-- **Add/Remove Conditions**: Dynamic condition management with clear affordances
-- **Dropdown Selectors**: For variables and operators
-- **Text Inputs**: For comparison values
-- **Preview Panel**: Shows complete logic expression
-- **Validation Warnings**: Alerts when no variables are available
-- **Disabled States**: Prevents adding conditions beyond limits
-
-**User Workflow**:
-1. Click on Condition node in builder
-2. Modal opens with existing conditions or default
-3. Select variable from dropdown (populated from Question nodes)
-4. Select comparison operator
-5. Enter comparison value
-6. Add more conditions if needed (up to 5)
-7. Choose AND/OR logical operator
-8. Preview shows complete logic
-9. Save applies configuration to node
-
-**Example Use Cases**:
-```typescript
-// Simple condition (legacy format supported)
-age > "18"
-
-// Multiple conditions with AND
-age > "18" AND country == "USA"
-
-// Multiple conditions with OR
-status == "premium" OR status == "gold"
-
-// Complex string matching
-email contains "@company.com" AND role != "guest"
-```
-
-**State Management**:
-```typescript
-// Flow state
-const [currentFlowId, setCurrentFlowId] = useState<string | null>(null);
-const [currentFlowName, setCurrentFlowName] = useState("My Chatbot");
-const [nodes, setNodes, onNodesChange] = useNodesState<Node>([/* initial START node */]);
-const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
-
-// UI state
-const [configNode, setConfigNode] = useState<Node | null>(null);
-const [testMode, setTestMode] = useState(false);
-const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
-
-// ReactFlow instance
-const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
-```
-
-**Key Functions**:
-- `onDrop()`: Handle node drop from sidebar to canvas
-- `onNodeClick()`: Open configuration modal
-- `updateNodeData()`: Update node data from modal
-- `deleteNode()`: Remove node and connected edges
-- `handleSave()`: Validate and save flow to backend
-- `generateAIResponse()`: Generate flow from AI prompt
-
-**Data Transformation Pipeline (handleSave)**:
-
-Before saving to backend, node data is transformed to ensure API compatibility:
-
-```typescript
-const payload = {
-  name: currentFlowName,
-  nodes: nodes.map(n => {
-    const buttons = (n.data as any).buttons;
-    return {
-      id: n.id,
-      type: n.type,
-      position: n.position,
-      data: {
-        ...n.data,
-        // Transform buttons to ButtonItemDto[] format
-        buttons: Array.isArray(buttons)
-          ? buttons.map((btn: any, index: number) =>
-              typeof btn === 'string'
-                ? { id: `btn_${index}`, title: btn }
-                : { id: btn.id || `btn_${index}`, title: btn.title }
-            )
-          : undefined,
-        // Remove non-serializable function references
-        onConfig: undefined,
-        onDelete: undefined
-      }
-    };
-  }),
-  edges: edges.map(e => ({ /* ... */ })),
-};
-```
-
-**Purpose**:
-1. Ensure all buttons have both `id` and `title` fields (ButtonItemDto format)
-2. Support backward compatibility with legacy `string[]` format
-3. Generate consistent IDs for buttons without explicit IDs
-4. Remove non-serializable function references before API call
-
-**Validation System**:
-
-The builder includes a comprehensive flow validation system that checks for structural integrity, node configuration completeness, and WhatsApp API compliance before saving.
-
-**Implementation Location**: `/home/ali/whatsapp-builder/frontend/src/features/builder/utils/flowValidation.ts`
-
-**Validation Trigger Points**:
-1. **Manual Validation**: "Validate" button in header
-2. **Pre-Save Validation**: Automatically runs before saving flow
-3. **Real-time Feedback**: Validation panel shows errors/warnings
-
-**Validation Flow**:
-```typescript
-const handleSave = async () => {
-  // 1. Validate flow before saving
-  const errors = validateFlow(nodes, edges);
-  setValidationErrors(errors);
-
-  // 2. Check error severity
-  const hasErrors = errors.some(e => e.severity === 'error');
-  const hasWarnings = errors.some(e => e.severity === 'warning');
-
-  // 3. Block save if errors found
-  if (hasErrors) {
-    setShowValidationPanel(true);
-    alert('Flow has validation errors. Please fix them before saving.');
-    return;
-  }
-
-  // 4. Warn but allow save if only warnings
-  if (hasWarnings) {
-    setShowValidationPanel(true);
-    const confirmed = window.confirm(
-      'There are some warnings in your flow. Do you want to continue saving?'
-    );
-    if (!confirmed) return;
-  }
-
-  // 5. Proceed with save
-  await saveChatBot(payload);
-};
-```
-
-**Validation Rules** (7 Categories):
-
-### 1. START Node Validation
-```typescript
-// Rule: Exactly one START node required
-const startNodes = nodes.filter(n => n.type === 'start');
-
-if (startNodes.length === 0) {
-  errors.push({
-    nodeId: 'flow',
-    message: 'Flow must start with a START node',
-    severity: 'error'
-  });
-}
-
-if (startNodes.length > 1) {
-  errors.push({
-    nodeId: 'flow',
-    message: 'Flow can only have one START node',
-    severity: 'error'
-  });
-}
-```
-
-### 2. Condition Node Output Validation
-```typescript
-// Rule: Condition nodes must have both TRUE and FALSE outputs
-if (node.type === 'condition') {
-  const trueEdge = outgoingEdges.find(e => e.sourceHandle === 'true');
-  const falseEdge = outgoingEdges.find(e => e.sourceHandle === 'false');
-
-  if (!trueEdge) {
-    errors.push({
-      nodeId: node.id,
-      message: 'Condition node must have a "true" output',
-      severity: 'error'
-    });
-  }
-
-  if (!falseEdge) {
-    errors.push({
-      nodeId: node.id,
-      message: 'Condition node must have a "false" output',
-      severity: 'error'
-    });
-  }
-}
-```
-
-### 3. Button Question Edge Validation
-```typescript
-// Rule: Each button should have a corresponding edge (warning only)
-if (node.type === 'question' && node.data.questionType === 'buttons') {
-  const buttons = node.data.buttons || [];
-
-  buttons.forEach((button: ButtonItem) => {
-    const buttonEdge = outgoingEdges.find(e => e.sourceHandle === button.id);
-    if (!buttonEdge) {
-      errors.push({
-        nodeId: node.id,
-        message: `No edge defined for button "${button.title}"`,
-        severity: 'warning'
-      });
-    }
-  });
-}
-```
-
-### 4. Orphan Node Detection
-```typescript
-// Rule: All nodes (except START) must have incoming connections
-nodes.forEach(node => {
-  if (node.type === 'start') return;
-
-  const hasIncoming = edges.some(e => e.target === node.id);
-  if (!hasIncoming) {
-    errors.push({
-      nodeId: node.id,
-      message: 'This node is not connected to any other node',
-      severity: 'warning'
-    });
-  }
-});
-```
-
-### 5. Question Variable Validation
-```typescript
-// Rule: Question nodes must have a variable name for storing user input
-if (node.type === 'question') {
-  const variable = node.data.variable as string | undefined;
-  if (!variable || variable.trim() === '') {
-    errors.push({
-      nodeId: node.id,
-      message: 'Question node must have a variable name',
-      severity: 'error'
-    });
-  }
-}
-```
-
-### 6. Button/List Content Validation (WhatsApp API Limits)
-```typescript
-// Button validation
-if (node.data.questionType === 'buttons') {
-  const buttons = node.data.buttons || [];
-
-  // At least 1 button required
-  if (buttons.length === 0) {
-    errors.push({
-      nodeId: node.id,
-      message: 'At least one button must be defined',
-      severity: 'error'
-    });
-  }
-
-  // Maximum 3 buttons (WhatsApp API limit)
-  if (buttons.length > 3) {
-    errors.push({
-      nodeId: node.id,
-      message: 'Maximum 3 buttons can be defined',
-      severity: 'error'
-    });
-  }
-
-  // Button text validation
-  buttons.forEach((btn: ButtonItem, i: number) => {
-    if (!btn.title || btn.title.trim() === '') {
-      errors.push({
-        nodeId: node.id,
-        message: `Button ${i + 1} cannot be empty`,
-        severity: 'error'
-      });
-    }
-
-    // WhatsApp API: button title max 20 characters
-    if (btn.title && btn.title.length > 20) {
-      errors.push({
-        nodeId: node.id,
-        message: `Button ${i + 1} can have maximum 20 characters`,
-        severity: 'error'
-      });
-    }
-  });
-}
-
-// List validation
-if (node.data.questionType === 'list') {
-  const sections = node.data.listSections || [];
-
-  // At least 1 section required
-  if (sections.length === 0) {
-    errors.push({
-      nodeId: node.id,
-      message: 'At least one section must be defined',
-      severity: 'error'
-    });
-  }
-
-  // Maximum 10 sections (WhatsApp API limit)
-  if (sections.length > 10) {
-    errors.push({
-      nodeId: node.id,
-      message: 'Maximum 10 sections can be defined',
-      severity: 'error'
-    });
-  }
-
-  // Section validation
-  sections.forEach((section: SectionItem, sectionIndex: number) => {
-    // Section title required
-    if (!section.title || section.title.trim() === '') {
-      errors.push({
-        nodeId: node.id,
-        message: `Section ${sectionIndex + 1} must have a title`,
-        severity: 'error'
-      });
-    }
-
-    // WhatsApp API: section title max 24 characters
-    if (section.title && section.title.length > 24) {
-      errors.push({
-        nodeId: node.id,
-        message: `Section ${sectionIndex + 1} title can have maximum 24 characters`,
-        severity: 'error'
-      });
-    }
-
-    const rows = section.rows || [];
-
-    // At least 1 row required per section
-    if (rows.length === 0) {
-      errors.push({
-        nodeId: node.id,
-        message: `Section ${sectionIndex + 1} must have at least one row`,
-        severity: 'error'
-      });
-    }
-
-    // Maximum 10 rows per section (WhatsApp API limit)
-    if (rows.length > 10) {
-      errors.push({
-        nodeId: node.id,
-        message: `Section ${sectionIndex + 1} can have maximum 10 rows`,
-        severity: 'error'
-      });
-    }
-
-    // Row validation
-    rows.forEach((row, rowIndex) => {
-      // Row title required
-      if (!row.title || row.title.trim() === '') {
-        errors.push({
-          nodeId: node.id,
-          message: `Section ${sectionIndex + 1}, Row ${rowIndex + 1} must have a title`,
-          severity: 'error'
-        });
-      }
-
-      // WhatsApp API: row title max 24 characters
-      if (row.title && row.title.length > 24) {
-        errors.push({
-          nodeId: node.id,
-          message: `Section ${sectionIndex + 1}, Row ${rowIndex + 1} title can have maximum 24 characters`,
-          severity: 'error'
-        });
-      }
-
-      // WhatsApp API: row description max 72 characters
-      if (row.description && row.description.length > 72) {
-        errors.push({
-          nodeId: node.id,
-          message: `Section ${sectionIndex + 1}, Row ${rowIndex + 1} description can have maximum 72 characters`,
-          severity: 'error'
-        });
-      }
-    });
-  });
-}
-```
-
-### 7. Message Content Validation
-```typescript
-// Rule: Message nodes must have content
-if (node.type === 'message') {
-  const content = node.data.content as string | undefined;
-  if (!content || content.trim() === '') {
-    errors.push({
-      nodeId: node.id,
-      message: 'Message node must have content',
-      severity: 'error'
-    });
-  }
-}
-```
-
-### 8. Condition Configuration Validation
-```typescript
-// Rule: Condition nodes must have complete configuration
-if (node.type === 'condition') {
-  // Check new structure first
-  const conditionGroup = node.data.conditionGroup as ConditionGroup | undefined;
-
-  if (conditionGroup && conditionGroup.conditions.length > 0) {
-    // Validate each condition in the group
-    conditionGroup.conditions.forEach((cond, idx) => {
-      if (!cond.variable || cond.variable.trim() === '') {
-        errors.push({
-          nodeId: node.id,
-          message: `Condition ${idx + 1}: Must have a variable to check`,
-          severity: 'error'
-        });
-      }
-
-      if (!cond.operator) {
-        errors.push({
-          nodeId: node.id,
-          message: `Condition ${idx + 1}: Must have an operator`,
-          severity: 'error'
-        });
-      }
-
-      if (cond.value === undefined || cond.value === null || cond.value === '') {
-        errors.push({
-          nodeId: node.id,
-          message: `Condition ${idx + 1}: Must have a value to compare`,
-          severity: 'warning'
-        });
-      }
-    });
-  } else {
-    // Fallback to legacy structure for backward compatibility
-    const conditionVar = node.data.conditionVar as string | undefined;
-    const conditionOp = node.data.conditionOp as string | undefined;
-    const conditionVal = node.data.conditionVal as string | undefined;
-
-    if (!conditionVar || conditionVar.trim() === '') {
-      errors.push({
-        nodeId: node.id,
-        message: 'Condition node must have a variable to check',
-        severity: 'error'
-      });
-    }
-
-    if (!conditionOp) {
-      errors.push({
-        nodeId: node.id,
-        message: 'Condition node must have an operator',
-        severity: 'error'
-      });
-    }
-
-    if (conditionVal === undefined || conditionVal === null || conditionVal === '') {
-      errors.push({
-        nodeId: node.id,
-        message: 'Condition node must have a value to compare',
-        severity: 'warning'
-      });
-    }
-  }
-}
-```
-
-**Validation Error Types**:
-
-```typescript
-export interface ValidationError {
-  nodeId: string;        // Node ID or 'flow' for flow-level errors
-  message: string;       // Human-readable error message
-  severity: 'error' | 'warning';  // Error blocks save, warning allows save
-}
-```
-
-**Error Severity Guidelines**:
-- **error**: Critical issues that break flow execution (missing required fields, API violations)
-- **warning**: Non-critical issues that may affect UX (disconnected buttons, orphan nodes)
-
-**Validation UI**:
-```typescript
-// Validation panel (bottom-right overlay)
-{showValidationPanel && validationErrors.length > 0 && (
-  <div className="validation-panel">
-    <h3>Validation Issues</h3>
-    <div className="errors-list">
-      {validationErrors.map((error, index) => (
-        <div className={`error-item ${error.severity}`}>
-          <span className="icon">{error.severity === 'error' ? 'error' : 'warning'}</span>
-          <p>{error.message}</p>
-          <p className="node-id">Node: {error.nodeId.slice(0, 8)}</p>
-        </div>
-      ))}
-    </div>
-    <div className="summary">
-      {validationErrors.filter(e => e.severity === 'error').length} errors,
-      {validationErrors.filter(e => e.severity === 'warning').length} warnings
-    </div>
-  </div>
-)}
-```
-
-**WhatsApp API Compliance**:
-All validation rules align with WhatsApp Business API limitations:
-- Button titles: max 20 characters, max 3 buttons
-- List section titles: max 24 characters, max 10 sections
-- List row titles: max 24 characters, max 10 rows per section
-- List row descriptions: max 72 characters
-
-**Best Practices**:
-1. Run validation before every save
-2. Fix all errors before deployment
-3. Review warnings for UX improvements
-4. Test flows in Test Mode after validation passes
-
-**AI Integration**:
-
-The builder includes an AI-powered flow generation feature using Google Gemini API. Users can describe their chatbot in natural language, and the AI generates a complete flow structure with nodes and edges.
-
-**Implementation Location**: `/home/ali/whatsapp-builder/frontend/src/features/builder/components/BuilderPage.tsx` (lines 216-262)
-
-**API Configuration**:
-```typescript
-// Environment variable required: VITE_API_KEY
-const apiKey = import.meta.env.VITE_API_KEY;
-const ai = new GoogleGenAI({ apiKey });
-```
-
-**Model Configuration**:
-- **Model**: `gemini-2.0-flash-thinking-exp-1219`
-- **Response Format**: JSON with structured nodes and edges
-- **Input**: Natural language description of chatbot flow
-- **Output**: Complete ReactFlow-compatible graph structure
-
-**Generation Flow**:
-```typescript
-const generateAIResponse = async () => {
-  if (!aiPrompt) return;
-  setIsGenerating(true);
-
-  try {
-    // 1. Check API key
-    const apiKey = import.meta.env.VITE_API_KEY;
-    if (!apiKey) {
-      alert("Please set VITE_API_KEY in .env file");
-      return;
-    }
-
-    // 2. Initialize Gemini client
-    const ai = new GoogleGenAI({ apiKey });
-
-    // 3. Generate flow from prompt
-    const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash-thinking-exp-1219",
-      contents: `Create a chatbot flow using React Flow structure. Request: "${aiPrompt}".
-        Return JSON with "nodes" and "edges".
-        Node types: "start", "message", "question" (w/ questionType: "text"|"buttons"), "condition".
-        Coordinates should be spaced out (e.g. x: 0, 300, 600).`,
-      config: {
-        responseMimeType: "application/json",
-      },
-    });
-
-    // 4. Parse and apply result
-    const text = response.text;
-    if (text) {
-      const result = JSON.parse(text);
-      if (result.nodes) {
-        // Map AI nodes to internal structure
-        const mappedNodes = result.nodes.map((n: any) => ({
-          ...n,
-          data: { ...n.data, onConfig: () => {} } // handlers re-attached in render
-        }));
-        setNodes(mappedNodes);
-        if (result.edges) setEdges(result.edges);
-        setShowAIModal(false);
-      }
-    }
-  } catch (e) {
-    console.error(e);
-    alert("Error generating flow.");
-  } finally {
-    setIsGenerating(false);
-  }
-};
-```
-
-**User Interface**:
-```typescript
-// AI Build button in header
-<button onClick={() => setShowAIModal(true)} className="...">
-  <span className="material-symbols-outlined">auto_awesome</span> AI Build
-</button>
-
-// Modal dialog
-{showAIModal && (
-  <div className="modal-overlay">
-    <textarea
-      placeholder="Describe your bot flow..."
-      value={aiPrompt}
-      onChange={(e) => setAiPrompt(e.target.value)}
-    />
-    <button onClick={generateAIResponse} disabled={isGenerating}>
-      {isGenerating ? "Thinking..." : "Generate"}
-    </button>
-  </div>
-)}
-```
-
-**Expected Output Format**:
-```json
-{
-  "nodes": [
-    {
-      "id": "start-1",
-      "type": "start",
-      "position": { "x": 0, "y": 0 },
-      "data": { "label": "Start Flow" }
-    },
-    {
-      "id": "msg-1",
-      "type": "message",
-      "position": { "x": 300, "y": 0 },
-      "data": {
-        "label": "Welcome Message",
-        "content": "Welcome to our chatbot!"
-      }
-    },
-    {
-      "id": "q-1",
-      "type": "question",
-      "position": { "x": 600, "y": 0 },
-      "data": {
-        "label": "User Choice",
-        "questionType": "buttons",
-        "content": "What would you like to do?",
-        "variable": "user_choice",
-        "buttons": ["Option 1", "Option 2"]
-      }
-    }
-  ],
-  "edges": [
-    { "source": "start-1", "target": "msg-1" },
-    { "source": "msg-1", "target": "q-1" }
-  ]
-}
-```
-
-**Prompt Engineering**:
-The prompt explicitly specifies:
-- **Structure**: ReactFlow-compatible JSON format
-- **Node Types**: start, message, question (with questionType), condition
-- **Layout**: Spaced coordinates for visual clarity
-- **Data Requirements**: Each node type's required fields
-
-**Use Cases**:
-1. **Rapid Prototyping**: Quickly generate flow structure from description
-2. **Template Generation**: Create common flow patterns (FAQs, booking, support)
-3. **Learning Tool**: See how flows are structured
-4. **Starting Point**: Generate base flow, then customize in editor
-
-**Limitations**:
-- Requires valid VITE_API_KEY environment variable
-- Network dependency on Google Gemini API
-- Generated flows may need manual refinement
-- Character limits on prompt length
-- No validation of generated output (done after generation)
-
-**Error Handling**:
-```typescript
-// Missing API key
-if (!apiKey) {
-  alert("Please set VITE_API_KEY in .env file");
-  return;
-}
-
-// API/network errors
-catch (e) {
-  console.error(e);
-  alert("Error generating flow.");
-}
-```
-
-**Security Considerations**:
-- API key stored in environment variable (not committed)
-- Client-side API calls (key exposed to browser)
-- For production: Consider server-side proxy for API key protection
-
-**Auto Layout**:
-
-The builder includes an automatic layout feature powered by the Dagre graph layout algorithm. This feature automatically arranges nodes in a clean, hierarchical structure with multiple direction options.
-
-**Implementation Location**: `/home/ali/whatsapp-builder/frontend/src/features/builder/utils/autoLayout.ts`
-
-**Dagre Algorithm**:
-- **Library**: dagre (^0.8.5)
-- **Algorithm**: Directed graph layout with configurable ranking
-- **Customization**: Node dimensions, spacing, and direction
-
-**Layout Directions**:
-```typescript
-export type LayoutDirection = 'TB' | 'LR' | 'BT' | 'RL';
-
-export const LAYOUT_DIRECTIONS = [
-  { value: 'TB', label: 'Top to Bottom', icon: 'arrow_downward' },
-  { value: 'LR', label: 'Left to Right', icon: 'arrow_forward' },
-  { value: 'BT', label: 'Bottom to Top', icon: 'arrow_upward' },
-  { value: 'RL', label: 'Right to Left', icon: 'arrow_back' },
-];
-```
-
-**Layout Options**:
-```typescript
-interface LayoutOptions {
-  direction?: LayoutDirection;    // TB, LR, BT, or RL
-  nodeWidth?: number;             // Default: 280px
-  nodeHeight?: number;            // Default: 80px
-  rankSeparation?: number;        // Vertical spacing (default: 100px)
-  nodeSeparation?: number;        // Horizontal spacing (default: 50px)
-}
-```
-
-**Core Function**:
-```typescript
-export const getLayoutedElements = (
-  nodes: Node[],
-  edges: Edge[],
-  options: LayoutOptions = {}
-): { nodes: Node[]; edges: Edge[] } => {
-  const {
-    direction = 'TB',
-    nodeWidth = 280,
-    nodeHeight = 80,
-    rankSeparation = 100,
-    nodeSeparation = 50,
-  } = options;
-
-  // Create Dagre graph
-  const dagreGraph = new Dagre.graphlib.Graph();
-  dagreGraph.setDefaultEdgeLabel(() => ({}));
-
-  // Configure layout
-  dagreGraph.setGraph({
-    rankdir: direction,
-    ranksep: rankSeparation,
-    nodesep: nodeSeparation,
-    marginx: 50,
-    marginy: 50,
-  });
-
-  // Add nodes and edges
-  nodes.forEach((node) => {
-    dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
-  });
-  edges.forEach((edge) => {
-    dagreGraph.setEdge(edge.source, edge.target);
-  });
-
-  // Run layout algorithm
-  Dagre.layout(dagreGraph);
-
-  // Apply calculated positions
-  const layoutedNodes = nodes.map((node) => {
-    const nodeWithPosition = dagreGraph.node(node.id);
-    return {
-      ...node,
-      position: {
-        x: nodeWithPosition.x - nodeWidth / 2,
-        y: nodeWithPosition.y - nodeHeight / 2,
-      },
-    };
-  });
-
-  return { nodes: layoutedNodes, edges };
-};
-```
-
-**User Interface**:
-```typescript
-// Auto Layout button in BuilderPage header
-<button
-  onClick={() => handleAutoLayout('TB')}
-  disabled={isLayouting || nodes.length === 0}
-  className="..."
->
-  <span className="material-symbols-outlined">
-    {isLayouting ? 'sync' : 'account_tree'}
-  </span>
-  {isLayouting ? 'Layouting...' : 'Auto Layout'}
-</button>
-
-// Dropdown menu for direction selection
-<div className="dropdown-menu">
-  <button onClick={() => handleAutoLayout('TB')}>
-    <span className="material-symbols-outlined">arrow_downward</span>
-    Top to Bottom
-  </button>
-  <button onClick={() => handleAutoLayout('LR')}>
-    <span className="material-symbols-outlined">arrow_forward</span>
-    Left to Right
-  </button>
-  <button onClick={() => handleAutoLayout('BT')}>
-    <span className="material-symbols-outlined">arrow_upward</span>
-    Bottom to Top
-  </button>
-  <button onClick={() => handleAutoLayout('RL')}>
-    <span className="material-symbols-outlined">arrow_back</span>
-    Right to Left
-  </button>
-</div>
-```
-
-**Handler Implementation in BuilderPage**:
-```typescript
-const [isLayouting, setIsLayouting] = useState(false);
-
-const handleAutoLayout = useCallback((direction: LayoutDirection = 'TB') => {
-  if (nodes.length === 0) return;
-
-  setIsLayouting(true);
-
-  // Small delay for UI feedback
-  setTimeout(() => {
-    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-      nodes,
-      edges,
-      { direction }
-    );
-
-    setNodes(layoutedNodes);
-    setEdges(layoutedEdges);
-    setIsLayouting(false);
-  }, 100);
-}, [nodes, edges]);
-```
-
-**Use Cases**:
-1. **Complex Flow Cleanup**: Reorganize messy flows with many nodes
-2. **AI-Generated Flows**: Apply layout to AI-generated structures
-3. **Direction Change**: Switch between horizontal and vertical layouts
-4. **Quick Prototyping**: Focus on logic, auto-arrange visually
+- **5 Node Types**: Start, Message, Question, Condition, WhatsAppFlow, RestApi
+- **Validation**: Real-time error panel, pre-save validation
+- **AI Generation**: Gemini-powered flow from natural language prompt
+- **Auto Layout**: Dagre algorithm with configurable spacing and direction
+- **Dynamic Interactions**: Data-driven buttons/lists from variables or API responses
+- **Multi-Condition Logic**: Up to 5 conditions with AND/OR operators
+
+**File Paths**:
+- Builder: `features/builder/components/BuilderPage.tsx`
+- Config: `features/builder/components/ConfigModals.tsx`
+- Validation: `features/builder/utils/flowValidation.ts`
+- Auto-layout: `features/builder/utils/autoLayout.ts`
+
+### 2. Custom Nodes
+**Path**: `/frontend/src/features/nodes/`
+
+**5 Node Types**:
+1. **StartNode**: Entry point (blue circle)
+2. **MessageNode**: Send text message (blue box)
+3. **QuestionNode**: Interactive message (green box) - text/buttons/list
+4. **ConditionNode**: Branch logic (yellow diamond) - multi-condition with AND/OR
+5. **WhatsAppFlowNode**: Native WhatsApp Flow (purple box)
+6. **RestApiNode**: **NEW** - REST API integration (orange box)
+
+**Common Features**:
+- Delete button (top-right "×")
+- Config button (click node)
+- Custom handles (connection points)
+- Node-specific icons
+
+**File Pattern**: `features/nodes/[NodeType]/[NodeType].tsx`
+
+### 3. Chat Interface
+**Path**: `/frontend/src/features/chat/`
+
+**Components**:
+- `ChatPage.tsx`: Main chat UI with conversation list & message window
+- `ConversationList.tsx`: List of conversations with last message preview
+- `ChatWindow.tsx`: Message display, input, typing indicator
+- `MessageBubble.tsx`: Renders different message types (text, interactive, flow)
+
+**Real-time Features**:
+- Socket.IO connection for instant message updates
+- Typing indicators
+- Online/offline status
+- Optimistic UI updates
+- Message status (sent/delivered/read)
+
+**File Paths**:
+- Main: `features/chat/ChatPage.tsx`
+- Window: `features/chat/components/ChatWindow.tsx`
+- Bubble: `features/chat/components/MessageBubble.tsx`
+
+### 4. Session Tracking
+**Path**: `/frontend/src/features/sessions/`
+
+**Components**:
+- `SessionsPage.tsx`: List of all chatbot sessions
+- `SessionDetailModal.tsx`: Detailed session view with messages & flow visualization
 
 **Features**:
-- Preserves all node data and edges
-- Non-destructive (can be undone manually)
-- Respects edge connections
-- Centers nodes on calculated positions
-- Loading state prevents double-clicks
-- Disabled when no nodes present
-
-**Performance**:
-- Efficient for graphs up to 100+ nodes
-- Synchronous calculation with UI feedback delay
-- No backend dependency
-
-**Best Practices**:
-1. Use auto layout after AI generation for clean structure
-2. Apply layout early when building flows manually
-3. Choose direction based on flow complexity:
-   - TB: Default, works for most flows
-   - LR: Wide flows with many parallel branches
-   - BT/RL: Reverse flows for presentation purposes
-4. Fine-tune positions manually after auto layout if needed
-
-**Vite Configuration**:
-```typescript
-// vite.config.ts
-export default defineConfig({
-  optimizeDeps: {
-    include: ['dagre'],  // Pre-bundle dagre for faster dev server
-  },
-});
-```
-
----
-
-### Feature: Chat (Conversation UI)
-**Location**: `/home/ali/whatsapp-builder/frontend/src/features/chat/`
-
-#### Structure
-```
-chat/
-├── components/
-│   ├── Sidebar.tsx              # Conversation list
-│   ├── ChatWindow.tsx           # Message display + input
-│   ├── MessageBubble.tsx        # Individual message component
-│   └── messages/
-│       ├── ImageMessage.tsx
-│       ├── VideoMessage.tsx
-│       └── ReactionMessage.tsx
-├── ChatPage.tsx                 # Main chat container
-└── mockData.ts                  # Dev mock data
-```
-
-#### ChatPage Component
-**File**: `/home/ali/whatsapp-builder/frontend/src/features/chat/ChatPage.tsx`
-
-**Responsibilities**:
-1. **Load Conversations**: Fetch from API on mount
-2. **Real-time Sync**: Listen for new messages via Socket.IO
-3. **Conversation Selection**: Join/leave Socket.IO rooms
-4. **Send Messages**: Optimistic updates + API call
-5. **Status Updates**: Update message status (sent → delivered → read)
-
-**State Management**:
-```typescript
-const [conversations, setConversations] = useState<Conversation[]>([]);
-const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
-
-// Use WebSocket hook for real-time events
-const { newMessage, messageStatusUpdate } = useWebSocket();
-```
-
-**Real-time Message Handling**:
-```typescript
-// Handle new messages from WebSocket
-useEffect(() => {
-  if (newMessage) {
-    handleNewMessage(newMessage);
-  }
-}, [newMessage]);
-
-const handleNewMessage = (message: Message) => {
-  setConversations(prev => prev.map(c => {
-    if (c.id === message.conversationId) {
-      // Check for duplicates
-      if (c.messages?.some(m => m.id === message.id)) return c;
-
-      return {
-        ...c,
-        messages: [...(c.messages || []), message],
-        lastMessage: extractMessagePreview(message),
-        lastMessageAt: message.createdAt,
-        unreadCount: c.id !== activeConversationId ? (c.unreadCount || 0) + 1 : 0
-      };
-    }
-    return c;
-  }).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()));
-};
-```
-
-**Optimistic Updates**:
-```typescript
-const handleSendMessage = async (content: any) => {
-  if (!activeConversationId) return;
-
-  try {
-    // Send message and immediately add it to the UI
-    const sentMessage = await MessagesService.sendTextMessage(activeConversationId, content);
-
-    // Optimistically add the message to the conversation
-    setConversations(prev => prev.map(c => {
-      if (c.id === activeConversationId) {
-        // Check for duplicates
-        if (c.messages?.some(m => m.id === sentMessage.id)) return c;
-
-        return {
-          ...c,
-          messages: [...(c.messages || []), sentMessage],
-          lastMessage: content,
-          lastMessageAt: sentMessage.createdAt,
-        };
-      }
-      return c;
-    }));
-  } catch (error) {
-    console.error("Failed to send message:", error);
-    alert("Failed to send message");
-  }
-};
-```
-
-**Socket.IO Room Management**:
-```typescript
-const handleSelectConversation = async (id: string) => {
-  // Leave previous conversation room
-  if (activeConversationId) {
-    socket.emit('conversation:leave', { conversationId: activeConversationId });
-  }
-
-  setActiveConversationId(id);
-
-  // Join new conversation room for real-time updates
-  socket.emit('conversation:join', { conversationId: id });
-
-  // Load messages
-  const messages = await MessagesService.getMessages(id);
-  setConversations(prev => prev.map(c =>
-    c.id === id ? { ...c, messages, unreadCount: 0 } : c
-  ));
-};
-```
-
----
-
-### Feature: ChatBots (List & Management)
-**Location**: `/home/ali/whatsapp-builder/frontend/src/features/chatbots/`
-
-#### Structure
-```
-chatbots/
-├── components/
-│   └── ChatBotsListPage.tsx     # List view with cards
-├── api.ts                       # ChatBot API client
-└── index.ts
-```
-
-#### ChatBotsListPage Component
-**Responsibilities**:
-1. **List Chatbots**: Fetch and display all chatbots
-2. **Status Filter**: Filter by active/archived/draft
-3. **Search**: Client-side search by name
-4. **Actions**: Edit, delete, toggle active status
-5. **Navigation**: Open builder with selected chatbot
-
-**Key Features**:
-- **Card-based UI**: Each chatbot displayed as a card
-- **Status Badges**: Visual indicators for active/archived/draft
-- **Inline Actions**: Edit, delete, toggle active buttons
-- **Loading States**: Skeleton loaders during fetch
-
----
-
-### Feature: Flows (WhatsApp Flows Management)
-**Location**: `/home/ali/whatsapp-builder/frontend/src/features/flows/`
-
-#### Structure
-```
-flows/
-├── components/
-│   └── FlowsPage.tsx            # Flows management UI
-├── api/
-│   └── index.ts                 # Flows API client
-└── index.ts                     # Public exports
-```
-
-#### FlowsPage Component
-**File**: `/home/ali/whatsapp-builder/frontend/src/features/flows/components/FlowsPage.tsx`
-
-**Responsibilities**:
-1. **Flow Lifecycle Management**: Create, list, update, publish, and delete WhatsApp Flows
-2. **Flow JSON Editor**: Modal-based interface with syntax-highlighted JSON editor
-3. **Publishing**: Publish Flows to WhatsApp Cloud API
-4. **Preview**: Get preview URLs for testing Flows before publishing
-5. **Status Tracking**: Display Flow status (DRAFT, PUBLISHED, DEPRECATED, etc.)
-6. **Category Management**: Support for 8 WhatsApp Flow categories (SIGN_UP, APPOINTMENT_BOOKING, etc.)
-
-**UI/UX Highlights**:
-- **Modern Card Layout**: Responsive grid (1-3 columns) with gradient headers
-- **Status Badges**: Color-coded badges (green=PUBLISHED, gray=DRAFT, red=DEPRECATED)
-- **Hover Interactions**: Action buttons appear on card hover with smooth transitions
-- **Dark Theme Support**: Full dark mode compatibility
-- **Empty State**: Beautiful empty state with CTA to create first Flow
-- **Modal Workflows**: Separate modals for creation and viewing details
-
-**State Management**:
-```typescript
-const FlowsPage = () => {
-  const [flows, setFlows] = useState<WhatsAppFlow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedFlow, setSelectedFlow] = useState<WhatsAppFlow | null>(null);
-
-  // Load flows on mount
-  useEffect(() => {
-    loadFlows();
-  }, []);
-
-  const loadFlows = async () => {
-    try {
-      setLoading(true);
-      const data = await flowsApi.getAll();
-      setFlows(data);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-};
-```
-
-**Flow Card Component**:
-```typescript
-// Each flow rendered as a card with:
-<div className="flow-card">
-  {/* Gradient header with status badge and action buttons */}
-  <div className="flow-header">
-    <span className="status-badge">{flow.status}</span>
-    <div className="action-buttons">
-      {flow.status === 'DRAFT' && <PublishButton />}
-      {flow.previewUrl && <PreviewButton />}
-      <DeleteButton />
-    </div>
-  </div>
-
-  {/* Flow info */}
-  <div className="flow-info">
-    <h3>{flow.name}</h3>
-    <p>{flow.description}</p>
-    <div className="categories">
-      {flow.categories.map(cat => (
-        <span className="category-badge">{cat}</span>
-      ))}
-    </div>
-    <button onClick={() => setSelectedFlow(flow)}>View Details</button>
-  </div>
-</div>
-```
-
-**CreateFlowModal Component**:
-```typescript
-// Modal with comprehensive form
-const CreateFlowModal = ({ onClose, onSuccess }) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    categories: [],
-    flowJson: JSON.stringify(EXAMPLE_FLOW_JSON, null, 2),
-    endpointUri: '',
-  });
-  const [errors, setErrors] = useState({});
-
-  // Validation
-  const validateForm = () => {
-    - Name required
-    - Valid JSON required (parsed to verify)
-    - At least one category required
-  };
-
-  // 8 WhatsApp Flow Categories
-  const categories = [
-    'SIGN_UP', 'SIGN_IN', 'APPOINTMENT_BOOKING',
-    'LEAD_GENERATION', 'CONTACT_US', 'CUSTOMER_SUPPORT',
-    'SURVEY', 'OTHER'
-  ];
-
-  // Form fields:
-  - Name input (required)
-  - Description textarea
-  - Category checkboxes (grid layout, min 1)
-  - Endpoint URI input (optional)
-  - Flow JSON textarea (15 rows, monospace font, required)
-
-  // Submit creates Flow via API
-  const handleSubmit = async () => {
-    await flowsApi.create(formData);
-    onSuccess();
-  };
-};
-```
-
-**FlowDetailsModal Component**:
-```typescript
-// Read-only modal showing complete Flow details
-const FlowDetailsModal = ({ flow, onClose }) => {
-  return (
-    <div className="modal">
-      <h2>{flow.name}</h2>
-      <div className="details">
-        <div>Status: <StatusBadge status={flow.status} /></div>
-        <div>Description: {flow.description}</div>
-        <div>Categories: {flow.categories.map(...)}</div>
-        <div>WhatsApp Flow ID: {flow.whatsappFlowId}</div>
-        <div>Endpoint URI: {flow.endpointUri}</div>
-        <div>Created: {flow.createdAt}</div>
-        <div>Updated: {flow.updatedAt}</div>
-      </div>
-    </div>
-  );
-};
-```
-
-**Flow Operations**:
-```typescript
-// Publish Flow
-const handlePublish = async (flowId: string) => {
-  try {
-    await flowsApi.publish(flowId);
-    await loadFlows(); // Refresh to show updated status
-  } catch (err) {
-    setError(err.message);
-  }
-};
-
-// Preview Flow
-const handlePreview = async (flowId: string) => {
-  try {
-    const { previewUrl } = await flowsApi.getPreview(flowId);
-    window.open(previewUrl, '_blank'); // Opens WhatsApp preview in new tab
-  } catch (err) {
-    setError(err.message);
-  }
-};
-
-// Delete Flow (backend handles deprecation automatically)
-const handleDelete = async (flowId: string) => {
-  if (!confirm('Are you sure?')) return;
-
-  try {
-    await flowsApi.delete(flowId); // Backend deprecates if PUBLISHED
-    await loadFlows();
-  } catch (err) {
-    setError(err.message);
-  }
-};
-
-// Sync from Meta API (NEW)
-const handleSyncFromMeta = async () => {
-  setSyncing(true);
-  try {
-    const result = await flowsApi.syncFromMeta();
-    setSyncResult(result);
-    await loadFlows(); // Refresh list with synced flows
-  } catch (err) {
-    setError(err.message);
-  } finally {
-    setSyncing(false);
-  }
-};
-```
-
-**Sync Result Display (NEW)**:
-```typescript
-// After sync, display summary banner
-{syncResult && (
-  <div className="sync-result-banner">
-    <span className="success-icon">✓</span>
-    <span>Sync completed: {syncResult.total} flows found</span>
-    <span>{syncResult.created} created, {syncResult.updated} updated, {syncResult.unchanged} unchanged</span>
-    <button onClick={() => setSyncResult(null)}>×</button>
-  </div>
-)}
-```
-
-**API Client**:
-```typescript
-// flows/api/index.ts
-export const flowsApi = {
-  getAll: () => axios.get('/api/flows'),
-  getActive: () => axios.get('/api/flows/active'),
-  create: (data) => axios.post('/api/flows', data),
-  update: (id, data) => axios.put(`/api/flows/${id}`, data),
-  publish: (id) => axios.post(`/api/flows/${id}/publish`),
-  getPreview: (id, invalidate = false) =>
-    axios.get(`/api/flows/${id}/preview`, { params: { invalidate } }),
-  delete: (id) => axios.delete(`/api/flows/${id}`),
-  syncFromMeta: () => axios.post('/api/flows/sync'),  // NEW
-};
-
-// SyncResult Type (NEW)
-export type SyncResult = {
-  created: number;
-  updated: number;
-  unchanged: number;
-  total: number;
-  flows: WhatsAppFlow[];
-};
-```
-
----
-
-### Feature: Sessions (Chatbot Session Tracking)
-**Location**: `/home/ali/whatsapp-builder/frontend/src/features/sessions/`
-
-#### Structure
-```
-sessions/
-├── components/
-│   ├── SessionsListPage.tsx       # Main sessions list with tabs
-│   ├── SessionDetailPage.tsx      # Session detail view
-│   ├── ConversationLog.tsx        # Message history display (enhanced)
-│   ├── VariablesPanel.tsx         # Session variables display (enhanced)
-│   ├── SessionTimeline.tsx        # Visual event timeline (NEW)
-│   └── index.ts                   # Public exports
-└── index.ts
-```
-
-#### SessionsListPage Component
-**File**: `/home/ali/whatsapp-builder/frontend/src/features/sessions/components/SessionsListPage.tsx`
-
-**Responsibilities**:
-1. **Session Listing**: Display active and completed chatbot sessions
-2. **Tab Navigation**: Switch between active and completed sessions
-3. **Real-time Updates**: Live session updates via WebSocket
-4. **Filtering**: Filter sessions by chatbot
-5. **Pagination**: Server-side pagination support
-6. **Statistics**: Display session stats (active, completed today, total)
-
-**Key Features**:
-- **Tab-based UI**: "Active Sessions" and "Completed Sessions" tabs
-- **Session Cards**: Grid layout (1-3 columns) with session info
-- **Real-time Badge**: Shows live updates indicator when connected
-- **Stats Cards**: Visual stat cards for quick overview
-- **Toast Notifications**: Real-time session event notifications
-
-**State Management**:
-```typescript
-const [sessions, setSessions] = useState<ChatbotSession[]>([]);
-const [currentTab, setCurrentTab] = useState<'active' | 'completed'>('active');
-const [selectedChatbotId, setSelectedChatbotId] = useState<string>('all');
-const [currentPage, setCurrentPage] = useState(1);
-
-// WebSocket for real-time updates
-const {
-  connected,
-  activeSessions,
-  sessionStarted,
-  sessionStatusChanged,
-  sessionCompleted,
-  subscribeToSessions
-} = useSessionSocket();
-```
-
-**Real-time Events**:
-- `session:started` - New session notification
-- `session:status-changed` - Status change (running → waiting_input → completed)
-- `session:completed` - Session completion notification
-
-#### SessionDetailPage Component
-**File**: `/home/ali/whatsapp-builder/frontend/src/features/sessions/components/SessionDetailPage.tsx`
-
-**Responsibilities**:
-1. **Session Details**: Display comprehensive session information
-2. **Message History**: Show conversation log with timestamps
-3. **Session Timeline**: Visual timeline of session events
-4. **Variables Panel**: Display session context variables
-5. **Real-time Updates**: Live message and status updates via WebSocket
-6. **Session Control**: Stop active sessions
-
-**Layout**:
-- **Split View**: 60% conversation log, 40% timeline & variables panel
-- **Header**: Customer info, chatbot name, status badge
-- **Current Node**: Shows current position in chatbot flow
-- **Statistics**: Message count, node count, current node label
-
-**WebSocket Integration**:
-```typescript
-// Join session room for real-time updates
-useEffect(() => {
-  if (connected && sessionId) {
-    joinSession(sessionId);
-    return () => leaveSession(sessionId);
-  }
-}, [connected, sessionId]);
-
-// Listen for events
-sessionSocket.on('session:message-sent', handleMessageSent);
-sessionSocket.on('session:node-executed', handleNodeExecuted);
-sessionSocket.on('session:status-changed', handleStatusChanged);
-sessionSocket.on('session:completed', handleSessionCompleted);
-```
-
-#### Session Types
-```typescript
-interface ChatbotSession {
-  id: string;
-  conversationId: string;
-  chatbotId: string;
-  chatbotName: string;
-  customerPhone: string;
-  customerName: string;
-  status: 'running' | 'waiting_input' | 'waiting_flow' | 'completed' | 'expired' | 'stopped';
-  isActive: boolean;
-  startedAt: string;
-  completedAt?: string;
-  completionReason?: string;
-  messageCount: number;
-  nodeCount: number;
-}
-
-interface SessionMessage {
-  id: string;
-  senderId: string;
-  senderName?: string;
-  senderPhone?: string;
-  isFromBot?: boolean;  // Whether message is from bot (backend-determined)
-  type: string;
-  content: any;
-  status: string;
-  timestamp: string;
-}
-```
-
-#### ConversationLog Component
-**File**: `/home/ali/whatsapp-builder/frontend/src/features/sessions/components/ConversationLog.tsx`
-
-**Responsibilities**:
-1. **Message Display**: Renders conversation messages with sender differentiation
-2. **Bot Detection**: Determines whether message is from bot or user
-3. **Interactive Message Rendering**: Special rendering for WhatsApp interactive messages
-4. **Flow Response Display**: Shows WhatsApp Flow completion data (nfm_reply)
-
-**Bot Detection Logic**:
-
-The component uses a multi-layered approach to determine message sender:
-
-1. **Primary**: Use `isFromBot` flag from backend (preferred)
-2. **Fallback**: Use `determineIsFromBot()` function for legacy messages
-
-```typescript
-const determineIsFromBot = (message: SessionMessage): boolean => {
-  const content = message.content;
-
-  // User response types - definitely from user
-  if (content?.type === 'button_reply' ||
-      content?.type === 'list_reply' ||
-      content?.type === 'nfm_reply') {
-    return false;
-  }
-
-  // Interactive message with action - from bot
-  if (message.type === 'interactive' && content?.action) {
-    return true;
-  }
-
-  // senderName 'Business' indicates bot
-  if (message.senderName === 'Business') {
-    return true;
-  }
-
-  // senderPhone exists and not Business - user
-  if (message.senderPhone && message.senderName !== 'Business') {
-    return false;
-  }
-
-  // Default: assume bot
-  return true;
-};
-
-// Usage in component
-const isFromBot = message.isFromBot ?? determineIsFromBot(message);
-```
-
-**Interactive Message Rendering**:
-
-1. **Button Reply** (`button_reply`):
-   - Icon: `touch_app`
-   - Shows button title and ID
-   - Labeled as "Button response"
-
-2. **List Reply** (`list_reply`):
-   - Icon: `list`
-   - Shows list item title, description, and ID
-   - Labeled as "List response"
-
-3. **Flow Completion** (`nfm_reply`):
-   - Icon: `check_circle` (green)
-   - Shows "Form Completed" header
-   - Optional body text
-   - **Enhanced**: Form data filtering (removes `flow_token`, `version`)
-   - **Enhanced**: Field count display
-   - Expandable form data with key-value pairs
-
-```typescript
-// Enhanced nfm_reply rendering
-else if (content?.type === 'nfm_reply') {
-  // Parse flow data from responseData or response_json
-  const flowData = content.responseData || content.response_json;
-  const parsedData = typeof flowData === 'string' ? JSON.parse(flowData) : flowData;
-
-  // Filter internal fields (flow_token, version)
-  const displayData = parsedData ? Object.fromEntries(
-    Object.entries(parsedData).filter(([key]) => !['flow_token', 'version'].includes(key))
-  ) : null;
-
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-2">
-        <span className="material-symbols-outlined text-sm text-green-600">check_circle</span>
-        <p className="text-sm font-medium">Form Completed</p>
-      </div>
-      {displayData && Object.keys(displayData).length > 0 && (
-        <details className="text-xs" open>
-          <summary className="cursor-pointer font-medium text-blue-600">
-            View form data ({Object.keys(displayData).length} fields)
-          </summary>
-          <div className="mt-2 space-y-1.5 bg-gray-50 dark:bg-gray-900 p-2 rounded">
-            {Object.entries(displayData).map(([key, value]) => (
-              <div key={key} className="flex justify-between gap-2">
-                <span className="text-gray-500 font-medium">{key}:</span>
-                <span className="text-gray-900 text-right">
-                  {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                </span>
-              </div>
-            ))}
-          </div>
-        </details>
-      )}
-    </div>
-  );
-}
-```
-
-**Visual Design**:
-- Bot messages: Left-aligned, gray background
-- User messages: Right-aligned, green background
-- Icons for interactive responses
-- Expandable details for Flow responses
-- Date grouping (Today, Yesterday, specific dates)
-- Auto-scroll to bottom on new messages
-- Dark mode support
-
-#### SessionTimeline Component (NEW)
-**File**: `/home/ali/whatsapp-builder/frontend/src/features/sessions/components/SessionTimeline.tsx`
-
-**Purpose**: Visual timeline of all session events including messages, node changes, and status updates.
-
-**Event Types**:
-```typescript
-interface TimelineEvent {
-  id: string;
-  type: 'message_user' | 'message_bot' | 'node_change' | 'status_change' | 'session_start' | 'session_end';
-  timestamp: Date;
-  title: string;
-  description?: string;
-  icon: string;
-  iconColor: string;
-  data?: any;
-}
-```
-
-**Key Features**:
-1. **Comprehensive Event Detection**: Bot/user message distinction, interactive message type parsing
-2. **nfm_reply Visualization**: Flow form submission with field count
-3. **Session Lifecycle Events**: Start, end (completed/expired/stopped)
-4. **Date Grouping**: Today, Yesterday, specific dates
-5. **Active Session Indicator**: Pulse animation with current node label
-
-**Session End States**:
-| Status | Title | Icon | Color |
-|--------|-------|------|-------|
-| completed | Session Completed | check_circle | green-500 |
-| expired | Session Expired | timer_off | orange-500 |
-| stopped | Session Stopped | cancel | red-500 |
-
-#### VariablesPanel Component (Enhanced)
-**File**: `/home/ali/whatsapp-builder/frontend/src/features/sessions/components/VariablesPanel.tsx`
+- Real-time session updates via Socket.IO
+- Session status (active/completed)
+- Message timeline with bot/user distinction
+- Current node indicator
+- Session duration
+
+**Socket.IO Events**:
+- `session:join`, `session:leave`
+- `session:message-sent`, `session:node-executed`
+- `session:status-changed`, `session:completed`
+
+**File Paths**:
+- List: `features/sessions/SessionsPage.tsx`
+- Detail: `features/sessions/components/SessionDetailModal.tsx`
+
+### 5. WhatsApp Flows Management
+**Path**: `/frontend/src/features/flows/`
+
+**Components**:
+- `FlowsPage.tsx`: List of WhatsApp Flows
+- `CreateFlowModal.tsx`: Create new Flow
+- `FlowPreviewModal.tsx`: Preview Flow in WhatsApp sandbox
 
 **Features**:
-1. **Collapsible Panel**: Toggle visibility with expand/collapse button
-2. **Copy to Clipboard**: Click to copy any variable value
-3. **Complex Value Rendering**: JSON syntax highlighting for objects/arrays
-4. **Variable Count Badge**: Shows total number of variables
-5. **Dark Mode Support**: Proper color classes
+- Create, update, delete Flows
+- Publish/deprecate lifecycle management
+- **Sync from Meta**: Import flows from Meta/Facebook API
+- Preview URL generation
+- Flow JSON editor
 
-#### API Client
-```typescript
-// api/sessions.service.ts
-export const SessionsService = {
-  getSessions: (params) => client.get('/api/sessions', { params }),
-  getSession: (id) => client.get(`/api/sessions/${id}`),
-  getSessionMessages: (id) => client.get(`/api/sessions/${id}/messages`),
-  stopSession: (id) => client.post(`/api/chatbots/conversations/${id}/stop`),
-};
-```
+**File Paths**:
+- List: `features/flows/FlowsPage.tsx`
+- Create: `features/flows/components/CreateFlowModal.tsx`
 
----
+### 6. Flow Builder (WhatsApp Flows)
+**Path**: `/frontend/src/features/flow-builder/`
 
-### Feature: Nodes (Custom ReactFlow Nodes)
-**Location**: `/home/ali/whatsapp-builder/frontend/src/features/nodes/`
+**Purpose**: Visual builder for WhatsApp Flows (separate from ChatBot builder)
 
-#### Structure
-```
-nodes/
-├── StartNode/
-│   ├── StartNode.tsx
-│   └── index.ts
-├── MessageNode/
-│   ├── MessageNode.tsx
-│   └── index.ts
-├── QuestionNode/
-│   ├── QuestionNode.tsx
-│   └── index.ts
-├── ConditionNode/
-│   ├── ConditionNode.tsx
-│   └── index.ts
-├── WhatsAppFlowNode/
-│   ├── WhatsAppFlowNode.tsx
-│   ├── ConfigModal.tsx          # Flow selection and configuration
-│   └── index.ts
-└── index.ts                     # Export all node types
-```
-
-#### Node Component Pattern
-All custom nodes follow the same pattern:
-
-```typescript
-import { Handle, Position, NodeProps } from '@xyflow/react';
-
-export const MessageNode = ({ data }: NodeProps) => {
-  return (
-    <div className="node-wrapper message-node">
-      {/* Input handle (target) */}
-      <Handle type="target" position={Position.Top} />
-
-      {/* Node content */}
-      <div className="node-content">
-        <div className="node-icon">
-          <span className="material-symbols-outlined">chat</span>
-        </div>
-        <div className="node-label">{data.label || 'Message'}</div>
-        <div className="node-preview">{data.content || 'No content'}</div>
-      </div>
-
-      {/* Action buttons */}
-      <div className="node-actions">
-        <button onClick={() => data.onConfig?.()}>
-          <span className="material-symbols-outlined">edit</span>
-        </button>
-        <button onClick={() => data.onDelete?.()}>
-          <span className="material-symbols-outlined">delete</span>
-        </button>
-      </div>
-
-      {/* Output handle (source) */}
-      <Handle type="source" position={Position.Bottom} />
-    </div>
-  );
-};
-```
-
-**Node Types**:
-1. **StartNode**: Entry point, single output
-2. **MessageNode**: Displays message content, single output
-3. **QuestionNode**: Shows question type (text/buttons/list), multiple outputs for buttons/lists
-4. **ConditionNode**: Shows condition expression(s) with AND/OR logic, two outputs (true/false)
-   - Supports multiple conditions (up to 5)
-   - Displays human-readable preview of logic
-   - Shows logical operator (AND/OR) between conditions
-5. **WhatsAppFlowNode**: Sends interactive WhatsApp Flow, single output
-   - Green-themed node for visual distinction
-   - Displays Flow name, CTA button text, and mode (draft/published)
-   - Configuration modal for Flow selection and settings
-6. **RestApiNode**: Executes external API calls, two outputs (success/error) - **NEW**
-   - Cyan-themed node for visual distinction
-   - Displays HTTP method, URL, and response variable
-   - Configuration modal with 4 tabs: Request, Headers, Response, Test
-   - Supports variable interpolation with {{variable}} syntax
-   - JSON path extraction for response data
-
-**Handle Configuration**:
-```typescript
-// Question node with button handles
-<Handle type="source" position={Position.Bottom} id="default" />
-{data.questionType === 'buttons' && data.buttons?.map((btn, idx) => (
-  <Handle
-    type="source"
-    position={Position.Right}
-    id={`btn-${idx}`}
-    style={{ top: `${50 + (idx * 30)}px` }}
-  />
-))}
-```
-
-#### WhatsAppFlowNode Component
-**File**: `/home/ali/whatsapp-builder/frontend/src/features/nodes/WhatsAppFlowNode/WhatsAppFlowNode.tsx`
-
-The WhatsAppFlowNode is a specialized node type that enables sending interactive WhatsApp Flows as part of a chatbot conversation. It integrates with the Flows Management feature to provide a seamless experience for flow-based interactions.
-
-**Visual Design**:
-- **Green Theme**: Distinct green color (#10B981) to differentiate from other nodes
-- **Icon**: "article" Material Symbol icon
-- **Compact Display**: Shows Flow name, CTA, and mode in a concise format
-
-**Component Structure**:
-```typescript
-export const WhatsAppFlowNode = ({ data }: NodeProps) => {
-  return (
-    <div className="node-wrapper whatsapp-flow-node">
-      <Handle type="target" position={Position.Top} />
-
-      <div className="node-content">
-        <div className="node-icon" style={{ backgroundColor: '#10B981' }}>
-          <span className="material-symbols-outlined">article</span>
-        </div>
-        <div className="node-label">{data.label || 'WhatsApp Flow'}</div>
-
-        {/* Display Flow details */}
-        <div className="node-details">
-          {data.flowName && <div className="flow-name">{data.flowName}</div>}
-          {data.flowCta && <div className="flow-cta">CTA: {data.flowCta}</div>}
-          {data.flowMode && (
-            <span className={`flow-mode ${data.flowMode}`}>
-              {data.flowMode.toUpperCase()}
-            </span>
-          )}
-        </div>
-      </div>
-
-      <div className="node-actions">
-        <button onClick={() => data.onConfig?.()}>
-          <span className="material-symbols-outlined">edit</span>
-        </button>
-        <button onClick={() => data.onDelete?.()}>
-          <span className="material-symbols-outlined">delete</span>
-        </button>
-      </div>
-
-      <Handle type="source" position={Position.Bottom} />
-    </div>
-  );
-};
-```
-
-**Configuration Modal**:
-The ConfigModal component provides an interface for:
-1. **Flow Selection**: Dropdown to select from published Flows
-2. **CTA Text**: Button text shown to user (e.g., "Fill Form")
-3. **Flow Mode**: Choose between 'draft' (testing) or 'published' (production)
-4. **Output Variable**: Variable name to store Flow response data
-
-```typescript
-interface FlowNodeConfigProps {
-  nodeId: string;
-  data: NodeData;
-  onSave: (config: Partial<NodeData>) => void;
-  onClose: () => void;
-}
-
-const ConfigModal = ({ data, onSave, onClose }: FlowNodeConfigProps) => {
-  const [flows, setFlows] = useState<WhatsAppFlow[]>([]);
-  const [selectedFlowId, setSelectedFlowId] = useState(data.whatsappFlowId);
-  const [flowCta, setFlowCta] = useState(data.flowCta || 'Fill Form');
-  const [flowMode, setFlowMode] = useState<'draft' | 'published'>(data.flowMode || 'published');
-  const [outputVariable, setOutputVariable] = useState(data.flowOutputVariable || 'flowData');
-
-  useEffect(() => {
-    // Load active (published) flows
-    flowsApi.getActive().then(setFlows);
-  }, []);
-
-  const handleSave = () => {
-    const selectedFlow = flows.find(f => f.id === selectedFlowId);
-    onSave({
-      whatsappFlowId: selectedFlowId,
-      flowName: selectedFlow?.name,
-      flowCta,
-      flowMode,
-      flowOutputVariable: outputVariable,
-    });
-    onClose();
-  };
-
-  return (
-    <div className="config-modal">
-      <h3>Configure WhatsApp Flow</h3>
-
-      <div className="form-group">
-        <label>Select Flow</label>
-        <select value={selectedFlowId} onChange={(e) => setSelectedFlowId(e.target.value)}>
-          <option value="">-- Select a Flow --</option>
-          {flows.map(flow => (
-            <option key={flow.id} value={flow.id}>{flow.name}</option>
-          ))}
-        </select>
-      </div>
-
-      <div className="form-group">
-        <label>Button Text (CTA)</label>
-        <input
-          type="text"
-          value={flowCta}
-          onChange={(e) => setFlowCta(e.target.value)}
-          placeholder="e.g., Fill Form"
-        />
-      </div>
-
-      <div className="form-group">
-        <label>Flow Mode</label>
-        <select value={flowMode} onChange={(e) => setFlowMode(e.target.value as any)}>
-          <option value="draft">Draft (Testing)</option>
-          <option value="published">Published (Production)</option>
-        </select>
-      </div>
-
-      <div className="form-group">
-        <label>Output Variable Name</label>
-        <input
-          type="text"
-          value={outputVariable}
-          onChange={(e) => setOutputVariable(e.target.value)}
-          placeholder="e.g., flowData"
-        />
-        <small>Variable name to store Flow response in conversation context</small>
-      </div>
-
-      <div className="modal-actions">
-        <button onClick={handleSave}>Save</button>
-        <button onClick={onClose}>Cancel</button>
-      </div>
-    </div>
-  );
-};
-```
-
-**NodeData Interface Extension**:
-```typescript
-interface NodeData {
-  // ... existing fields ...
-
-  // WhatsApp Flow Node fields
-  whatsappFlowId?: string;           // UUID of Flow from database
-  flowName?: string;                 // Display name
-  flowCta?: string;                  // Button text
-  flowMode?: 'draft' | 'published';  // Testing vs production
-  flowOutputVariable?: string;        // Variable to store response
-}
-```
-
-**Integration with ChatBot Execution**:
-When a user reaches a WhatsAppFlowNode:
-1. Backend loads Flow from database using `whatsappFlowId`
-2. Generates `flow_token` containing `{contextId}-{nodeId}`
-3. Sends Flow message to user via WhatsApp API
-4. Waits for user to complete Flow
-5. WhatsApp sends webhook with Flow response
-6. Backend extracts response data and saves to `flowOutputVariable`
-7. Resumes chatbot execution from next node
-
----
-
-#### RestApiNode Component - **NEW**
-**File**: `/home/ali/whatsapp-builder/frontend/src/features/nodes/RestApiNode/RestApiNode.tsx`
-
-The RestApiNode enables chatbot flows to make external REST API calls, allowing integration with third-party services, databases, or custom backends. It supports full HTTP method flexibility and provides robust error handling with dual output handles for success/error branching.
-
-**Visual Design**:
-- **Cyan Theme**: Distinct cyan color (#06B6D4) to differentiate from other nodes
-- **Icon**: "api" Material Symbol icon
-- **Dual Handles**: Success (bottom) and Error (right) output handles
-- **Compact Display**: Shows HTTP method badge, truncated URL, and response variable
-
-**Component Structure**:
-```typescript
-export const RestApiNode = ({ data }: NodeProps) => {
-  return (
-    <div className="node-wrapper rest-api-node">
-      <Handle type="target" position={Position.Top} />
-
-      <div className="node-content">
-        <div className="node-icon" style={{ backgroundColor: '#06B6D4' }}>
-          <span className="material-symbols-outlined">api</span>
-        </div>
-        <div className="node-label">{data.label || 'REST API'}</div>
-
-        {/* Display API details */}
-        <div className="node-details">
-          {data.apiMethod && (
-            <span className="method-badge" style={{ backgroundColor: getMethodColor(data.apiMethod) }}>
-              {data.apiMethod}
-            </span>
-          )}
-          {data.apiUrl && (
-            <div className="api-url" title={data.apiUrl}>
-              {truncateUrl(data.apiUrl, 30)}
-            </div>
-          )}
-          {data.apiOutputVariable && (
-            <div className="output-var">→ {data.apiOutputVariable}</div>
-          )}
-        </div>
-      </div>
-
-      <div className="node-actions">
-        <button onClick={() => data.onConfig?.()}>
-          <span className="material-symbols-outlined">edit</span>
-        </button>
-        <button onClick={() => data.onDelete?.()}>
-          <span className="material-symbols-outlined">delete</span>
-        </button>
-      </div>
-
-      {/* Success handle (bottom) */}
-      <Handle type="source" position={Position.Bottom} id="success" />
-
-      {/* Error handle (right) */}
-      <Handle type="source" position={Position.Right} id="error" />
-    </div>
-  );
-};
-```
-
-**Configuration Modal (ConfigRestApi.tsx)**:
-**File**: `/home/ali/whatsapp-builder/frontend/src/features/builder/components/ConfigRestApi.tsx`
-
-The ConfigRestApi component provides a comprehensive 4-tab interface for configuring REST API nodes:
-
-**1. Request Tab**:
-- **Label Input**: Node display label
-- **HTTP Method Selector**: GET, POST, PUT, DELETE (button group)
-- **URL Input**: API endpoint with {{variable}} interpolation support
-  - Placeholder: `http://192.168.1.18:1337/api/categories`
-  - Help text: "Use {{variable}} for dynamic values"
-- **Body Textarea**: JSON request body (visible for POST/PUT only)
-  - Syntax: JSON string
-  - Height: 8rem (h-32)
-- **Timeout Input**: Request timeout in milliseconds (default: 30000)
-
-**2. Headers Tab**:
-- **Dynamic Header List**: Add/remove custom headers
-- **Header Inputs**: Key-value pairs
-  - Key: Header name (e.g., "Authorization", "Content-Type")
-  - Value: Header value with {{variable}} support
-- **Add Header Button**: Adds new header row
-- **Remove Header Button**: Deletes header row (per-row delete icon)
-
-**3. Response Tab**:
-- **Output Variable**: Variable name to store successful response
-  - Placeholder: `api_result`
-  - Help text: "Variable name to store successful response"
-- **JSON Path (Optional)**: Dot notation path to extract specific data
-  - Examples: "data", "data.items", "data.items[0].name"
-  - Help text: "Extract specific data from response"
-- **Error Variable**: Variable name to store error message on failure
-  - Placeholder: `api_error`
-  - Help text: "Variable name to store error message on failure"
-
-**4. Test Tab**:
-- **Warning Banner**: Yellow banner warning about real requests
-- **Run Test Button**: Execute API call with current configuration
-  - Disabled if URL is empty
-  - Shows spinner animation during test
-- **Test Result Display**:
-  - **Success Result** (green background):
-    - Status code and response time (e.g., "Success (200) - 245ms")
-    - Formatted JSON response in code block
-  - **Error Result** (red background):
-    - Error icon and "Failed" message
-    - Error message text
-
-**Modal Layout**:
-- **Header**: Cyan icon, title "Configure REST API", close button
-- **Tabs**: Horizontal tab bar with icons (send, code, output, play_arrow)
-- **Content Area**: Scrollable content (flex-1, overflow-y-auto)
-- **Footer**: Cancel and Save buttons (Save disabled if URL empty)
-
-**State Management**:
-```typescript
-const [activeTab, setActiveTab] = useState<'request' | 'headers' | 'response' | 'test'>('request');
-
-// Request state
-const [label, setLabel] = useState(data.label || "REST API");
-const [apiMethod, setApiMethod] = useState<'GET' | 'POST' | 'PUT' | 'DELETE'>(data.apiMethod || 'GET');
-const [apiUrl, setApiUrl] = useState(data.apiUrl || "");
-const [apiBody, setApiBody] = useState(data.apiBody || "");
-const [apiTimeout, setApiTimeout] = useState(data.apiTimeout || 30000);
-
-// Headers state
-const [headers, setHeaders] = useState<Header[]>(() => {
-  if (data.apiHeaders) {
-    return Object.entries(data.apiHeaders).map(([key, value]) => ({ key, value: String(value) }));
-  }
-  return [{ key: '', value: '' }];
-});
-
-// Response state
-const [apiOutputVariable, setApiOutputVariable] = useState(data.apiOutputVariable || "");
-const [apiResponsePath, setApiResponsePath] = useState(data.apiResponsePath || "");
-const [apiErrorVariable, setApiErrorVariable] = useState(data.apiErrorVariable || "api_error");
-
-// Test state
-const [testResult, setTestResult] = useState<any>(null);
-const [testing, setTesting] = useState(false);
-```
-
-**Test Functionality**:
-```typescript
-const handleTest = async () => {
-  setTesting(true);
-  setTestResult(null);
-
-  try {
-    const headersObj: Record<string, string> = {};
-    headers.forEach(h => {
-      if (h.key) headersObj[h.key] = h.value;
-    });
-
-    const response = await fetch('/api/chatbots/test-rest-api', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        method: apiMethod,
-        url: apiUrl,
-        headers: headersObj,
-        body: apiBody || undefined,
-        responsePath: apiResponsePath,
-        timeout: apiTimeout,
-      }),
-    });
-
-    const result = await response.json();
-    setTestResult(result);
-  } catch (error: any) {
-    setTestResult({ success: false, error: error.message });
-  } finally {
-    setTesting(false);
-  }
-};
-```
-
-**Save Functionality**:
-```typescript
-const handleSave = () => {
-  const headersObj: Record<string, string> = {};
-  headers.forEach(h => {
-    if (h.key) headersObj[h.key] = h.value;
-  });
-
-  onSave({
-    ...data,
-    label,
-    apiMethod,
-    apiUrl,
-    apiHeaders: Object.keys(headersObj).length > 0 ? headersObj : undefined,
-    apiBody: apiBody || undefined,
-    apiOutputVariable: apiOutputVariable || undefined,
-    apiResponsePath: apiResponsePath || undefined,
-    apiErrorVariable: apiErrorVariable || undefined,
-    apiTimeout,
-  });
-  onClose();
-};
-```
-
-**Key Features**:
-1. **Variable Interpolation**: Supports {{variable}} syntax in URL, headers, and body
-2. **HTTP Methods**: Full support for GET, POST, PUT, DELETE
-3. **Custom Headers**: Unlimited custom headers with key-value pairs
-4. **JSON Path Extraction**: Extract nested data from responses (e.g., "data.items[0].name")
-5. **Dual Branching**: Success/error handles for flow control
-6. **Live Testing**: Test API calls before saving configuration
-7. **Timeout Control**: Configurable timeout (default: 30 seconds)
-8. **Dark Mode Support**: Full dark theme compatibility
-
-**Integration with ChatBot Execution**:
-When a user reaches a RestApiNode:
-1. Backend executes `processRestApiNode()` in ChatBotExecutionService
-2. RestApiExecutorService replaces {{variables}} in URL, headers, and body
-3. Makes HTTP request with configured method and parameters
-4. On success:
-   - Extracts data using JSON path (if configured)
-   - Stores result in `apiOutputVariable`
-   - Follows success handle to next node
-5. On error:
-   - Stores error message in `apiErrorVariable`
-   - Follows error handle to error handling node
-6. Continues chatbot execution from branched path
-
-**Use Cases**:
-- Fetch product catalog from external API
-- Validate user credentials against authentication service
-- Submit form data to CRM or database
-- Check inventory availability
-- Fetch personalized recommendations
-- Integrate with payment gateways
-- Query real-time data (weather, stock prices, etc.)
-
----
-
-### Feature: Edges (Custom ReactFlow Edges)
-**Location**: `/home/ali/whatsapp-builder/frontend/src/features/edges/`
-
-#### Structure
-```
-edges/
-├── DeletableEdge.tsx          # Deletable edge component with hover effects
-└── index.ts                   # Export
-```
-
-#### DeletableEdge Component
-**File**: `/home/ali/whatsapp-builder/frontend/src/features/edges/DeletableEdge.tsx`
-
-Custom edge component with hover interactions and delete functionality.
-
-**Features**:
-- **Hover Effect**: Changes color to red (#ef4444) and increases stroke width on hover
-- **Delete Button**: Shows centered button on edge path when hovered
-- **Interaction Area**: Invisible wider path (20px) for easier hovering
-- **Smooth Transitions**: CSS transitions for color and stroke-width changes
-- **Dark Theme Support**: Compatible with dark mode
-
-**Component Structure**:
-```typescript
-import { BaseEdge, EdgeLabelRenderer, EdgeProps, getBezierPath, useReactFlow } from '@xyflow/react';
-
-export const DeletableEdge = ({
-  id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, style
-}: EdgeProps) => {
-  const [isHovered, setIsHovered] = useState(false);
-  const { setEdges } = useReactFlow();
-
-  const [edgePath, labelX, labelY] = getBezierPath({
-    sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition,
-  });
-
-  const onEdgeDelete = (event: React.MouseEvent) => {
-    event.stopPropagation();
-    setEdges((edges) => edges.filter((edge) => edge.id !== id));
-  };
-
-  return (
-    <>
-      {/* Invisible wider path for easier hover detection */}
-      <path
-        d={edgePath}
-        strokeWidth={20}
-        stroke="transparent"
-        fill="none"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      />
-
-      {/* Visible edge with hover effect */}
-      <BaseEdge
-        path={edgePath}
-        style={{
-          ...style,
-          stroke: isHovered ? '#ef4444' : '#b1b1b7',
-          strokeWidth: isHovered ? 3 : 2,
-          transition: 'stroke 0.2s, stroke-width 0.2s',
-        }}
-      />
-
-      {/* Delete button at edge center (visible on hover) */}
-      {isHovered && (
-        <EdgeLabelRenderer>
-          <button
-            onClick={onEdgeDelete}
-            style={{
-              position: 'absolute',
-              transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-              pointerEvents: 'all',
-            }}
-            className="edge-delete-button"
-          >
-            <span className="material-symbols-outlined">close</span>
-          </button>
-        </EdgeLabelRenderer>
-      )}
-    </>
-  );
-};
-```
-
-#### Usage in BuilderPage
-
-**Edge Types Registration**:
-```typescript
-import { DeletableEdge } from "../../edges";
-
-const edgeTypes = {
-  deletable: DeletableEdge,
-};
-```
-
-**ReactFlow Configuration**:
-```typescript
-<ReactFlow
-  nodes={nodes}
-  edges={edges}
-  edgeTypes={edgeTypes}
-  defaultEdgeOptions={{ type: 'deletable' }}
-  // ... other props
-/>
-```
-
-**Edge Data Transformation**:
-- **On Load**: Loaded edges from API automatically get `type: 'deletable'` added
-- **AI Generated**: AI-generated edges are mapped to add `type: 'deletable'`
-- **New Connections**: Default edge options ensure new edges use deletable type
-
-```typescript
-// When loading chatbot from API
-const edgesWithType = chatbot.edges.map(edge => ({
-  ...edge,
-  type: 'deletable',
-}));
-setEdges(edgesWithType);
-
-// When AI generates flow
-if (result.edges) {
-  const aiEdges = result.edges.map(edge => ({
-    ...edge,
-    type: 'deletable',
-  }));
-  setEdges(aiEdges);
-}
-```
+**Status**: Under development
 
 ---
 
 ## State Management
 
-### Local Component State
-**Primary pattern**: Each component manages its own state using `useState`.
+### Patterns Used
+1. **Local State**: `useState` for component-specific state
+2. **Prop Drilling**: Parent manages state, children notify via callbacks
+3. **ReactFlow Context**: Global ReactFlow state via `ReactFlowProvider`
+4. **No Global Store**: Redux/Zustand not needed for MVP
 
+### Example: BuilderPage State
 ```typescript
-const [conversations, setConversations] = useState<Conversation[]>([]);
-const [loading, setLoading] = useState(true);
-```
-
-### Derived State
-**Use `useMemo` for computed values**:
-
-```typescript
-const activeConversation = useMemo(() =>
-  conversations.find((c) => c.id === activeConversationId),
-  [conversations, activeConversationId]
-);
-```
-
-### Callback Optimization
-**Use `useCallback` for event handlers**:
-
-```typescript
-const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
-  if (node.type !== 'start') {
-    setConfigNode(node);
-  }
-}, []);
-```
-
-### Memoized Props
-**Use `useMemo` to prevent unnecessary re-renders**:
-
-```typescript
-const nodesWithHandler = useMemo(() => {
-  return nodes.map(n => ({
-    ...n,
-    data: {
-      ...n.data,
-      onConfig: () => setConfigNode(n),
-      onDelete: () => deleteNode(n.id)
-    }
-  }));
-}, [nodes, deleteNode]);
-```
-
-### State Update Patterns
-**Immutable updates with spread operator**:
-
-```typescript
-// Update array item
-setConversations(prev => prev.map(c =>
-  c.id === id ? { ...c, messages: newMessages } : c
-));
-
-// Add array item
-setMessages(prev => [...prev, newMessage]);
-
-// Update object
-setNode(prev => ({ ...prev, data: { ...prev.data, content: newContent } }));
+const [nodes, setNodes, onNodesChange] = useNodesState([]);
+const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+const [validationErrors, setValidationErrors] = useState<string[]>([]);
+const [selectedNode, setSelectedNode] = useState<Node | null>(null);
 ```
 
 ---
 
 ## Real-time Integration
 
-### Socket.IO Client Setup
-**File**: `/home/ali/whatsapp-builder/frontend/src/api/socket.ts`
+### Socket.IO Setup
+**File**: `/frontend/src/api/socket.ts`
 
 ```typescript
-import { io } from 'socket.io-client';
-
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
-
-export const socket = io(`${SOCKET_URL}/messages`, {
-  autoConnect: false,
-  query: {
-    userId: 'user-123',  // TODO: Get from auth context
-  },
+export const socket = io('http://localhost:3000/messages', {
+  query: { userId: BUSINESS_USER_ID },
+  transports: ['websocket'],
 });
 ```
 
-### Custom WebSocket Hook
-**File**: `/home/ali/whatsapp-builder/frontend/src/hooks/useWebSocket.ts`
+### useWebSocket Hook
+**File**: `/frontend/src/hooks/useWebSocket.ts`
 
+**Features**:
+- Auto-connect/disconnect on mount/unmount
+- Event subscription management
+- Duplicate message prevention
+- Connection status tracking
+
+**Usage**:
 ```typescript
-export function useWebSocket(): UseWebSocketReturn {
-  const [connected, setConnected] = useState(false);
-  const [newMessage, setNewMessage] = useState<Message | null>(null);
-  const [messageStatusUpdate, setMessageStatusUpdate] = useState<{
-    messageId: string;
-    status: string;
-  } | null>(null);
-
-  useEffect(() => {
-    // Connect to WebSocket
-    socket.connect();
-
-    // Connection events
-    socket.on('connect', () => {
-      console.log('WebSocket connected');
-      setConnected(true);
-    });
-
-    socket.on('disconnect', () => {
-      console.log('WebSocket disconnected');
-      setConnected(false);
-    });
-
-    // Message events
-    socket.on('message:received', (data: any) => {
-      // Transform backend DTO to frontend Message type
-      const message: Message = {
-        id: data.messageId,
-        conversationId: data.conversationId,
-        senderId: data.senderId,
-        type: data.type,
-        content: data.content,
-        status: data.status,
-        timestamp: data.timestamp,
-        createdAt: data.timestamp,
-        updatedAt: data.timestamp,
-      };
-
-      setNewMessage(message);
-    });
-
-    socket.on('message:status', (data) => {
-      setMessageStatusUpdate(data);
-    });
-
-    // Cleanup
-    return () => {
-      socket.off('connect');
-      socket.off('disconnect');
-      socket.off('message:received');
-      socket.off('message:status');
-      socket.disconnect();
-    };
-  }, []);
-
-  return { connected, newMessage, messageStatusUpdate };
-}
+const { isConnected, emit } = useWebSocket({
+  onMessageReceived: (msg) => { /* ... */ },
+  onMessageStatus: (status) => { /* ... */ },
+  onUserOnline: (userId) => { /* ... */ },
+});
 ```
 
-### Usage in Components
-```typescript
-const { newMessage, messageStatusUpdate } = useWebSocket();
-
-// React to new messages
-useEffect(() => {
-  if (newMessage) {
-    handleNewMessage(newMessage);
-  }
-}, [newMessage]);
-
-// React to status updates
-useEffect(() => {
-  if (messageStatusUpdate) {
-    handleMessageStatusUpdate(messageStatusUpdate.messageId, messageStatusUpdate.status);
-  }
-}, [messageStatusUpdate]);
-```
+**Events**:
+- **Received**: message:received, message:status, user:online/offline
+- **Emitted**: conversation:join, typing:start/stop, session:join
 
 ---
 
 ## API Layer
 
 ### HTTP Client
-**File**: `/home/ali/whatsapp-builder/frontend/src/api/client.ts`
+**File**: `/frontend/src/api/client.ts`
 
 ```typescript
-import axios from 'axios';
-
-const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
-export const client = axios.create({
-  baseURL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+export const apiClient = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
+  headers: { 'Content-Type': 'application/json' },
 });
-
-// Response interceptor for error handling
-client.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    console.error('API Error:', error);
-    return Promise.reject(error);
-  }
-);
 ```
 
-### API Service Pattern
-**File**: `/home/ali/whatsapp-builder/frontend/src/features/chatbots/api.ts`
-
+### Service Pattern
+**Example**: `api/chatbots.service.ts`
 ```typescript
-export const getChatBots = async (params?: QueryChatBotsParams) => {
-  const queryString = params ? '?' + new URLSearchParams(
-    Object.entries(params)
-      .filter(([_, v]) => v !== undefined)
-      .map(([k, v]) => [k, String(v)])
-  ).toString() : '';
-
-  const response = await client.get<{ data: ChatBot[], total: number }>
-    (`/api/chatbots${queryString}`);
-
-  return response.data.data || [];
-};
-
-export const createChatBot = async (data: Partial<ChatBot>) => {
-  const response = await client.post<ChatBot>('/api/chatbots', data);
-  return response.data;
-};
-
-export const updateChatBot = async (id: string, data: Partial<ChatBot>) => {
-  const response = await client.put<ChatBot>(`/api/chatbots/${id}`, data);
-  return response.data;
+export const ChatBotsService = {
+  getAll: (params?) => apiClient.get('/api/chatbots', { params }),
+  getById: (id) => apiClient.get(`/api/chatbots/${id}`),
+  create: (data) => apiClient.post('/api/chatbots', data),
+  update: (id, data) => apiClient.put(`/api/chatbots/${id}`, data),
+  delete: (id) => apiClient.delete(`/api/chatbots/${id}`),
+  updateStatus: (id, status) => apiClient.patch(`/api/chatbots/${id}/status`, { status }),
+  testRestApi: (config) => apiClient.post('/api/chatbots/test-rest-api', config),
 };
 ```
+
+### Available Services
+- `chatbots.service.ts`: ChatBot CRUD
+- `flows.service.ts`: WhatsApp Flows CRUD, publish, sync
+- `conversations.service.ts`: Conversations & messages
+- `users.service.ts`: User management
+- `whatsapp-config.service.ts`: WhatsApp config
+
+**File Paths**: `/frontend/src/api/*.service.ts`
 
 ---
 
 ## Custom Hooks
 
+### useFlowValidation
+**Purpose**: Validate ReactFlow nodes & edges
+
+**Returns**: `{ errors: string[], validateFlow: () => boolean }`
+
+**Checks**:
+- START node exists & unique
+- No disconnected nodes
+- No dead ends (except END markers)
+- Node data validation (required fields)
+
 ### useWebSocket
-**Purpose**: Manage Socket.IO connection and events
-**Returns**: `{ connected, newMessage, messageStatusUpdate }`
+**Purpose**: Socket.IO connection management
 
-### Usage Patterns
-```typescript
-// In ChatPage
-const { newMessage, messageStatusUpdate } = useWebSocket();
+**Returns**: `{ isConnected: boolean, emit: (event, data) => void }`
 
-useEffect(() => {
-  if (newMessage) {
-    // Add message to conversation
-  }
-}, [newMessage]);
-```
+**File**: `/frontend/src/hooks/useWebSocket.ts`
 
 ---
 
 ## Component Patterns
 
-### Controlled Components
+### Modal Pattern
 ```typescript
-<input
-  type="text"
-  value={flowName}
-  onChange={(e) => setFlowName(e.target.value)}
-/>
-```
-
-### Callback Props
-```typescript
-interface Props {
-  onSave: (data: any) => void;
-  onCancel: () => void;
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (data: T) => void;
+  data?: T;
 }
-
-<button onClick={() => onSave(formData)}>Save</button>
 ```
 
-### Conditional Rendering
+### List + Detail Pattern
 ```typescript
-{loading ? (
-  <LoadingSpinner />
-) : (
-  <ConversationList conversations={conversations} />
-)}
+// Parent manages selection
+const [selectedItem, setSelectedItem] = useState<T | null>(null);
+
+<ListView onSelect={setSelectedItem} />
+{selectedItem && <DetailView item={selectedItem} onClose={() => setSelectedItem(null)} />}
 ```
 
-### List Rendering
+### Optimistic Update Pattern
 ```typescript
-{conversations.map(conversation => (
-  <ConversationCard
-    key={conversation.id}
-    conversation={conversation}
-  />
-))}
+// 1. Update UI immediately
+const optimisticMessage = { id: tempId, ...newMessage, status: 'sending' };
+setMessages(prev => [...prev, optimisticMessage]);
+
+// 2. Send to server
+const result = await api.sendMessage(newMessage);
+
+// 3. Replace with server response
+setMessages(prev => prev.map(m => m.id === tempId ? result : m));
 ```
 
 ---
 
-### Feature: Flow Builder (WhatsApp Flow Visual Editor)
-**Location**: `/home/ali/whatsapp-builder/frontend/src/features/flow-builder/`
+## Build & Development
 
-#### Overview
-The Flow Builder is a comprehensive visual editor for creating and editing WhatsApp Flows. Unlike the chatbot builder (which uses ReactFlow for conversation flows), the Flow Builder focuses on creating WhatsApp-native interactive forms and flows as per the WhatsApp Flows API specification.
+### Vite Configuration
+**File**: `/frontend/vite.config.ts`
 
-#### Structure
-```
-flow-builder/
-├── FlowBuilderPage.tsx               # Main builder page
-├── components/
-│   ├── canvas/
-│   │   ├── FlowCanvas.tsx            # Main ReactFlow canvas
-│   │   ├── ScreenNode.tsx            # Custom screen node
-│   │   └── useFlowCanvas.ts          # Canvas state management
-│   ├── palette/
-│   │   ├── ComponentPalette.tsx      # Component palette sidebar
-│   │   └── DraggableComponent.tsx    # Draggable component items
-│   ├── editor/
-│   │   ├── ScreenEditor.tsx          # Screen property editor
-│   │   ├── ComponentList.tsx         # Component list with DnD
-│   │   └── ComponentConfigModals.tsx # Component configuration
-│   ├── preview/
-│   │   ├── FlowPreview.tsx           # Interactive flow preview
-│   │   ├── PhoneFrame.tsx            # iPhone frame wrapper
-│   │   ├── ScreenPreview.tsx         # Screen rendering
-│   │   └── renderers/                # Component renderers
-│   │       ├── TextRenderers.tsx
-│   │       ├── InputRenderers.tsx
-│   │       ├── SelectionRenderers.tsx
-│   │       └── ActionRenderers.tsx
-│   └── validation/
-│       └── ValidationPanel.tsx       # Validation error display
-├── constants/
-│   ├── character-limits.ts           # WhatsApp API character limits
-│   ├── data-source-limits.ts         # Component count limits
-│   └── component-defaults.ts         # Default component values
-├── hooks/
-│   ├── useFlowBuilder.ts             # Main state management
-│   ├── useFlowValidation.ts          # Validation logic
-│   └── useFlowHistory.ts             # Undo/redo support
-├── utils/
-│   ├── flowJsonGenerator.ts          # Builder → WhatsApp Flow JSON
-│   ├── flowJsonParser.ts             # WhatsApp Flow JSON → Builder
-│   └── validation-rules.ts           # Validation rule engine
-├── types/
-│   ├── flow-json.types.ts            # WhatsApp Flow JSON types
-│   └── builder.types.ts              # Builder-specific types
-└── README.md
+**Key Settings**:
+- Rolldown builder (faster than Rollup)
+- React plugin with Fast Refresh
+- Proxy API requests to backend (dev mode)
+- Environment variable handling (`VITE_*`)
+
+### Scripts
+```bash
+npm run dev        # Dev server (port 5173)
+npm run build      # Production build
+npm run preview    # Preview production build
+npm run lint       # ESLint check
 ```
 
-#### Architecture Principles
+### Environment Variables
+```bash
+VITE_API_URL=http://localhost:3000          # Backend URL
+VITE_BUSINESS_USER_ID=uuid                  # Bot user ID
+VITE_GEMINI_API_KEY=your_key                # AI generation
+```
 
-1. **Separation of Concerns**:
-   - **Builder State** (BuilderScreen/BuilderComponent): Internal representation optimized for editing
-   - **Flow JSON** (FlowJSON/Screen/Component): WhatsApp API-compliant format
-   - **Transform Layer**: Bidirectional converters between formats
+---
 
-2. **Component Categories**:
-   - **Text**: TextHeading, TextSubheading, TextBody, TextCaption, RichText
-   - **Text Entry**: TextInput, TextArea
-   - **Selection**: CheckboxGroup, RadioButtonsGroup, Dropdown, ChipsSelector
-   - **Date**: DatePicker, CalendarPicker
-   - **Media**: Image, ImageCarousel
-   - **Navigation**: NavigationList
-   - **Action**: Footer, OptIn, EmbeddedLink
-   - **Conditional**: If, Switch
+## File Organization Best Practices
 
-3. **Validation System**:
-   - Character limit validation (per WhatsApp API specs)
-   - Data source count validation
-   - Screen-level rules (max components, footer requirements)
-   - Terminal screen validation
-   - Component-specific validation
+### Feature Module Structure
+```
+features/[feature-name]/
+├── components/              # Feature-specific components
+│   ├── [Feature]Page.tsx   # Main page component
+│   └── [Component].tsx     # Sub-components
+├── utils/                   # Feature-specific utilities
+├── types/                   # Feature-specific types
+└── index.ts                 # Public exports
+```
 
-#### Key Dependencies
+### Shared vs Feature-Specific
+- **Shared**: Used by 3+ features → `src/shared/`
+- **Feature-Specific**: Used within 1 feature → `features/[name]/`
 
-**New Packages Added**:
-- `@dnd-kit/core`: ^6.3.1 - Core drag & drop primitives
-- `@dnd-kit/sortable`: ^10.0.0 - Sortable list functionality
-- `@dnd-kit/utilities`: ^3.2.2 - Utility functions
+---
 
-**Existing Packages Used**:
-- `@xyflow/react`: ^12.3.5 - Flow canvas visualization
-- `react`: ^19.2.0 - Core framework
+## Key Architectural Decisions
 
-#### Integration with Flows Feature
-
-**Navigation Flow**:
-1. User navigates to Flows page (`/flows`)
-2. Clicks "Edit in Builder" on a Flow card
-3. App.tsx sets `selectedFlow` state and navigates to `flowBuilder` view
-4. FlowBuilderPage receives `initialFlowId` and `initialFlowData`
-5. Builder loads Flow data and displays in canvas
-6. User edits Flow visually
-7. On save, `onSave` callback updates Flow via API
-8. App.tsx navigates back to Flows page
-
-**For detailed documentation, see**: `11-flow-builder-feature.md`
+1. **No React Router**: Simple state-based routing for MVP
+2. **Feature-based Organization**: Scalability & maintainability
+3. **Local State Management**: No Redux/Zustand needed
+4. **ReactFlow for Flow Builder**: Mature library with excellent DX
+5. **Socket.IO for Real-time**: Bidirectional, room-based messaging
+6. **Optimistic Updates**: Better UX with server reconciliation
+7. **TypeScript Strict Mode**: Type safety from day one
+8. **Vite + Rolldown**: Fastest dev/build experience
 
 ---
 
 ## Summary
 
-### Key Architectural Patterns
-1. **Feature-based Organization**: Self-contained feature modules
-2. **Component Composition**: Small, focused components
-3. **Hooks for Logic**: useState, useEffect, useCallback, useMemo
-4. **Type Safety**: Full TypeScript coverage
-5. **Optimistic UI**: Instant feedback with server reconciliation
-6. **Real-time Sync**: Socket.IO for live updates
-7. **Centralized API**: Service layer for HTTP requests
+### Component Count
+- **Pages**: 8 (Landing, Builder, Chat, ChatBots, Flows, Sessions, Users, Settings)
+- **Custom Nodes**: 6 (Start, Message, Question, Condition, WhatsAppFlow, RestApi)
+- **Modals**: 10+ (Config, Create, Preview, Detail)
 
-### Performance Optimizations
-- `useCallback` for event handlers
-- `useMemo` for derived state
-- `React.memo` for expensive components (where needed)
-- Lazy loading for routes (future improvement)
-- Code splitting with Vite
+### Lines of Code (approx)
+- BuilderPage: ~800 lines
+- ChatPage: ~400 lines
+- Custom Nodes: ~150 lines each
+- Shared Types: ~200 lines
 
-### Future Improvements
-- Add React Router for cleaner routing
-- Implement auth context for user management
-- Add Redux/Zustand for complex global state
-- Implement infinite scroll for message lists
-- Add PWA support for offline capabilities
+### Performance
+- React 19 Concurrent Features (automatic batching)
+- Memoization with `useMemo`, `useCallback`
+- Code splitting (dynamic imports)
+- Optimistic UI updates
 
 ---
 
-**Next**: See `04-database-design.md` for database architecture.
+**See Also**:
+- [Backend Architecture](02-backend-architecture.md) - API endpoints
+- [Real-time System](05-real-time-system.md) - Socket.IO events
+- [Project Structure](07-project-structure.md) - Full file tree
+- [Auto Layout Feature](14-chatbot-builder-auto-layout.md) - Dagre implementation

@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsObject,
   IsEnum,
+  IsBoolean,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -93,4 +94,12 @@ export class SendFlowMessageDto {
   @IsObject()
   @IsOptional()
   initialData?: Record<string, any>;
+
+  @ApiPropertyOptional({
+    description: 'Whether the flow is in draft mode (for testing)',
+    example: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  isDraft?: boolean;
 }

@@ -1,68 +1,42 @@
 # WhatsApp Integration - WhatsApp Builder
 
-## Table of Contents
-- [Overview](#overview)
-- [WhatsApp Business API Setup](#whatsapp-business-api-setup)
-- [Message Types](#message-types)
-- [WhatsApp Flows API](#whatsapp-flows-api)
-- [Webhook Processing](#webhook-processing)
-- [Message Sending](#message-sending)
-- [Error Handling](#error-handling)
-
----
-
 ## Overview
 
-Integration with WhatsApp Business API enables:
-- Sending text, interactive, and media messages
-- Receiving user messages via webhooks
+WhatsApp Business API v18.0 integration for sending/receiving messages and managing Flows.
+
+### Capabilities
+- Send text, interactive (buttons/lists), Flow messages
+- Receive messages via webhooks
 - Message status tracking (sent → delivered → read)
 - 24-hour messaging window management
+- WhatsApp Flows lifecycle (create, publish, deprecate, delete)
 
-### API Version
-**Graph API**: v18.0
-**Base URL**: `https://graph.facebook.com/v18.0/{phone_number_id}/messages`
+### API Endpoints
+- **Messages**: `https://graph.facebook.com/v18.0/{phone_number_id}/messages`
+- **Flows**: `https://graph.facebook.com/v18.0/{business_account_id}/flows`
+- **Media**: `https://graph.facebook.com/v18.0/{phone_number_id}/media`
 
 ---
 
-## WhatsApp Business API Setup
+## Configuration
 
-### Configuration Storage
-**Entity**: `WhatsAppConfig`
-**File**: `/home/ali/whatsapp-builder/backend/src/entities/whatsapp-config.entity.ts`
+### WhatsAppConfig Entity
+**File**: `/backend/src/entities/whatsapp-config.entity.ts`
 
-```typescript
-@Entity('whatsapp_config')
-export class WhatsAppConfig {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  @Column({ length: 255 })
-  phoneNumberId: string;  // WhatsApp phone number ID
-
-  @Column({ length: 255 })
-  businessAccountId: string;  // WhatsApp Business Account ID
-
-  @Column({ type: 'text' })
-  accessToken: string;  // Graph API access token
-
-  @Column({ length: 255 })
-  webhookVerifyToken: string;  // Webhook verification token
-
-  @Column({ type: 'text', nullable: true })
-  appSecret?: string;  // App secret for signature verification
-
-  @Column({ type: 'boolean', default: true })
-  isActive: boolean;
-}
-```
+**Fields**:
+- `phoneNumberId` - WhatsApp phone number ID
+- `businessAccountId` - Business account ID
+- `accessToken` - Graph API access token
+- `webhookVerifyToken` - Webhook verification token
+- `appSecret` - For signature verification (HMAC SHA256)
+- `isActive` - Only one config active (partial unique index)
 
 ### Environment Variables
 ```bash
-WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id
-WHATSAPP_ACCESS_TOKEN=your_access_token
-WHATSAPP_WEBHOOK_VERIFY_TOKEN=your_verify_token
-WHATSAPP_APP_SECRET=your_app_secret
+WHATSAPP_PHONE_NUMBER_ID=xxx
+WHATSAPP_ACCESS_TOKEN=xxx
+WHATSAPP_WEBHOOK_VERIFY_TOKEN=xxx
+WHATSAPP_APP_SECRET=xxx
 ```
 
 ---
@@ -71,1033 +45,284 @@ WHATSAPP_APP_SECRET=your_app_secret
 
 ### 1. Text Messages
 **Service**: `TextMessageService`
-**File**: `/home/ali/whatsapp-builder/backend/src/modules/whatsapp/services/message-types/text-message.service.ts`
+**File**: `/backend/src/modules/whatsapp/services/message-types/text-message.service.ts`
 
+**Payload**:
 ```typescript
-async sendTextMessage(dto: SendTextMessageDto): Promise<MessageResponse> {
-  const payload = {
-    messaging_product: "whatsapp",
-    recipient_type: "individual",
-    to: dto.to,  // Phone number: "1234567890"
-    type: "text",
-    text: {
-      preview_url: dto.previewUrl || false,
-      body: dto.text,
-    },
-  };
-
-  return await this.whatsappApi.sendMessage(payload);
+{
+  messaging_product: "whatsapp",
+  to: "1234567890",  // No + prefix
+  type: "text",
+  text: { body: "Hello", preview_url: false }
 }
 ```
 
 ### 2. Interactive Button Messages
 **Service**: `InteractiveMessageService`
 
-```typescript
-async sendButtonMessage(dto: SendButtonMessageDto): Promise<MessageResponse> {
-  const payload = {
-    messaging_product: "whatsapp",
-    to: dto.to,
-    type: "interactive",
-    interactive: {
-      type: "button",
-      header: dto.headerText ? { type: "text", text: dto.headerText } : undefined,
-      body: { text: dto.bodyText },
-      footer: dto.footerText ? { text: dto.footerText } : undefined,
-      action: {
-        buttons: dto.buttons.map(btn => ({
-          type: "reply",
-          reply: {
-            id: btn.id,
-            title: btn.title.substring(0, 20),  // Max 20 chars
-          },
-        })),
-      },
-    },
-  };
-
-  return await this.whatsappApi.sendMessage(payload);
-}
-```
-
-**Constraints**:
-- Max 3 buttons per message
+**Limits**:
+- Max 3 buttons
 - Button title: max 20 characters
 - Button ID: max 256 characters
 
-**ButtonItemDto Format**:
-
-The backend uses `ButtonItemDto` for type-safe button handling:
-
+**Payload**:
 ```typescript
-// DTO Definition (backend/src/modules/chatbots/dto/list-section.dto.ts)
-export class ButtonItemDto {
-  @IsString()
-  id: string;         // Unique identifier (e.g., "btn_0", "btn-0", or custom ID)
-
-  @IsString()
-  @MaxLength(20)      // WhatsApp API limit
-  title: string;      // Display text
+{
+  messaging_product: "whatsapp",
+  to: "1234567890",
+  type: "interactive",
+  interactive: {
+    type: "button",
+    body: { text: "Choose an option" },
+    action: {
+      buttons: [
+        { type: "reply", reply: { id: "btn_0", title: "Option 1" } }
+      ]
+    }
+  }
 }
 ```
-
-**Data Flow**:
-```
-Frontend (ButtonItem[])  →  Backend (ButtonItemDto[])  →  WhatsApp API
-     { id, title }            { id, title }              { type: "reply", reply: { id, title } }
-```
-
-**Backward Compatibility**:
-- Backend accepts both `string[]` (legacy) and `ButtonItemDto[]` (current) formats
-- Frontend transforms all buttons to `ButtonItemDto[]` before saving
-- Runtime conversion handles both formats transparently
 
 ### 3. Interactive List Messages
-```typescript
-async sendListMessage(dto: SendListMessageDto): Promise<MessageResponse> {
-  const payload = {
-    messaging_product: "whatsapp",
-    to: dto.to,
-    type: "interactive",
-    interactive: {
-      type: "list",
-      header: dto.headerText ? { type: "text", text: dto.headerText } : undefined,
-      body: { text: dto.bodyText },
-      footer: dto.footerText ? { text: dto.footerText } : undefined,
-      action: {
-        button: dto.listButtonText,  // "View Options"
-        sections: dto.sections.map(section => ({
-          title: section.title.substring(0, 24),  // Max 24 chars
-          rows: section.rows.map(row => ({
-            id: row.id,
-            title: row.title.substring(0, 24),
-            description: row.description?.substring(0, 72),  // Max 72 chars
-          })),
-        })),
-      },
-    },
-  };
-
-  return await this.whatsappApi.sendMessage(payload);
-}
-```
-
-**Constraints**:
+**Limits**:
 - Max 10 sections
 - Max 10 rows per section
-- Section title: max 24 characters
-- Row title: max 24 characters
-- Row description: max 72 characters
+- Section title: max 24 chars
+- Row title: max 24 chars
+- Row description: max 72 chars
 
-### 4. WhatsApp Flow Messages
-**Service**: `InteractiveMessageService`
-**File**: `/home/ali/whatsapp-builder/backend/src/modules/whatsapp/services/message-types/interactive-message.service.ts`
-
-WhatsApp Flows enable interactive forms with multiple screens, input validation, and data collection.
-
+**Payload**:
 ```typescript
-async sendFlowMessage(dto: SendFlowMessageDto): Promise<MessageResponse> {
-  const payload = {
-    messaging_product: "whatsapp",
-    to: dto.to,
-    type: "interactive",
-    interactive: {
-      type: "flow",
-      header: dto.headerText ? { type: "text", text: dto.headerText } : undefined,
-      body: { text: dto.bodyText },
-      footer: dto.footerText ? { text: dto.footerText } : undefined,
-      action: {
-        name: "flow",
-        parameters: {
-          flow_message_version: "3",
-          flow_token: dto.flowToken,  // "{contextId}-{nodeId}" for tracking
-          flow_id: dto.flowId,        // WhatsApp Flow ID from Meta
-          flow_cta: dto.flowCta,      // Button text (e.g., "Fill Form")
-          flow_action: dto.flowAction, // "navigate" or "data_exchange"
-          mode: dto.mode,             // "draft" or "published"
-        },
-      },
-    },
-  };
-
-  return await this.whatsappApi.sendMessage(payload);
+{
+  type: "interactive",
+  interactive: {
+    type: "list",
+    body: { text: "Select an option" },
+    action: {
+      button: "View Options",
+      sections: [{
+        title: "Section 1",
+        rows: [{ id: "row_0", title: "Row 1", description: "..." }]
+      }]
+    }
+  }
 }
 ```
 
-**Flow Token Structure**:
-- Format: `{conversationContextId}-{currentNodeId}`
-- Purpose: Track which ChatBot context and node triggered the Flow
-- Used to resume ChatBot execution after Flow completion
+### 4. WhatsApp Flow Messages
+**Service**: `InteractiveMessageService.sendFlowMessage()`
 
-**Flow Modes**:
-- **draft**: Test mode (requires preview URL from WhatsApp)
-- **published**: Production mode (available to all users)
+**Payload**:
+```typescript
+{
+  type: "interactive",
+  interactive: {
+    type: "flow",
+    header: { type: "text", text: "Book Appointment" },
+    body: { text: "Fill the form" },
+    footer: { text: "Powered by ChatBot" },
+    action: {
+      name: "flow",
+      parameters: {
+        flow_message_version: "3",
+        flow_token: "{contextId}-{nodeId}",  // For tracking
+        flow_id: "123456789",  // WhatsApp Flow ID
+        flow_cta: "Book Now",
+        flow_action: "navigate",  // or "data_exchange"
+        mode: "published"  // or "draft"
+      }
+    }
+  }
+}
+```
+
+**Flow Response**: Received via webhook when user completes Flow
 
 ---
 
 ## WhatsApp Flows API
 
-WhatsApp Builder integrates with the WhatsApp Cloud API to manage Flow lifecycle: creation, updates, publishing, deprecation, and deletion. This enables building and deploying interactive multi-screen forms directly from the application.
-
-### Flow Management Service
-
-**Service**: `WhatsAppFlowService`
-**File**: `/home/ali/whatsapp-builder/backend/src/modules/whatsapp/services/whatsapp-flow.service.ts`
-
-#### API Methods
-
-```typescript
-export class WhatsAppFlowService {
-  private readonly baseUrl = 'https://graph.facebook.com/v18.0';
-
-  /**
-   * Create a new Flow on WhatsApp Cloud API
-   */
-  async createFlow(dto: CreateFlowDto): Promise<WhatsAppFlowResponse> {
-    const payload = {
-      name: dto.name,
-      categories: dto.categories,  // e.g., ["SIGN_UP", "APPOINTMENT_BOOKING"]
-    };
-
-    const response = await this.apiService.post('/flows', payload);
-    return response; // Returns { id: "flow_id" }
-  }
-
-  /**
-   * Update Flow JSON and metadata
-   */
-  async updateFlow(flowId: string, dto: UpdateFlowDto): Promise<{ success: boolean }> {
-    const payload = {
-      name: dto.name,
-      categories: dto.categories,
-      flow_json: dto.flowJson,      // Complete Flow JSON structure
-      endpoint_uri: dto.endpointUri, // Optional webhook endpoint
-    };
-
-    return await this.apiService.post(`/${flowId}`, payload);
-  }
-
-  /**
-   * Publish Flow (makes it available for use)
-   */
-  async publishFlow(flowId: string): Promise<{ success: boolean }> {
-    return await this.apiService.post(`/${flowId}/publish`, {});
-  }
-
-  /**
-   * Deprecate Flow (required before deletion if PUBLISHED)
-   * WhatsApp requires Flows to be deprecated before deletion
-   */
-  async deprecateFlow(flowId: string): Promise<{ success: boolean }> {
-    this.logger.log(`Deprecating flow: ${flowId}`);
-    return await this.apiService.post(`/${flowId}`, { status: 'DEPRECATED' });
-  }
-
-  /**
-   * Delete Flow from WhatsApp Cloud API
-   * Note: PUBLISHED Flows must be deprecated first
-   */
-  async deleteFlow(flowId: string): Promise<{ success: boolean }> {
-    return await this.apiService.delete(`/${flowId}`);
-  }
-
-  /**
-   * Get Flow details
-   */
-  async getFlowDetails(flowId: string): Promise<WhatsAppFlowDetails> {
-    return await this.apiService.get(`/${flowId}`);
-  }
-
-  /**
-   * Get preview URL for testing draft Flows
-   */
-  async getPreviewUrl(flowId: string, invalidate: boolean = false): Promise<string> {
-    const params = invalidate ? { invalidate_preview: 'true' } : {};
-    const data = await this.apiService.get(`/${flowId}`, { params });
-    return data.preview?.preview_url;
-  }
-}
+### Flow Lifecycle
+```
+Create (DRAFT) → Publish (PUBLISHED) → Deprecate (DEPRECATED) → Delete
 ```
 
-### Flow Sync from Meta API (NEW)
+### FlowsService Methods
+**File**: `/backend/src/modules/flows/flows.service.ts`
 
-The application supports syncing Flows directly from Meta/Facebook API to import flows created in Meta Business Manager.
+- `create(dto)`: Create Flow on WhatsApp
+- `update(id, dto)`: Update Flow (resets to DRAFT)
+- `publish(id)`: Publish Flow (PUBLISHED status)
+- `delete(id)`: Smart deletion (deprecates if PUBLISHED first)
+- `getPreview(id)`: Get preview URL for testing
+- `syncFromMeta()`: **NEW** - Import flows from Meta API
 
-#### Fetch All Flows with Pagination
+### WhatsAppFlowService (API Client)
+**File**: `/backend/src/modules/whatsapp/services/whatsapp-flow.service.ts`
+
+**Methods**:
+- `createFlow(dto)`: POST to Meta API
+- `updateFlow(flowId, dto)`: POST to update endpoint
+- `publishFlow(flowId)`: POST to publish endpoint
+- `deprecateFlow(flowId)`: POST to deprecate
+- `deleteFlow(flowId)`: DELETE from Meta
+- `getFlowDetails(flowId)`: GET flow metadata
+- `getPreviewUrl(flowId)`: GET preview URL
+- `fetchAllFlows()`: **NEW** - GET all flows with pagination
+- `getFlowJson(assetUrl)`: **NEW** - Download flow JSON from Meta CDN
+
+### Flow JSON Structure
 ```typescript
-async fetchAllFlows(): Promise<MetaFlowItem[]> {
-  const fields = 'id,name,status,categories,validation_errors,updated_at,endpoint_uri,preview';
-  let hasMore = true;
-  let afterCursor: string | undefined;
-  const allFlows: MetaFlowItem[] = [];
-
-  while (hasMore) {
-    const endpoint = afterCursor
-      ? `/${wabaId}/flows?fields=${fields}&after=${afterCursor}`
-      : `/${wabaId}/flows?fields=${fields}`;
-
-    const response = await this.apiService.get<MetaFlowsListResponse>(endpoint);
-    allFlows.push(...response.data);
-
-    // Handle pagination
-    afterCursor = response.paging?.cursors?.after;
-    hasMore = !!afterCursor;
-  }
-
-  return allFlows;
-}
-```
-
-#### Download Flow JSON Content
-```typescript
-async getFlowJson(flowId: string): Promise<any> {
-  // Step 1: Get assets list
-  const assetsResponse = await this.getFlowAssets(flowId);
-
-  // Step 2: Find FLOW_JSON asset
-  const flowJsonAsset = assetsResponse.data?.find(
-    asset => asset.asset_type === 'FLOW_JSON'
-  );
-
-  if (!flowJsonAsset?.download_url) {
-    return null;
-  }
-
-  // Step 3: Download from URL
-  const response = await axios.get(flowJsonAsset.download_url);
-  return response.data;
-}
-```
-
-#### Meta API Response Types
-```typescript
-interface MetaFlowsListResponse {
-  data: MetaFlowItem[];
-  paging?: {
-    cursors?: {
-      after?: string;
-      before?: string;
-    };
-  };
-}
-
-interface MetaFlowItem {
-  id: string;
-  name: string;
-  status: string;
-  categories?: string[];
-  validation_errors?: any[];
-  endpoint_uri?: string;
-  preview?: {
-    preview_url: string;
-    expires_at: string;
-  };
-}
-
-interface FlowAssetsResponse {
-  data: FlowAsset[];
-}
-
-interface FlowAsset {
-  name: string;
-  asset_type: 'FLOW_JSON';
-  download_url: string;
-}
-```
-
-### Flow Lifecycle Management
-
-**FlowsService** (backend/src/modules/flows/flows.service.ts) orchestrates Flow operations:
-
-```typescript
-export class FlowsService {
-  /**
-   * Create Flow locally and register with WhatsApp API
-   */
-  async create(dto: CreateFlowDto): Promise<WhatsAppFlow> {
-    // 1. Create Flow on WhatsApp API
-    const { id: whatsappFlowId } = await this.whatsappFlowService.createFlow(dto);
-
-    // 2. Update Flow JSON
-    await this.whatsappFlowService.updateFlow(whatsappFlowId, dto);
-
-    // 3. Save to local database
-    const flow = this.flowRepo.create({
-      whatsappFlowId,
-      name: dto.name,
-      description: dto.description,
-      categories: dto.categories,
-      flowJson: dto.flowJson,
-      endpointUri: dto.endpointUri,
-      status: WhatsAppFlowStatus.DRAFT,
-    });
-
-    return await this.flowRepo.save(flow);
-  }
-
-  /**
-   * Publish Flow to production
-   */
-  async publish(id: string): Promise<WhatsAppFlow> {
-    const flow = await this.findOne(id);
-
-    // Publish to WhatsApp API
-    await this.whatsappFlowService.publishFlow(flow.whatsappFlowId);
-
-    // Update local status
-    flow.status = WhatsAppFlowStatus.PUBLISHED;
-    return await this.flowRepo.save(flow);
-  }
-
-  /**
-   * Delete Flow with automatic deprecation
-   * Smart deletion logic:
-   * 1. If PUBLISHED, deprecate first (WhatsApp requirement)
-   * 2. Delete from WhatsApp API
-   * 3. Delete from local database
-   * 4. Graceful error handling at each step
-   */
-  async delete(id: string): Promise<void> {
-    const flow = await this.findOne(id);
-
-    this.logger.log(`Deleting flow: ${id} (status: ${flow.status})`);
-
-    // Step 1: Deprecate if PUBLISHED
-    if (flow.whatsappFlowId && flow.status === WhatsAppFlowStatus.PUBLISHED) {
-      try {
-        this.logger.log(`Flow is PUBLISHED, deprecating before deletion: ${flow.whatsappFlowId}`);
-        await this.whatsappFlowService.deprecateFlow(flow.whatsappFlowId);
-
-        // Update local status
-        flow.status = WhatsAppFlowStatus.DEPRECATED;
-        await this.flowRepo.save(flow);
-      } catch (error) {
-        this.logger.warn(`Could not deprecate Flow: ${error.message}`);
-        // Continue with deletion attempt
-      }
+{
+  version: "3.0",
+  screens: [{
+    id: "START",
+    title: "Form",
+    data: {},
+    layout: {
+      type: "SingleColumnLayout",
+      children: [{ type: "TextInput", name: "field1", label: "Name" }]
     }
-
-    // Step 2: Delete from WhatsApp API
-    if (flow.whatsappFlowId) {
-      try {
-        await this.whatsappFlowService.deleteFlow(flow.whatsappFlowId);
-        this.logger.log(`Flow deleted from WhatsApp API: ${flow.whatsappFlowId}`);
-      } catch (error) {
-        this.logger.warn(`Could not delete from WhatsApp API: ${error.message}`);
-        // Continue with local deletion
-      }
-    }
-
-    // Step 3: Delete from local database
-    await this.flowRepo.remove(flow);
-    this.logger.log(`Flow deleted from database: ${id}`);
-  }
+  }]
 }
 ```
 
-### Flow Status Lifecycle
+### Flow Webhook Endpoint
+**Path**: `/api/webhooks/flow-endpoint`
+**Controller**: `FlowEndpointController`
+**Service**: `FlowEndpointService`
 
-```
-┌─────────┐
-│  DRAFT  │ ─────publish()────► PUBLISHED
-└─────────┘                          │
-     ▲                               │
-     │                               │
-  update()                      delete()
-     │                               │
-     │                               ▼
-     └─────────────────────── DEPRECATED ─────► DELETED
-                                                (from API & DB)
-```
+**Actions**:
+- `INIT`: Return first screen
+- `data_exchange`: Process form submission
+- `BACK`: Handle back navigation
+- `ping`: Health check
+- `error_notification`: Log errors
 
-**Status Transitions**:
-1. **DRAFT**: Initial state after creation, Flow is editable
-2. **PUBLISHED**: Flow is live and available to users, immutable on WhatsApp
-3. **DEPRECATED**: Required intermediate state before deletion (WhatsApp API requirement)
-4. **DELETED**: Removed from WhatsApp API and local database
-
-**Key Points**:
-- Published Flows cannot be deleted directly - must be deprecated first
-- Updating a PUBLISHED Flow resets it to DRAFT status
-- Draft Flows can be previewed using temporary preview URLs
-- Graceful degradation: If WhatsApp API fails, local operations continue
-
-### Flow Categories
-
-WhatsApp supports 8 predefined categories for Flows:
-
-```typescript
-export enum WhatsAppFlowCategory {
-  SIGN_UP = 'SIGN_UP',                    // User registration
-  SIGN_IN = 'SIGN_IN',                    // User authentication
-  APPOINTMENT_BOOKING = 'APPOINTMENT_BOOKING',  // Booking system
-  LEAD_GENERATION = 'LEAD_GENERATION',    // Lead capture
-  CONTACT_US = 'CONTACT_US',              // Contact forms
-  CUSTOMER_SUPPORT = 'CUSTOMER_SUPPORT',  // Support tickets
-  SURVEY = 'SURVEY',                      // Surveys & feedback
-  OTHER = 'OTHER',                        // Uncategorized
-}
-```
-
-Multiple categories can be assigned to a single Flow for better organization and discoverability.
-
-### Error Handling
-
-```typescript
-// Common WhatsApp Flows API errors
-try {
-  await this.whatsappFlowService.publishFlow(flowId);
-} catch (error) {
-  if (error.response?.status === 400) {
-    // Invalid Flow JSON structure
-    throw new BadRequestException('Flow JSON validation failed');
-  } else if (error.response?.status === 404) {
-    // Flow not found on WhatsApp
-    throw new NotFoundException('Flow not found on WhatsApp API');
-  } else if (error.response?.status === 403) {
-    // Cannot delete PUBLISHED Flow without deprecation
-    throw new ForbiddenException('Flow must be deprecated before deletion');
-  }
-  throw error;
-}
-```
+**Encryption**: RSA + AES-128-GCM (see FlowEncryptionService)
 
 ---
 
 ## Webhook Processing
 
-### Webhook Endpoint
-**File**: `/home/ali/whatsapp-builder/backend/src/modules/webhooks/webhooks.controller.ts`
-
-```typescript
-@Controller('api/webhooks/whatsapp')
-export class WebhooksController {
-  // Verification (GET)
-  @Get()
-  verifyWebhook(@Query() query: WebhookVerificationDto): string {
-    const mode = query['hub.mode'];
-    const token = query['hub.verify_token'];
-    const challenge = query['hub.challenge'];
-
-    if (mode !== 'subscribe' || !this.signatureService.verifyToken(token)) {
-      throw new BadRequestException('Invalid verification');
-    }
-
-    return challenge;
-  }
-
-  // Receive webhooks (POST)
-  @Post()
-  async receiveWebhook(
-    @Req() req: RawBodyRequest<Request>,
-    @Headers('x-hub-signature-256') signature: string,
-    @Body() payload: WebhookPayloadDto,
-  ): Promise<{ success: boolean }> {
-    // 1. Verify signature
-    this.signatureService.verifySignatureOrThrow(signature, req.rawBody);
-
-    // 2. Process each entry
-    for (const entry of payload.entry) {
-      for (const change of entry.changes) {
-        await this.processChange(change.value);
-      }
-    }
-
-    // 3. Always return 200 OK
-    return { success: true };
-  }
-}
+### Webhook Flow
+```
+WhatsApp → POST /api/webhooks/whatsapp → Verify Signature → Parse → Process
 ```
 
-### Signature Verification
-**File**: `/home/ali/whatsapp-builder/backend/src/modules/webhooks/services/webhook-signature.service.ts`
+### WebhooksController
+**File**: `/backend/src/modules/webhooks/webhooks.controller.ts`
+
+**Endpoints**:
+- `GET /api/webhooks/whatsapp` - Verification (Meta requirement)
+  - Returns `hub.challenge` if `hub.verify_token` matches
+- `POST /api/webhooks/whatsapp` - Receive webhooks
+  - Verify X-Hub-Signature-256 header
+  - Parse payload
+  - Always return 200 OK immediately
+
+### Webhook Signature Verification
+**Service**: `WebhookSignatureService`
 
 ```typescript
 verifySignatureOrThrow(signature: string, rawBody: Buffer): void {
-  const expectedSignature = crypto
+  const expected = crypto
     .createHmac('sha256', this.appSecret)
     .update(rawBody)
     .digest('hex');
 
-  const receivedSignature = signature?.replace('sha256=', '');
-
-  if (expectedSignature !== receivedSignature) {
-    throw new UnauthorizedException('Invalid webhook signature');
+  if (signature !== `sha256=${expected}`) {
+    throw new UnauthorizedException('Invalid signature');
   }
 }
 ```
 
-### Message Parsing
-**File**: `/home/ali/whatsapp-builder/backend/src/modules/webhooks/services/webhook-parser.service.ts`
+### Webhook Payload Parsing
+**Service**: `WebhookParserService`
 
+**Message Types Parsed**:
+- `text` - Text messages
+- `interactive` - Button/list/Flow replies
+  - `button_reply` - Button click
+  - `list_reply` - List selection
+  - `nfm_reply` - **Flow completion** (Native Flow Message Reply)
+- `image`, `video`, `document`, `audio` - Media
+- `reaction` - Emoji reactions
+- `system` - System messages
+
+**nfm_reply Parsing**:
 ```typescript
-parseMessages(value: any): ParsedMessageDto[] {
-  const messages: ParsedMessageDto[] = [];
-
-  for (const msg of value.messages || []) {
-    const parsed: ParsedMessageDto = {
-      id: msg.id,
-      from: msg.from,  // Phone number
-      timestamp: msg.timestamp,
-      type: msg.type,
-      profile: value.contacts?.[0]?.profile,
-    };
-
-    // Parse based on message type
-    switch (msg.type) {
-      case 'text':
-        parsed.text = msg.text.body;
-        break;
-
-      case 'interactive':
-        parsed.interactiveType = msg.interactive.type;
-
-        if (msg.interactive.type === 'button_reply') {
-          parsed.text = msg.interactive.button_reply.title;
-          parsed.buttonId = msg.interactive.button_reply.id;
-        } else if (msg.interactive.type === 'list_reply') {
-          parsed.text = msg.interactive.list_reply.title;
-          parsed.listRowId = msg.interactive.list_reply.id;
-        } else if (msg.interactive.type === 'nfm_reply') {
-          // Native Flow Message Reply - WhatsApp Flow completion
-          // response_json is a string that needs to be parsed
-          const responseData = JSON.parse(msg.interactive.nfm_reply.response_json);
-          parsed.text = '📋 Flow completed';
-          parsed.interactiveType = 'nfm_reply';
-          parsed.flowToken = responseData.flow_token;
-          parsed.flowResponseData = responseData;  // Full data including all form fields
-        }
-        break;
-
-      case 'image':
-      case 'video':
-      case 'document':
-      case 'audio':
-        parsed.mediaId = msg[msg.type].id;
-        parsed.mimeType = msg[msg.type].mime_type;
-        parsed.caption = msg[msg.type].caption;
-        break;
-    }
-
-    messages.push(parsed);
-  }
-
-  return messages;
-}
+const responseData = JSON.parse(msg.interactive.nfm_reply.response_json);
+parsed.interactiveType = 'nfm_reply';
+parsed.flowToken = responseData.flow_token;  // "{contextId}-{nodeId}"
+parsed.flowResponseData = responseData;       // All form fields
 ```
 
-### Processing Pipeline
-**File**: `/home/ali/whatsapp-builder/backend/src/modules/webhooks/services/webhook-processor.service.ts`
+### Webhook Processing
+**Service**: `WebhookProcessorService`
 
+**Pipeline**:
+1. Find/create user (by phone number)
+2. Find/create conversation
+3. Save message to database
+4. Emit Socket.IO event (`message:received`)
+5. Execute chatbot logic (if text/interactive)
+6. Process Flow response (if nfm_reply)
+
+**Flow Response Processing**:
 ```typescript
-async processMessages(messages: ParsedMessageDto[]): Promise<void> {
-  for (const msg of messages) {
-    // 1. Find or create user
-    const user = await this.findOrCreateUser(msg.from, msg.profile);
+// Parse flow_token: "{contextId}-{nodeId}" (both UUIDs)
+const parts = flowToken.split('-');
+const contextId = parts.slice(0, 5).join('-');  // First UUID (5 parts)
+const nodeId = parts.slice(5).join('-');        // Second UUID (5 parts)
 
-    // 2. Find or create conversation
-    const conversation = await this.findOrCreateConversation(user);
+// Load context and save Flow data to variables
+context.variables[context.currentFlowOutputVariable] = cleanedData;
+await contextRepo.save(context);
 
-    // 3. Save message
-    const savedMessage = await this.saveMessage(conversation, user, msg);
-
-    // 4. Emit real-time event
-    this.gateway.emitMessageReceived({
-      conversationId: conversation.id,
-      messageId: savedMessage.id,
-      senderId: user.id,
-      type: savedMessage.type,
-      content: savedMessage.content,
-      status: savedMessage.status,
-      timestamp: savedMessage.timestamp.toISOString(),
-    });
-
-    // 5. Execute chatbot logic
-    if (msg.type === 'text' || msg.type === 'interactive') {
-      // Handle Flow response separately
-      if (msg.interactiveType === 'nfm_reply') {
-        await this.processFlowResponse(conversation.id, msg);
-      } else {
-        await this.executionService.processUserResponse(
-          conversation.id,
-          msg.text,
-          msg.buttonId,
-          msg.listRowId,
-        );
-      }
-    }
-  }
-}
-
-async processFlowResponse(conversationId: string, msg: ParsedMessageDto): Promise<void> {
-  // Parse flow_token with UUID-aware logic: "{contextId}-{nodeId}"
-  // Both contextId and nodeId are UUIDs (format: 8-4-4-4-12 = 5 hyphen-separated parts each)
-  const parts = msg.flowToken.split('-');
-  if (parts.length < 10) {
-    this.logger.error(`Invalid flow_token format: ${msg.flowToken}`);
-    return;
-  }
-  const contextId = parts.slice(0, 5).join('-');  // First UUID (5 parts)
-  const nodeId = parts.slice(5).join('-');         // Second UUID (5 parts)
-
-  this.logger.log(`Parsed flow_token - contextId: ${contextId}, nodeId: ${nodeId}`);
-
-  // Load conversation context
-  const context = await this.contextRepo.findOne({
-    where: { id: contextId },
-    relations: ['chatbot'],
-  });
-
-  if (!context) {
-    this.logger.error(`Context not found for flow_token: ${msg.flowToken}`);
-    return;
-  }
-
-  // Remove flow_token from response data before saving to context
-  const cleanedData = { ...msg.flowResponseData };
-  delete cleanedData.flow_token;
-
-  // Save Flow response to context variables
-  const flowOutputVariable = context.variables._currentFlowOutputVariable || 'flowData';
-  context.variables[flowOutputVariable] = cleanedData;
-
-  await this.contextRepo.save(context);
-
-  // Resume ChatBot execution via processFlowResponse
-  await this.executionService.processFlowResponse(msg.flowToken, cleanedData);
-}
+// Resume ChatBot execution
+await executionService.processFlowResponse(flowToken, cleanedData);
 ```
-
----
-
-## Flow Endpoint
-
-WhatsApp Flows support server-side endpoints for dynamic data exchange during user interactions.
-
-### Flow Endpoint Controller
-**File**: `/home/ali/whatsapp-builder/backend/src/modules/webhooks/flow-endpoint.controller.ts`
-
-```typescript
-@Controller('api/webhooks/flow-endpoint')
-export class FlowEndpointController {
-  @Post()
-  async handleFlowWebhook(
-    @Req() req: RawBodyRequest<Request>,
-    @Headers('x-hub-signature-256') signature: string,
-    @Body() body: any,
-  ): Promise<any> {
-    // 1. Verify signature
-    await this.encryptionService.verifySignature(signature, req.rawBody);
-
-    // 2. Decrypt request
-    const decryptedRequest = await this.encryptionService.decryptRequest(
-      body.encrypted_flow_data,
-      body.encrypted_aes_key,
-      body.initial_vector,
-    );
-
-    // 3. Process action
-    const response = await this.flowEndpointService.handleAction(
-      decryptedRequest.action,
-      decryptedRequest.flow_token,
-      decryptedRequest.data,
-    );
-
-    // 4. Encrypt response
-    const encryptedResponse = await this.encryptionService.encryptResponse(
-      response,
-      body.encrypted_aes_key,
-      body.initial_vector,
-    );
-
-    return {
-      version: decryptedRequest.version,
-      data: encryptedResponse.encryptedData,
-      encrypted_flow_data_exchange_tag: encryptedResponse.tag,
-    };
-  }
-}
-```
-
-### Flow Actions
-
-**FlowEndpointService** handles different action types:
-
-#### INIT Action - Load Initial Data from Context
-```typescript
-async handleInit(request: any): Promise<any> {
-  const { flow_token } = request;
-
-  // Extract context ID from flow_token (format: {contextId}-{nodeId})
-  let contextId: string | null = null;
-  let initialData: any = {};
-
-  if (flow_token && flow_token.includes('-')) {
-    const parts = flow_token.split('-');
-    contextId = parts[0];
-
-    // Load context variables to pre-populate form fields
-    if (contextId) {
-      const context = await this.contextRepo.findOne({ where: { id: contextId } });
-      if (context) {
-        initialData = context.variables || {};
-      }
-    }
-  }
-
-  return {
-    screen: 'WELCOME',
-    data: initialData, // Pre-populate with context variables
-  };
-}
-```
-
-#### data_exchange Action - Process Submission with Full Data
-```typescript
-async handleDataExchange(request: any): Promise<any> {
-  const { screen, data, flow_token } = request;
-
-  // Extract context ID from flow_token
-  let contextId: string | null = null;
-  if (flow_token && flow_token.includes('-')) {
-    contextId = flow_token.split('-')[0];
-  }
-
-  // Save data to context
-  if (contextId && data) {
-    await this.saveFlowDataToContext(contextId, data);
-  }
-
-  // Complete flow with ALL form fields in extension_message_response.params
-  // These params will be included in the nfm_reply webhook response_json
-  return {
-    screen: 'SUCCESS',
-    data: {
-      extension_message_response: {
-        params: {
-          flow_token,
-          ...data, // Include ALL form fields submitted by user
-        },
-      },
-    },
-  };
-}
-```
-
-#### Other Actions
-```typescript
-case 'BACK':
-  // Handle backward navigation
-  return { screen: screen, data: {} };
-
-case 'error_notification':
-  // Log error from Flow
-  this.logger.error('Flow error:', data);
-  return {};
-
-case 'ping':
-  // Health check
-  return { version: '3.0' };
-```
-
-#### Key Changes (Enhanced)
-1. **Context Pre-population**: INIT action loads context variables to pre-fill form fields
-2. **Full Data Passthrough**: data_exchange includes all form fields in `extension_message_response.params`
-3. **Graceful Default Handling**: Unknown screens complete flow with submitted data
-4. **Flow Token Parsing**: Extracts contextId from `{contextId}-{nodeId}` format
-
----
-
-## Flow Encryption & Security
-
-WhatsApp Flows use **RSA + AES encryption** for secure data exchange.
-
-### Encryption Service
-**File**: `/home/ali/whatsapp-builder/backend/src/modules/whatsapp/services/flow-encryption.service.ts`
-
-### Architecture
-```
-                    WhatsApp                          Your Server
-                       │                                    │
-                       │  1. Generate AES key              │
-                       │  2. Encrypt request with AES      │
-                       │  3. Encrypt AES key with RSA      │
-                       │────────────────────────────────>  │
-                       │                                    │
-                       │                                 4. Decrypt AES key with RSA private key
-                       │                                 5. Decrypt request with AES key
-                       │                                 6. Process request
-                       │                                 7. Encrypt response with same AES key
-                       │  <────────────────────────────────│
-                       │  8. Decrypt response with AES key │
-```
-
-### Decryption (Incoming Requests)
-
-```typescript
-async decryptRequest(
-  encryptedFlowData: string,
-  encryptedAesKey: string,
-  initialVector: string,
-): Promise<any> {
-  // 1. Decrypt AES key using RSA private key
-  const aesKeyBuffer = crypto.privateDecrypt(
-    {
-      key: this.privateKey,
-      padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-      oaepHash: 'sha256',
-    },
-    Buffer.from(encryptedAesKey, 'base64'),
-  );
-
-  // 2. Decrypt request body using AES-128-GCM
-  const decipher = crypto.createDecipheriv(
-    'aes-128-gcm',
-    aesKeyBuffer,
-    Buffer.from(initialVector, 'base64'),
-  );
-
-  const encryptedBuffer = Buffer.from(encryptedFlowData, 'base64');
-  const authTag = encryptedBuffer.slice(-16);  // Last 16 bytes
-  const ciphertext = encryptedBuffer.slice(0, -16);
-
-  decipher.setAuthTag(authTag);
-
-  const decrypted = Buffer.concat([
-    decipher.update(ciphertext),
-    decipher.final(),
-  ]);
-
-  return JSON.parse(decrypted.toString('utf-8'));
-}
-```
-
-### Encryption (Outgoing Responses)
-
-```typescript
-async encryptResponse(
-  response: any,
-  encryptedAesKey: string,
-  initialVector: string,
-): Promise<{ encryptedData: string; tag: string }> {
-  // 1. Decrypt AES key (same as above)
-  const aesKeyBuffer = crypto.privateDecrypt(/* ... */);
-
-  // 2. Encrypt response using AES-128-GCM
-  const cipher = crypto.createCipheriv(
-    'aes-128-gcm',
-    aesKeyBuffer,
-    Buffer.from(initialVector, 'base64'),
-  );
-
-  const encrypted = Buffer.concat([
-    cipher.update(JSON.stringify(response), 'utf-8'),
-    cipher.final(),
-  ]);
-
-  const authTag = cipher.getAuthTag();
-
-  return {
-    encryptedData: Buffer.concat([encrypted, authTag]).toString('base64'),
-    tag: authTag.toString('base64'),
-  };
-}
-```
-
-### Signature Verification
-
-```typescript
-async verifySignature(signature: string, rawBody: Buffer): Promise<void> {
-  const expectedSignature = crypto
-    .createHmac('sha256', this.appSecret)
-    .update(rawBody)
-    .digest('hex');
-
-  const receivedSignature = signature?.replace('sha256=', '');
-
-  if (expectedSignature !== receivedSignature) {
-    throw new UnauthorizedException('Invalid Flow endpoint signature');
-  }
-}
-```
-
-### RSA Key Pair Management
-
-**Generate Keys**:
-```bash
-# Generate private key
-openssl genrsa -out private.pem 2048
-
-# Extract public key
-openssl rsa -in private.pem -pubout -out public.pem
-```
-
-**Environment Configuration**:
-```bash
-WHATSAPP_FLOW_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
-```
-
-**Upload Public Key to WhatsApp**:
-- Navigate to WhatsApp Manager → Flows → Settings
-- Upload `public.pem`
-- WhatsApp will use this to encrypt AES keys
 
 ---
 
 ## Message Sending
 
-### WhatsAppApiService
-**File**: `/home/ali/whatsapp-builder/backend/src/modules/whatsapp/services/whatsapp-api.service.ts`
+### WhatsAppMessageService (Orchestrator)
+**File**: `/backend/src/modules/whatsapp/services/whatsapp-message.service.ts`
 
+**Methods**:
+- `sendTextMessage(dto)`
+- `sendInteractiveMessage(dto)` - Routes to button/list/flow
+
+**Usage in ChatBot Execution**:
 ```typescript
-@Injectable()
-export class WhatsAppApiService {
-  private readonly baseUrl: string;
-  private readonly accessToken: string;
+// Send message and get WhatsApp message ID
+const result = await this.whatsappMessageService.sendTextMessage({
+  to: phoneNumber,
+  text: content
+});
 
-  constructor(private readonly configService: WhatsAppConfigService) {
-    const config = this.configService.getActiveConfig();
-    this.baseUrl = `https://graph.facebook.com/v18.0/${config.phoneNumberId}`;
-    this.accessToken = config.accessToken;
-  }
+// Save message to database with WhatsApp ID
+await this.messagesService.create({
+  conversationId,
+  senderId: BUSINESS_USER_ID,
+  type: MessageType.TEXT,
+  content: {
+    text: content,
+    whatsappMessageId: result.messages[0].id  // wamid.xxx
+  },
+  status: 'sent',
+  timestamp: new Date()
+});
+```
 
-  async sendMessage(payload: any): Promise<MessageResponse> {
-    try {
-      const response = await axios.post(
-        `${this.baseUrl}/messages`,
-        payload,
-        {
-          headers: {
-            'Authorization': `Bearer ${this.accessToken}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      return {
-        messageId: response.data.messages[0].id,
-        status: 'sent',
-      };
-    } catch (error) {
-      this.logger.error('WhatsApp API error:', error.response?.data);
-      throw new Error(`Failed to send message: ${error.message}`);
-    }
-  }
-
-  async uploadMedia(formData: FormData): Promise<{ id: string }> {
-    const response = await axios.post(
-      `${this.baseUrl}/media`,
-      formData,
-      {
-        headers: {
-          'Authorization': `Bearer ${this.accessToken}`,
-          ...formData.getHeaders(),
-        },
-      }
-    );
-
-    return { id: response.data.id };
-  }
+### Message Response
+```typescript
+interface MessageResponse {
+  messaging_product: "whatsapp";
+  contacts: [{ input: string; wa_id: string }];
+  messages: [{ id: string }];  // WhatsApp message ID (wamid.xxx)
 }
 ```
 
@@ -1105,184 +330,112 @@ export class WhatsAppApiService {
 
 ## Error Handling
 
-### Common WhatsApp API Errors
+### WhatsApp API Errors
+**Common Errors**:
+- `100` - Invalid parameter
+- `131031` - Message undeliverable (user blocked/invalid number)
+- `131026` - Message expired (outside 24-hour window)
+- `131047` - Re-engagement message required
+- `130429` - Rate limit exceeded
 
-#### 1. Rate Limiting (Error Code: 4)
-```json
-{
-  "error": {
-    "message": "Message failed to send because there were too many messages sent from this phone number in a short period of time.",
-    "type": "OAuthException",
-    "code": 4
-  }
-}
-```
-
-**Solution**: Implement exponential backoff and retry logic
-
-#### 2. Invalid Phone Number (Error Code: 131051)
-```json
-{
-  "error": {
-    "message": "Unsupported phone number",
-    "type": "OAuthException",
-    "code": 131051
-  }
-}
-```
-
-**Solution**: Validate phone numbers before sending
-
-#### 3. 24-Hour Window Expired (Error Code: 131047)
-```json
-{
-  "error": {
-    "message": "Re-engagement message was not sent because more than 24 hours have passed since the customer last replied to this number.",
-    "type": "OAuthException",
-    "code": 131047
-  }
-}
-```
-
-**Solution**: Use Message Templates for messages outside 24-hour window
-
-### Error Handling Strategy
+**Handling**:
 ```typescript
 try {
   await this.whatsappApi.sendMessage(payload);
 } catch (error) {
-  if (error.response?.data?.error?.code === 131047) {
-    // 24-hour window expired - use template
-    await this.sendTemplateMessage(/* ... */);
-  } else if (error.response?.data?.error?.code === 4) {
-    // Rate limited - retry with backoff
-    await this.retryWithBackoff(/* ... */);
-  } else {
-    // Log and re-throw
-    this.logger.error('WhatsApp send failed:', error);
-    throw error;
-  }
+  this.logger.error(`WhatsApp API error: ${error.response?.data?.error?.message}`);
+  throw new BadRequestException(error.response?.data?.error?.message);
 }
 ```
+
+### 24-Hour Window Tracking
+**Field**: `conversations.isWindowOpen` (boolean)
+
+**Logic**:
+- Set to `true` when user sends inbound message
+- Set to `false` after 24 hours
+- Outside window: Only template messages allowed
 
 ---
 
-## Edge Routing with Fallback Logic
+## Character Limits
 
-When a user responds to a Question node (Button or List type), the system determines which edge to follow based on the response type. A fallback mechanism ensures flow continuity even when users type text instead of clicking buttons.
+### Interactive Messages
+| Field | Limit |
+|-------|-------|
+| Button title | 20 chars |
+| Button ID | 256 chars |
+| List button text | 20 chars |
+| List section title | 24 chars |
+| List row title | 24 chars |
+| List row description | 72 chars |
+| Text message | 4096 chars |
+| Header text | 60 chars |
+| Footer text | 60 chars |
 
-### Button Question Handling
+### Quantity Limits
+- Buttons: max 3 per message
+- List sections: max 10
+- List rows: max 10 per section
+- Total list rows: max 100
 
-```typescript
-// chatbot-execution.service.ts - processUserResponse()
-if (questionType === QuestionType.BUTTONS) {
-  if (buttonId) {
-    // User clicked a button - use the button ID
-    sourceHandle = buttonId;
-  } else {
-    // User typed text instead of clicking button - use default handle
-    sourceHandle = 'default';
-    this.logger.log('User typed text instead of clicking button, using default handle');
-  }
-}
-```
+---
 
-### List Question Handling
+## Production Considerations
 
-```typescript
-if (questionType === QuestionType.LIST) {
-  if (listRowId) {
-    // User selected from list - use the row ID
-    sourceHandle = listRowId;
-  } else {
-    // User typed text instead of selecting from list - use default handle
-    sourceHandle = 'default';
-    this.logger.log('User typed text instead of selecting from list, using default handle');
-  }
-}
-```
+### Security
+- ✅ Webhook signature verification (HMAC SHA256)
+- ✅ Environment variable storage for secrets
+- ⚠️ Access token encryption recommended (currently plain text in DB)
+- ✅ Raw body capture for signature verification
 
-### Edge Resolution with Fallback
+### Rate Limiting
+**WhatsApp Cloud API**:
+- 80 messages per second per phone number
+- 1000 messages per second per business account
+- Higher limits available on request
 
-The `findNextNode()` method implements a two-step edge resolution:
+**Implementation**: None (rely on WhatsApp API rate limits)
+**Recommended**: Add application-level rate limiting with Redis
 
-```typescript
-private findNextNode(chatbot: ChatBot, currentNodeId: string, sourceHandle?: string): any {
-  // Step 1: Try to find edge with specific sourceHandle
-  let edge = chatbot.edges.find((e) => {
-    if (e.source !== currentNodeId) return false;
-    if (sourceHandle) {
-      return e.sourceHandle === sourceHandle;
-    }
-    return true;
-  });
+### Monitoring
+**Current**:
+- NestJS Logger for all API calls
+- Error logging with stack traces
 
-  // Step 2: If no edge found, try finding a default/fallback edge
-  if (!edge && sourceHandle) {
-    this.logger.log(`No edge found with sourceHandle ${sourceHandle}, looking for default edge`);
-    edge = chatbot.edges.find((e) => {
-      if (e.source !== currentNodeId) return false;
-      // Look for edge without sourceHandle (default) or with sourceHandle='default'
-      return !e.sourceHandle || e.sourceHandle === 'default';
-    });
-  }
-
-  // ... return target node or null
-}
-```
-
-### Fallback Mechanism Benefits
-
-1. **Resilient Flow Execution**: Flow continues even if user doesn't click button/list
-2. **Graceful Degradation**: Missing button edges don't crash the chatbot
-3. **User Flexibility**: Users can type text responses for button/list questions
-4. **Validation Warning, Not Error**: Frontend validation warns about missing edges, but backend handles it
-
-### Edge Naming Convention
-
-| Node Type | User Action | sourceHandle Used |
-|-----------|-------------|-------------------|
-| Button Question | Click button | Button ID (e.g., `btn_0`, `btn-1`) |
-| Button Question | Type text | `'default'` |
-| List Question | Select row | Row ID (e.g., `row-0`, `row-1`) |
-| List Question | Type text | `'default'` |
-
-### Flow Builder Best Practices
-
-- Always add a `default` edge for Button/List questions as fallback
-- Or ensure all buttons have corresponding edges to avoid relying on fallback
-- Frontend validation shows warnings for missing button edges (not errors)
+**Recommended**:
+- Structured logging (Winston/Pino)
+- APM (Application Performance Monitoring)
+- Webhook delivery monitoring
+- Message delivery rate tracking
 
 ---
 
 ## Summary
 
 ### Integration Points
-1. **Configuration**: `WhatsAppConfig` entity stores credentials
-2. **Message Sending**: `WhatsAppApiService` handles HTTP requests
-3. **Webhook Processing**: `WebhooksModule` receives and processes webhooks
-4. **Signature Verification**: `WebhookSignatureService` validates webhook authenticity
-5. **Message Parsing**: `WebhookParserService` transforms webhook payloads
-6. **Chatbot Execution**: `ChatBotExecutionService` processes user responses
-7. **Flow Management**: `FlowsModule` manages WhatsApp Flows lifecycle
-8. **Flow Endpoint**: `FlowEndpointController` handles Flow data exchange
-9. **Flow Encryption**: `FlowEncryptionService` handles RSA + AES encryption
+1. **Send Messages**: Via WhatsAppMessageService → WhatsAppApiService
+2. **Receive Messages**: Webhooks → WebhookProcessorService → ChatBotExecutionService
+3. **Flows**: FlowsService ↔ WhatsAppFlowService ↔ Meta API
+4. **Flow Webhooks**: FlowEndpointController → FlowEndpointService (encrypted)
 
-### Message Flow
-**Outbound**: ChatBot → WhatsAppMessageService → WhatsAppApiService → WhatsApp API
-**Inbound**: WhatsApp → Webhook → WebhookProcessor → ChatBotExecution → Response
+### Key Services
+- `WhatsAppApiService`: HTTP client wrapper
+- `TextMessageService`, `InteractiveMessageService`: Message type handlers
+- `WhatsAppFlowService`: Flow lifecycle API client
+- `FlowEncryptionService`: RSA + AES encryption
+- `WebhookProcessorService`: Webhook orchestrator
 
-### Flow Execution Flow
-**Send Flow**: ChatBot (WhatsAppFlowNode) → Generate flow_token → Send Flow message → **Save to DB** → Wait
-**User Interaction**: User opens Flow → WhatsApp calls Flow Endpoint → Decrypt → Process → Encrypt → Return
-**Flow Completion**: User submits → WhatsApp sends webhook (nfm_reply) → Parse flow_token (UUID-aware: 5+5 parts) → Remove flow_token from data → Save to context → Resume ChatBot
-
-### Message Persistence
-All chatbot messages are now saved to database:
-- **Text Messages**: Saved with `type: MessageType.TEXT` and `content.whatsappMessageId`
-- **Interactive Messages**: Saved with `type: MessageType.INTERACTIVE` and `content.whatsappMessageId`
-- **Flow Messages**: Saved with detailed content including `{ whatsappMessageId, type: 'flow', body, header, footer, action }`
+### File Locations
+- API services: `/backend/src/modules/whatsapp/services/`
+- Webhook services: `/backend/src/modules/webhooks/services/`
+- Flow services: `/backend/src/modules/flows/`
+- Entities: `/backend/src/entities/whatsapp-config.entity.ts`, `whatsapp-flow.entity.ts`
 
 ---
 
-**Next**: See `07-project-structure.md` for complete directory organization.
+**See Also**:
+- [whatsapp-messaging-api-expert](../skills/whatsapp-messaging-api-expert/) - Detailed API examples
+- [whatsapp-flows-expert](../skills/whatsapp-flows-expert/) - Flow development guide
+- [Backend Architecture](02-backend-architecture.md) - Module details
+- [Webhook Processing](#webhook-processing) - Message handling flow

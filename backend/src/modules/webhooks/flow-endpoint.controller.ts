@@ -29,12 +29,35 @@ import { WhatsAppConfig } from '../../entities/whatsapp-config.entity';
 export class FlowEndpointController {
   private readonly logger = new Logger(FlowEndpointController.name);
 
+  // Store generated keys for Flow encryption
+  private flowPrivateKey: string;
+  private flowPublicKey: string;
+
   constructor(
     private readonly flowEndpointService: FlowEndpointService,
     private readonly encryptionService: FlowEncryptionService,
     @InjectRepository(WhatsAppConfig)
     private readonly configRepo: Repository<WhatsAppConfig>,
-  ) {}
+  ) {
+    // Use environment variable if set, otherwise generate keys
+    if (process.env.WHATSAPP_FLOW_PRIVATE_KEY) {
+      this.flowPrivateKey = process.env.WHATSAPP_FLOW_PRIVATE_KEY;
+      this.logger.log('Using Flow private key from environment variable');
+    } else {
+      // Generate keys for development/testing
+      const keys = this.encryptionService.generateKeyPair();
+      this.flowPrivateKey = keys.privateKey;
+      this.flowPublicKey = keys.publicKey;
+
+      console.log('\n=================================');
+      console.log('WhatsApp Flow Endpoint Public Key:');
+      console.log('=================================');
+      console.log(this.flowPublicKey);
+      console.log('=================================\n');
+      console.log('Copy this public key to Meta WhatsApp Flow configuration.');
+      console.log('For production, set WHATSAPP_FLOW_PRIVATE_KEY in .env\n');
+    }
+  }
 
   @Post()
   @HttpCode(HttpStatus.OK)
@@ -63,12 +86,13 @@ export class FlowEndpointController {
     try {
       this.logger.log('Flow endpoint request received');
 
-      // Get app secret from config for signature verification
+      // Get app secret from config or environment for signature verification
       const config = await this.configRepo.findOne({
         where: { isActive: true },
       });
 
-      if (!config?.appSecret) {
+      const appSecret = config?.appSecret || process.env.WHATSAPP_APP_SECRET;
+      if (!appSecret) {
         this.logger.error('App secret not configured');
         throw new UnprocessableEntityException('Server configuration error');
       }
@@ -78,7 +102,7 @@ export class FlowEndpointController {
       const isValidSignature = this.encryptionService.verifySignature(
         rawBody,
         signature,
-        config.appSecret,
+        appSecret,
       );
 
       if (!isValidSignature) {
@@ -86,20 +110,13 @@ export class FlowEndpointController {
         throw new UnprocessableEntityException('Invalid signature');
       }
 
-      // Get private key from environment
-      const privateKey = process.env.WHATSAPP_FLOW_PRIVATE_KEY;
-      if (!privateKey) {
-        this.logger.error('Flow private key not configured');
-        throw new UnprocessableEntityException('Server configuration error');
-      }
-
-      // Decrypt request
+      // Decrypt request using the stored private key
       const { decryptedBody, aesKeyBuffer, initialVectorBuffer } =
         this.encryptionService.decryptRequest(
           body.encrypted_flow_data,
           body.encrypted_aes_key,
           body.initial_vector,
-          privateKey,
+          this.flowPrivateKey,
         );
 
       this.logger.debug(`Flow action: ${decryptedBody.action}`);
