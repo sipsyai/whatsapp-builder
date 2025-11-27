@@ -20,14 +20,78 @@ import type { WhatsAppFlow } from "../features/flows/api";
 // Extend ViewState type locally since we can't easily edit shared types without seeing them
 type ExtendedViewState = ViewState | "chatbots" | "users" | "flows" | "flowBuilder" | "sessions" | "sessionDetail";
 
+// Parse URL hash to determine initial view state
+const parseUrlHash = (): { view: ExtendedViewState; sessionId?: string } => {
+  const hash = window.location.hash.slice(1); // Remove # prefix
+  if (!hash) return { view: "chatbots" };
+
+  // Parse /sessions/:sessionId format
+  const sessionMatch = hash.match(/^sessions\/([a-f0-9-]+)$/i);
+  if (sessionMatch) {
+    return { view: "sessionDetail", sessionId: sessionMatch[1] };
+  }
+
+  // Map hash to view state
+  const viewMap: Record<string, ExtendedViewState> = {
+    'chatbots': 'chatbots',
+    'sessions': 'sessions',
+    'users': 'users',
+    'flows': 'flows',
+    'flowBuilder': 'flowBuilder',
+    'settings': 'settings',
+    'builder': 'builder',
+  };
+
+  return { view: viewMap[hash] || "chatbots" };
+};
+
+// Update URL hash based on current view
+const updateUrlHash = (view: ExtendedViewState, sessionId?: string | null) => {
+  let hash = '';
+
+  if (view === 'sessionDetail' && sessionId) {
+    hash = `sessions/${sessionId}`;
+  } else if (view !== 'chatbots') {
+    hash = view;
+  }
+
+  // Update without triggering navigation
+  const newUrl = hash ? `#${hash}` : window.location.pathname;
+  window.history.replaceState(null, '', newUrl);
+};
+
 const App = () => {
   const { isAuthenticated, isLoading } = useAuth();
 
+  // Parse initial state from URL hash
+  const initialState = parseUrlHash();
+
   // Start with chatbots page instead of landing to show sidebar immediately
-  const [view, setView] = useState<ExtendedViewState>("chatbots");
+  const [view, setView] = useState<ExtendedViewState>(initialState.view);
   const [selectedChatBot, setSelectedChatBot] = useState<ChatBot | null>(null);
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(initialState.sessionId || null);
   const [selectedFlow, setSelectedFlow] = useState<WhatsAppFlow | null>(null);
+
+  // Update URL hash when view or session changes
+  useEffect(() => {
+    updateUrlHash(view, selectedSessionId);
+  }, [view, selectedSessionId]);
+
+  // Listen for browser back/forward navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      const { view: newView, sessionId } = parseUrlHash();
+      setView(newView);
+      if (sessionId) {
+        setSelectedSessionId(sessionId);
+      } else if (newView !== 'sessionDetail') {
+        setSelectedSessionId(null);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Clear selected chatbot when navigating away from builder
   useEffect(() => {

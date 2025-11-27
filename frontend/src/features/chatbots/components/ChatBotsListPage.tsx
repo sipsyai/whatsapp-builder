@@ -42,7 +42,10 @@ export const ChatBotsListPage: React.FC<ChatBotsListPageProps> = ({ onNavigate, 
                 offset: (currentPage - 1) * pageSize,
                 sortBy,
                 sortOrder,
-                status: filter === 'all' ? undefined : filter === 'active' ? ChatBotStatus.ACTIVE : ChatBotStatus.ARCHIVED
+                // For "active" filter, use isActive: true to find currently active chatbot
+                // For "archived" filter, use status: ARCHIVED
+                isActive: filter === 'active' ? true : undefined,
+                status: filter === 'archived' ? ChatBotStatus.ARCHIVED : undefined
             });
             // Ensure data is always an array
             setChatBots(Array.isArray(data) ? data : []);
@@ -132,7 +135,7 @@ export const ChatBotsListPage: React.FC<ChatBotsListPageProps> = ({ onNavigate, 
                     <div className="flex justify-between items-start mb-6">
                         <div>
                             <h1 className="text-4xl font-bold text-white mb-2">My Chatbots</h1>
-                            <p className="text-zinc-400">Manage and organize your chatbot chatbots</p>
+                            <p className="text-zinc-400">Manage and organize your chatbots</p>
                         </div>
                         <button
                             onClick={() => onNavigate('/builder')}
@@ -235,7 +238,7 @@ export const ChatBotsListPage: React.FC<ChatBotsListPageProps> = ({ onNavigate, 
                         <p className="text-zinc-400 mb-8 max-w-md mx-auto">
                             {searchQuery
                                 ? 'Try adjusting your search query'
-                                : 'Create your first chatbot chatbot to get started with building intelligent conversations'}
+                                : 'Create your first chatbot to get started with building intelligent conversations'}
                         </p>
                         {!searchQuery && (
                             <button
@@ -311,11 +314,9 @@ export const ChatBotsListPage: React.FC<ChatBotsListPageProps> = ({ onNavigate, 
                                     {/* ChatBot Info */}
                                     <div className="p-6">
                                         <h3 className="text-xl font-bold text-white mb-2 truncate">{chatbot.name}</h3>
-                                        {chatbot.description && (
-                                            <p className="text-sm text-zinc-400 mb-3 line-clamp-2">
-                                                {chatbot.description}
-                                            </p>
-                                        )}
+                                        <p className="text-sm text-zinc-400 mb-3 line-clamp-2">
+                                            {chatbot.description || <span className="italic text-zinc-500">No description</span>}
+                                        </p>
 
                                         <div className="flex items-center gap-4 mb-4">
                                             <div className="flex items-center gap-1 text-sm text-zinc-400">

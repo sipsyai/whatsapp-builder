@@ -71,7 +71,7 @@ const ConfigModalWrapper = ({
   saveDisabled?: boolean;
 }) => {
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm fade-in">
+    <div className="fixed inset-0 z-[100] flex justify-end bg-black/50 backdrop-blur-sm fade-in">
       <div className="w-full max-w-2xl h-full bg-[#102216] shadow-2xl overflow-y-auto flex flex-col border-l border-white/10">
         <div className="p-8 flex-1">
           <header className="flex justify-between items-center mb-6">

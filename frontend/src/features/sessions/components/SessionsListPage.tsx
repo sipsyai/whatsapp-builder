@@ -24,6 +24,11 @@ export const SessionsListPage: React.FC<SessionsListPageProps> = ({ onViewSessio
   const [totalSessions, setTotalSessions] = useState(0);
   const [hasNext, setHasNext] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   // WebSocket for real-time updates
   const {
@@ -42,10 +47,18 @@ export const SessionsListPage: React.FC<SessionsListPageProps> = ({ onViewSessio
     }
   }, [connected, subscribeToSessions]);
 
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   // Load initial sessions
   useEffect(() => {
     loadSessions();
-  }, [currentTab, selectedChatbotId, currentPage]);
+  }, [currentTab, selectedChatbotId, currentPage, debouncedSearch, startDate, endDate]);
 
   // Load chatbots for filter dropdown
   useEffect(() => {
@@ -102,6 +115,9 @@ export const SessionsListPage: React.FC<SessionsListPageProps> = ({ onViewSessio
       const data: PaginatedSessions = await SessionsService.getSessions({
         status: currentTab === 'active' ? 'active' : 'completed',
         chatbotId: selectedChatbotId === 'all' ? undefined : selectedChatbotId,
+        search: debouncedSearch || undefined,
+        startDate: startDate ? `${startDate}T00:00:00` : undefined, // Include full day from start
+        endDate: endDate ? `${endDate}T23:59:59` : undefined, // Include full day to end
         limit: pageSize,
         offset: (currentPage - 1) * pageSize,
         sortBy: 'startedAt',
@@ -130,22 +146,128 @@ export const SessionsListPage: React.FC<SessionsListPageProps> = ({ onViewSessio
     }
   };
 
+  // Export sessions as CSV
+  const exportToCSV = () => {
+    if (sessions.length === 0) {
+      setToast({ message: 'No sessions to export', type: 'error' });
+      return;
+    }
+
+    const headers = ['ID', 'Customer Name', 'Customer Phone', 'Chatbot', 'Status', 'Started At', 'Updated At', 'Completed At', 'Nodes', 'Messages'];
+    const rows = sessions.map(s => [
+      s.id,
+      s.customerName || 'Unknown',
+      s.customerPhone,
+      s.chatbotName,
+      s.status,
+      new Date(s.startedAt).toLocaleString(),
+      new Date(s.updatedAt).toLocaleString(),
+      s.completedAt ? new Date(s.completedAt).toLocaleString() : '',
+      s.nodeCount,
+      s.messageCount,
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(cell => `"${cell}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `sessions_${currentTab}_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    setToast({ message: 'Sessions exported to CSV', type: 'success' });
+    setShowExportMenu(false);
+  };
+
+  // Export sessions as JSON
+  const exportToJSON = () => {
+    if (sessions.length === 0) {
+      setToast({ message: 'No sessions to export', type: 'error' });
+      return;
+    }
+
+    const exportData = sessions.map(s => ({
+      id: s.id,
+      customerName: s.customerName,
+      customerPhone: s.customerPhone,
+      chatbotId: s.chatbotId,
+      chatbotName: s.chatbotName,
+      status: s.status,
+      currentNodeId: s.currentNodeId,
+      currentNodeLabel: s.currentNodeLabel,
+      startedAt: s.startedAt,
+      updatedAt: s.updatedAt,
+      completedAt: s.completedAt,
+      nodeCount: s.nodeCount,
+      messageCount: s.messageCount,
+      isActive: s.isActive,
+    }));
+
+    const jsonContent = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([jsonContent], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `sessions_${currentTab}_${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    setToast({ message: 'Sessions exported to JSON', type: 'success' });
+    setShowExportMenu(false);
+  };
+
+  // Delete a session
+  const handleDeleteSession = async (sessionId: string) => {
+    try {
+      await SessionsService.deleteSession(sessionId);
+      setToast({ message: 'Session deleted successfully', type: 'success' });
+      // Reload sessions to update the list
+      loadSessions();
+    } catch (err: any) {
+      console.error('Failed to delete session:', err);
+      setToast({
+        message: err.response?.data?.message || 'Failed to delete session',
+        type: 'error',
+      });
+    }
+  };
+
   // Calculate stats
   const stats = useMemo(() => {
     const activeCount = Array.from(activeSessions.values()).filter(s => s.isActive).length;
 
-    // Completed today count
+    // Date boundaries
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const completedTodayCount = sessions.filter(s => {
-      if (!s.completedAt) return false;
-      const completedDate = new Date(s.completedAt);
-      return completedDate >= today && s.status === 'completed';
-    }).length;
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    // Completed today/yesterday counts
+    let completedTodayCount = 0;
+    let completedYesterdayCount = 0;
+
+    if (currentTab === 'completed') {
+      sessions.forEach(s => {
+        if (!s.completedAt || s.status !== 'completed') return;
+        const completedDate = new Date(s.completedAt);
+        completedDate.setHours(0, 0, 0, 0);
+
+        if (completedDate.getTime() === today.getTime()) {
+          completedTodayCount++;
+        } else if (completedDate.getTime() === yesterday.getTime()) {
+          completedYesterdayCount++;
+        }
+      });
+    }
 
     return {
       active: activeCount,
-      completedToday: currentTab === 'completed' ? completedTodayCount : 0,
+      completedToday: completedTodayCount,
+      completedYesterday: completedYesterdayCount,
       total: totalSessions,
     };
   }, [activeSessions, sessions, totalSessions, currentTab]);
@@ -189,6 +311,45 @@ export const SessionsListPage: React.FC<SessionsListPageProps> = ({ onViewSessio
                   <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                   <span className="text-xs text-green-600 font-medium">Live Updates Active</span>
                 </div>
+              )}
+            </div>
+
+            {/* Export Button */}
+            <div className="relative">
+              <button
+                onClick={() => setShowExportMenu(!showExportMenu)}
+                disabled={sessions.length === 0}
+                className="px-4 py-2 bg-surface border border-zinc-700 text-white rounded-xl font-medium hover:bg-zinc-800 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span className="material-symbols-outlined text-sm">download</span>
+                Export
+                <span className="material-symbols-outlined text-sm">expand_more</span>
+              </button>
+
+              {/* Export Dropdown Menu */}
+              {showExportMenu && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setShowExportMenu(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-48 bg-surface border border-zinc-700 rounded-xl shadow-lg z-20 overflow-hidden">
+                    <button
+                      onClick={exportToCSV}
+                      className="w-full px-4 py-3 text-left text-white hover:bg-zinc-800 transition-colors flex items-center gap-3"
+                    >
+                      <span className="material-symbols-outlined text-green-500">table_chart</span>
+                      Export as CSV
+                    </button>
+                    <button
+                      onClick={exportToJSON}
+                      className="w-full px-4 py-3 text-left text-white hover:bg-zinc-800 transition-colors flex items-center gap-3 border-t border-zinc-700"
+                    >
+                      <span className="material-symbols-outlined text-blue-500">code</span>
+                      Export as JSON
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -249,7 +410,14 @@ export const SessionsListPage: React.FC<SessionsListPageProps> = ({ onViewSessio
                   <span className="material-symbols-outlined text-white">today</span>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-blue-900">{stats.completedToday}</p>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-2xl font-bold text-blue-900">{stats.completedToday}</p>
+                    {stats.completedYesterday > 0 && (
+                      <span className="text-sm text-blue-600">
+                        (+{stats.completedYesterday} yesterday)
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm text-blue-700">Completed Today</p>
                 </div>
               </div>
@@ -267,29 +435,107 @@ export const SessionsListPage: React.FC<SessionsListPageProps> = ({ onViewSessio
             </div>
           </div>
 
-          {/* Filter by Chatbot */}
-          <div className="relative">
-            <select
-              value={selectedChatbotId}
-              onChange={(e) => {
-                setSelectedChatbotId(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="appearance-none w-full sm:w-64 pl-12 pr-10 py-3 rounded-xl border border-zinc-200 bg-surface text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all cursor-pointer"
-            >
-              <option value="all">All Chatbots</option>
-              {chatbots.map((chatbot) => (
-                <option key={chatbot.id} value={chatbot.id}>
-                  {chatbot.name}
-                </option>
-              ))}
-            </select>
-            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none">
-              smart_toy
-            </span>
-            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none">
-              expand_more
-            </span>
+          {/* Filters Row */}
+          <div className="flex flex-wrap gap-4 items-center">
+            {/* Search Input */}
+            <div className="relative flex-1 min-w-[250px] max-w-md">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
+                placeholder="Search by name or phone..."
+                className="w-full pl-12 pr-10 py-3 rounded-xl border border-zinc-700 bg-surface text-white placeholder-zinc-400 focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+              />
+              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none">
+                search
+              </span>
+              {searchQuery && (
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setCurrentPage(1);
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition-colors"
+                >
+                  <span className="material-symbols-outlined text-sm">close</span>
+                </button>
+              )}
+            </div>
+
+            {/* Filter by Chatbot */}
+            <div className="relative">
+              <select
+                value={selectedChatbotId}
+                onChange={(e) => {
+                  setSelectedChatbotId(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="appearance-none w-full sm:w-64 pl-12 pr-10 py-3 rounded-xl border border-zinc-700 bg-surface text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all cursor-pointer"
+              >
+                <option value="all">All Chatbots</option>
+                {chatbots.map((chatbot) => (
+                  <option key={chatbot.id} value={chatbot.id}>
+                    {chatbot.name}
+                  </option>
+                ))}
+              </select>
+              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none">
+                smart_toy
+              </span>
+              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none">
+                expand_more
+              </span>
+            </div>
+
+            {/* Date Range Filter */}
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => {
+                    setStartDate(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="pl-10 pr-3 py-3 rounded-xl border border-zinc-700 bg-surface text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all [color-scheme:dark]"
+                />
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none text-sm">
+                  calendar_today
+                </span>
+              </div>
+              <span className="text-zinc-400">to</span>
+              <div className="relative">
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => {
+                    setEndDate(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  min={startDate}
+                  className="pl-10 pr-3 py-3 rounded-xl border border-zinc-700 bg-surface text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all [color-scheme:dark]"
+                />
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none text-sm">
+                  calendar_today
+                </span>
+              </div>
+              {(startDate || endDate) && (
+                <button
+                  onClick={() => {
+                    setStartDate('');
+                    setEndDate('');
+                    setCurrentPage(1);
+                  }}
+                  className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-700 rounded-lg transition-colors"
+                  title="Clear date filter"
+                >
+                  <span className="material-symbols-outlined text-sm">close</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -327,6 +573,7 @@ export const SessionsListPage: React.FC<SessionsListPageProps> = ({ onViewSessio
                   key={session.id}
                   session={session}
                   onClick={() => onViewSession(session.id)}
+                  onDelete={handleDeleteSession}
                 />
               ))}
             </div>

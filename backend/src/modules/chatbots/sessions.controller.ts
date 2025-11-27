@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Param,
   Query,
   ParseUUIDPipe,
@@ -266,5 +267,34 @@ export class SessionsController {
     });
 
     return sessionAfter;
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Delete a session',
+    description: 'Permanently deletes a completed chatbot session. Active sessions cannot be deleted.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Session UUID',
+    type: String,
+  })
+  @ApiResponse({
+    status: 204,
+    description: 'Session deleted successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Cannot delete active session',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Session not found',
+  })
+  async deleteSession(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<void> {
+    await this.sessionHistoryService.deleteSession(id);
   }
 }

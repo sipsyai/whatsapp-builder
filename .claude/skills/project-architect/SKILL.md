@@ -18,6 +18,17 @@ tags:
 degree_of_freedom: high
 ```
 
+## Production
+
+**Live Application**: https://whatsapp.sipsy.ai
+
+The production instance runs on Docker Compose with:
+- Single container deployment (Frontend + Backend)
+- PostgreSQL database with persistent storage
+- Cloudflare Tunnel for secure HTTPS access
+- JWT Authentication
+- Real-time session tracking via WebSocket
+
 ## Core Responsibilities
 
 WhatsApp Builder projesinin kapsamlı mimarisini dökümante etme ve mimari rehberlik sağlama. Tüm teknoloji stack'inin nasıl çalıştığını, modüllerin nasıl etkileşime girdiğini ve best practice'lerin ne olduğunu bilme.
@@ -241,7 +252,16 @@ Implementation Guidance
    - QuestionNode: Interactive questions
    - ConditionNode: Conditional branching
 
-5. **users**, **settings**, **conversations**, **landing** - Supporting features
+5. **sessions** - Session tracking and management
+   - SessionsListPage: List view with search, filters, export
+   - SessionDetailPage: Session detail with conversation log
+   - SessionCard: Session preview card with delete option
+   - ConversationLog: Message history with bot/user differentiation
+   - SessionTimeline: Visual event timeline
+   - VariablesPanel: Session context variables display
+   - Features: URL deep linking, CSV/JSON export, date filtering
+
+6. **users**, **settings**, **conversations**, **landing** - Supporting features
 
 **Shared Code** (`frontend/src/`):
 - **api/** - API clients and services
@@ -625,6 +645,8 @@ For detailed documentation, see:
 8. [08-module-relationships.md](reference/08-module-relationships.md) - Dependencies
 9. [09-development-guide.md](reference/09-development-guide.md) - Dev workflow
 10. [10-deployment-architecture.md](reference/10-deployment-architecture.md) - Production setup
+11. [11-flow-builder-feature.md](reference/11-flow-builder-feature.md) - WhatsApp Flow Builder
+12. [12-session-tracking-feature.md](reference/12-session-tracking-feature.md) - Session tracking with search, export, deletion
 
 ## Summary
 
@@ -638,10 +660,14 @@ This skill provides comprehensive knowledge of the WhatsApp Builder project arch
 - Flexible data structures (JSONB)
 - Comprehensive validation
 
-**Areas for Enhancement**:
-- Authentication (JWT)
+**Completed Enhancements**:
+- ✅ Authentication (JWT) - Implemented with login page and token-based access
+- ✅ API documentation (Swagger) - Available at /api/docs
+- ✅ Session management features - Search, export, deletion, deep linking
+
+**Areas for Future Enhancement**:
 - Rate limiting
-- Structured logging
-- Comprehensive testing
-- API documentation (Swagger)
+- Structured logging (ELK stack)
+- Comprehensive testing (E2E, unit)
 - WebSocket scaling (Redis adapter)
+- Multi-tenant support

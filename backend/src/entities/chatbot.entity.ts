@@ -29,13 +29,13 @@ export class ChatBot {
   @Column({ type: 'jsonb', default: [] })
   edges: any[];
 
-  @Column({ type: 'boolean', default: true })
+  @Column({ type: 'boolean', default: false })
   isActive: boolean;
 
   @Column({
     type: 'enum',
     enum: ChatBotStatus,
-    default: ChatBotStatus.ACTIVE,
+    default: ChatBotStatus.DRAFT,
   })
   status: ChatBotStatus;
 

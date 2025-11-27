@@ -4,6 +4,9 @@ import type { ChatbotSession, ChatbotSessionDetail, PaginatedSessions, SessionMe
 export interface SessionQueryParams {
   status?: 'active' | 'completed' | 'all';
   chatbotId?: string;
+  search?: string;
+  startDate?: string;
+  endDate?: string;
   limit?: number;
   offset?: number;
   sortBy?: 'startedAt' | 'updatedAt';
@@ -19,6 +22,9 @@ export class SessionsService {
       params: {
         status: params?.status,
         chatbotId: params?.chatbotId,
+        search: params?.search,
+        startDate: params?.startDate,
+        endDate: params?.endDate,
         limit: params?.limit,
         offset: params?.offset,
         sortBy: params?.sortBy,
@@ -76,5 +82,12 @@ export class SessionsService {
    */
   static async stopSession(id: string): Promise<void> {
     await client.post(`/api/chatbot-sessions/${id}/stop`);
+  }
+
+  /**
+   * Delete a completed chatbot session
+   */
+  static async deleteSession(id: string): Promise<void> {
+    await client.delete(`/api/chatbot-sessions/${id}`);
   }
 }

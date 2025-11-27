@@ -4,6 +4,32 @@
 
 The Session Tracking feature provides comprehensive monitoring and management of chatbot conversations. It enables real-time tracking of user interactions, session status, and message flow with enhanced metadata for better bot/user differentiation.
 
+**Live at**: https://whatsapp.sipsy.ai/#sessions
+
+## Key Features
+
+### Search & Filtering
+- **Search by Name/Phone**: Debounced search input for customer name or phone number
+- **Date Range Filtering**: Start and end date pickers to filter sessions
+- **Chatbot Filter**: Filter sessions by specific chatbot
+- **Tab Navigation**: Active vs Completed sessions
+
+### Export & Management
+- **CSV Export**: Export session list with all metadata
+- **JSON Export**: Export session data in JSON format
+- **Session Deletion**: Delete completed sessions (with confirmation)
+
+### URL Deep Linking
+- **Hash-based Routing**: `#sessions` for list, `#sessions/{sessionId}` for detail
+- **Browser Navigation**: Back/forward button support
+- **Direct URL Access**: Share session URLs directly
+
+### Statistics
+- **Active Sessions Counter**: Real-time count with pulse animation
+- **Completed Today**: Today's completed session count
+- **Yesterday Counter**: Shows completed yesterday count for context
+- **Total Sessions**: Paginated total with navigation
+
 ## Architecture
 
 ### Backend Components
@@ -203,9 +229,45 @@ else if (content?.type === 'nfm_reply') {
 
 ## API Endpoints
 
+### Get Sessions (with Filters)
+```
+GET /api/chatbot-sessions
+
+Query Parameters:
+- status: 'active' | 'completed' | 'all'
+- chatbotId: string (optional)
+- search: string (optional) - Search by customer name or phone
+- startDate: string (optional) - ISO date format
+- endDate: string (optional) - ISO date format
+- limit: number (default: 20)
+- offset: number (default: 0)
+- sortBy: 'startedAt' | 'updatedAt'
+- sortOrder: 'ASC' | 'DESC'
+
+Response: {
+  data: ChatbotSession[],
+  total: number,
+  limit: number,
+  offset: number,
+  hasNext: boolean,
+  hasPrevious: boolean
+}
+```
+
+### Delete Session
+```
+DELETE /api/chatbot-sessions/:id
+
+Response: 204 No Content
+
+Errors:
+- 400: Cannot delete active session
+- 404: Session not found
+```
+
 ### Get Session Messages
 ```
-GET /api/sessions/:sessionId/messages
+GET /api/chatbot-sessions/:sessionId/messages
 
 Response: {
   messages: [
@@ -419,6 +481,148 @@ const formatValue = (value: any): string => {
 
 const isComplexValue = (value: any): boolean => {
   return value !== null && typeof value === 'object';
+};
+```
+
+## URL Routing Implementation
+
+### Hash-based Navigation (`frontend/src/app/App.tsx`)
+
+The application uses hash-based routing for deep linking without requiring React Router:
+
+```typescript
+// Parse URL hash to determine initial view state
+const parseUrlHash = (): { view: ExtendedViewState; sessionId?: string } => {
+  const hash = window.location.hash.slice(1);
+  if (!hash) return { view: "chatbots" };
+
+  // Parse /sessions/:sessionId format
+  const sessionMatch = hash.match(/^sessions\/([a-f0-9-]+)$/i);
+  if (sessionMatch) {
+    return { view: "sessionDetail", sessionId: sessionMatch[1] };
+  }
+
+  const viewMap: Record<string, ExtendedViewState> = {
+    'chatbots': 'chatbots',
+    'sessions': 'sessions',
+    'users': 'users',
+    'flows': 'flows',
+    'flowBuilder': 'flowBuilder',
+    'settings': 'settings',
+    'builder': 'builder',
+  };
+
+  return { view: viewMap[hash] || "chatbots" };
+};
+
+// Update URL hash based on current view
+const updateUrlHash = (view: ExtendedViewState, sessionId?: string | null) => {
+  let hash = '';
+  if (view === 'sessionDetail' && sessionId) {
+    hash = `sessions/${sessionId}`;
+  } else if (view !== 'chatbots') {
+    hash = view;
+  }
+  window.history.replaceState(null, '', hash ? `#${hash}` : window.location.pathname);
+};
+```
+
+### URL Patterns
+
+| URL | View | Description |
+|-----|------|-------------|
+| `#chatbots` | ChatBotsListPage | Default landing page |
+| `#sessions` | SessionsListPage | Sessions list view |
+| `#sessions/{uuid}` | SessionDetailPage | Session detail view |
+| `#users` | UsersPage | User management |
+| `#flows` | FlowsPage | WhatsApp flows |
+| `#settings` | WhatsappConfigPage | Settings page |
+
+## Export Implementation
+
+### CSV Export (`frontend/src/features/sessions/components/SessionsListPage.tsx`)
+
+```typescript
+const exportToCSV = () => {
+  const headers = ['ID', 'Customer Name', 'Customer Phone', 'Chatbot', 'Status',
+                   'Started At', 'Updated At', 'Completed At', 'Nodes', 'Messages'];
+  const rows = sessions.map(s => [
+    s.id,
+    s.customerName || 'Unknown',
+    s.customerPhone,
+    s.chatbotName,
+    s.status,
+    new Date(s.startedAt).toLocaleString(),
+    new Date(s.updatedAt).toLocaleString(),
+    s.completedAt ? new Date(s.completedAt).toLocaleString() : '',
+    s.nodeCount,
+    s.messageCount,
+  ]);
+
+  const csvContent = [headers, ...rows]
+    .map(row => row.map(cell => `"${cell}"`).join(','))
+    .join('\n');
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `sessions_${currentTab}_${new Date().toISOString().split('T')[0]}.csv`;
+  link.click();
+};
+```
+
+## Session Deletion
+
+### Backend Implementation (`backend/src/modules/chatbots/services/session-history.service.ts`)
+
+```typescript
+async deleteSession(sessionId: string): Promise<void> {
+  const queryRunner = this.dataSource.createQueryRunner();
+  await queryRunner.connect();
+  await queryRunner.startTransaction();
+
+  try {
+    const context = await queryRunner.manager.findOne(ConversationContext, {
+      where: { id: sessionId },
+    });
+
+    if (!context) {
+      throw new NotFoundException(`Session with ID ${sessionId} not found`);
+    }
+
+    // Only allow deleting completed/inactive sessions
+    if (context.isActive) {
+      throw new BadRequestException(
+        'Cannot delete an active session. Please stop the session first.',
+      );
+    }
+
+    await queryRunner.manager.remove(ConversationContext, context);
+    await queryRunner.commitTransaction();
+  } catch (error) {
+    await queryRunner.rollbackTransaction();
+    throw error;
+  } finally {
+    await queryRunner.release();
+  }
+}
+```
+
+### Frontend Delete Handler
+
+```typescript
+const handleDeleteSession = async (sessionId: string) => {
+  try {
+    await SessionsService.deleteSession(sessionId);
+    setToast({ message: 'Session deleted successfully', type: 'success' });
+    loadSessions(); // Refresh list
+  } catch (err: any) {
+    setToast({
+      message: err.response?.data?.message || 'Failed to delete session',
+      type: 'error',
+    });
+  }
 };
 ```
 

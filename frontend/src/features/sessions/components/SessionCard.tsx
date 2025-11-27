@@ -4,6 +4,7 @@ import type { ChatbotSession, SessionStatus } from '../../../types/sessions';
 interface SessionCardProps {
   session: ChatbotSession;
   onClick: () => void;
+  onDelete?: (sessionId: string) => void;
 }
 
 const getStatusConfig = (status: SessionStatus) => {
@@ -102,7 +103,28 @@ const formatDuration = (startedAt: string, completedAt: string | null) => {
   return `${minutes}m`;
 };
 
-export const SessionCard: React.FC<SessionCardProps> = ({ session, onClick }) => {
+const formatDurationTooltip = (startedAt: string, completedAt: string | null, isActive: boolean) => {
+  const start = new Date(startedAt);
+  const end = completedAt ? new Date(completedAt) : new Date();
+  const duration = end.getTime() - start.getTime();
+
+  const seconds = Math.floor(duration / 1000) % 60;
+  const minutes = Math.floor(duration / 60000) % 60;
+  const hours = Math.floor(duration / 3600000);
+
+  const durationStr = hours > 0
+    ? `${hours}h ${minutes}m ${seconds}s`
+    : minutes > 0
+    ? `${minutes}m ${seconds}s`
+    : `${seconds}s`;
+
+  const startStr = start.toLocaleString();
+  const endStr = completedAt ? end.toLocaleString() : 'Ongoing';
+
+  return `${isActive ? 'Duration so far' : 'Total duration'}: ${durationStr}\nStarted: ${startStr}\nEnded: ${endStr}`;
+};
+
+export const SessionCard: React.FC<SessionCardProps> = ({ session, onClick, onDelete }) => {
   const statusConfig = getStatusConfig(session.status);
 
   return (
@@ -134,7 +156,10 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session, onClick }) =>
 
         {/* Duration - Top Right */}
         <div className="absolute top-3 right-3">
-          <span className="px-3 py-1 bg-zinc-800/80 backdrop-blur-sm text-zinc-300 rounded-full text-xs font-medium flex items-center gap-1">
+          <span
+            className="px-3 py-1 bg-zinc-800/80 backdrop-blur-sm text-zinc-300 rounded-full text-xs font-medium flex items-center gap-1 cursor-help"
+            title={formatDurationTooltip(session.startedAt, session.completedAt, session.isActive)}
+          >
             <span className="material-symbols-outlined text-sm">schedule</span>
             {formatDuration(session.startedAt, session.completedAt)}
           </span>
@@ -214,17 +239,35 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session, onClick }) =>
           )}
         </div>
 
-        {/* View Details Button */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onClick();
-          }}
-          className="w-full mt-4 px-4 py-2 bg-primary/10 hover:bg-primary text-primary hover:text-[#112217] rounded-lg font-medium transition-all flex items-center justify-center gap-2"
-        >
-          <span className="material-symbols-outlined text-sm">visibility</span>
-          View Details
-        </button>
+        {/* Action Buttons */}
+        <div className="flex gap-2 mt-4">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onClick();
+            }}
+            className="flex-1 px-4 py-2 bg-primary/10 hover:bg-primary text-primary hover:text-[#112217] rounded-lg font-medium transition-all flex items-center justify-center gap-2"
+          >
+            <span className="material-symbols-outlined text-sm">visibility</span>
+            View Details
+          </button>
+
+          {/* Delete button - only for completed sessions */}
+          {!session.isActive && onDelete && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (confirm('Are you sure you want to delete this session? This action cannot be undone.')) {
+                  onDelete(session.id);
+                }
+              }}
+              className="px-3 py-2 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white rounded-lg font-medium transition-all flex items-center justify-center"
+              title="Delete session"
+            >
+              <span className="material-symbols-outlined text-sm">delete</span>
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

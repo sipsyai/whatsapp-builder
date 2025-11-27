@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   InternalServerErrorException,
+  BadRequestException,
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -409,6 +410,51 @@ export class SessionHistoryService {
       throw new InternalServerErrorException(
         'Failed to update session status',
       );
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  /**
+   * Delete a session (only completed sessions can be deleted)
+   */
+  async deleteSession(sessionId: string): Promise<void> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const context = await queryRunner.manager.findOne(ConversationContext, {
+        where: { id: sessionId },
+      });
+
+      if (!context) {
+        throw new NotFoundException(`Session with ID ${sessionId} not found`);
+      }
+
+      // Only allow deleting completed/inactive sessions
+      if (context.isActive) {
+        throw new BadRequestException(
+          'Cannot delete an active session. Please stop the session first.',
+        );
+      }
+
+      // Delete the conversation context
+      await queryRunner.manager.remove(ConversationContext, context);
+
+      await queryRunner.commitTransaction();
+
+      this.logger.log(`Deleted session ${sessionId}`);
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      this.logger.error('Error deleting session', error.stack);
+      throw new InternalServerErrorException('Failed to delete session');
     } finally {
       await queryRunner.release();
     }

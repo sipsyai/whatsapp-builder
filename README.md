@@ -44,11 +44,17 @@ A powerful WhatsApp chatbot builder with visual flow designer and conversation m
 ### Session Management
 - **Real-time Session Tracking** with WebSocket
 - Active and completed session views
+- **URL-based Deep Linking** (`#sessions/{sessionId}`)
+- **Session Search** by customer name or phone number
+- **Date Range Filtering** for session history
+- **Export Feature** (CSV/JSON) for session data
+- **Session Deletion** for completed sessions
 - Conversation logs with enhanced message metadata
 - Bot/user message differentiation
 - WhatsApp Flow response visualization (nfm_reply)
 - Session timeline and variable tracking
 - Session control (stop active sessions)
+- **Completed Today/Yesterday Counter** for session statistics
 
 ### Real-time Communication
 - Socket.IO integration for live updates
@@ -235,6 +241,8 @@ This production instance is deployed using Docker Compose with:
 - Cloudflare Tunnel for secure HTTPS access
 - Automatic health monitoring
 - Dark mode optimized UI
+- JWT Authentication for secure access
+- Real-time session tracking with WebSocket
 
 ### Environment Variables
 
