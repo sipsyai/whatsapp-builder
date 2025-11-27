@@ -220,20 +220,102 @@ Disconnect → Remove from tracking → Broadcast user:offline
 
 ---
 
+### 8. AuthModule
+**Path**: `/backend/src/modules/auth/`
+
+**Entities**: User (extended with auth fields)
+
+**Services**:
+- `AuthService`: Authentication logic
+  - `validateUser(email, password)`: User credential validation
+  - `login(LoginDto)`: JWT token generation & last login update
+  - `getProfile(userId)`: Get user profile
+  - `hashPassword(password)`: bcrypt hash generation (10 rounds)
+
+- `JwtStrategy`: Passport JWT strategy
+  - `validate(JwtPayload)`: Token validation & user lookup
+  - Extract from: `Authorization: Bearer <token>`
+  - Secret: `process.env.JWT_SECRET`
+  - Expiration: 7 days
+
+**Controllers**:
+- `AuthController`: 2 endpoints
+  - `POST /api/auth/login` - Login with email/password
+  - `GET /api/auth/me` - Get current user profile (protected)
+
+**Guards & Decorators**:
+- `JwtAuthGuard`: Global guard for all endpoints (APP_GUARD)
+- `@Public()`: Skip authentication for specific endpoints
+- `@CurrentUser()`: Extract user from request
+
+**DTOs**:
+- `LoginDto`: { email, password }
+- `AuthResponseDto`: { accessToken, expiresIn, user }
+
+**Key Features**:
+- bcrypt password hashing (10 rounds)
+- JWT token generation (7 day expiry)
+- Global authentication (all endpoints protected by default)
+- Public endpoints: `/api/auth/login`, `/api/webhooks/*`, `/health/*`
+- Role field in JWT payload (admin/user)
+- Last login timestamp tracking
+
+**File Locations**:
+- Module: `auth.module.ts`
+- Service: `auth.service.ts`
+- Controller: `auth.controller.ts`
+- Strategy: `strategies/jwt.strategy.ts`
+- Guard: `guards/jwt-auth.guard.ts`
+- Decorators: `decorators/public.decorator.ts`, `decorators/current-user.decorator.ts`
+
+---
+
+## Middleware & Guards
+
+### Global Authentication Guard
+```typescript
+// app.module.ts
+providers: [
+  {
+    provide: APP_GUARD,
+    useClass: JwtAuthGuard,
+  },
+],
+```
+
+**JwtAuthGuard (APP_GUARD)**:
+- Applied to ALL routes automatically
+- Uses Passport JWT strategy
+- Validates Bearer token from Authorization header
+- Attaches user to `request.user`
+
+**Public Endpoints (bypass auth)**:
+- `@Public()` decorator applied to:
+  - `POST /api/auth/login`
+  - `GET/POST /api/webhooks/whatsapp`
+  - `POST /api/webhooks/flow-endpoint`
+  - `GET /health/*`
+  - `POST /chatbot-webhook`
+
+---
+
 ## Routing
 
 ```
 /api
+├── /auth                2 endpoints (login, me) - JWT authentication
 ├── /chatbots            13 endpoints (CRUD, stats, toggle, restore, stop, test-rest-api)
 ├── /flows               8 endpoints (CRUD, sync, publish, preview)
 ├── /conversations       4 endpoints (list, get, messages, send)
 ├── /users               4 endpoints
 ├── /media               1 endpoint (upload)
 ├── /webhooks
-│   ├── /whatsapp       GET (verify), POST (receive)
-│   └── /flow-endpoint  POST (encrypted)
+│   ├── /whatsapp       GET (verify), POST (receive) [public]
+│   └── /flow-endpoint  POST (encrypted) [public]
 └── /whatsapp-config    3 endpoints
 ```
+
+**Note**: All endpoints require JWT authentication except those marked [public].
 
 ---
 
@@ -340,15 +422,16 @@ AppModule
 
 ## Key Takeaways
 
-1. **9 Feature Modules**: Clear separation of concerns
+1. **9 Feature Modules**: Clear separation of concerns (including AuthModule)
 2. **8 Entities**: TypeORM with UUID primary keys, JSONB columns
-3. **Circular Dependencies**: Resolved with forwardRef()
-4. **Real-time**: Socket.IO with room-based messaging
-5. **Encryption**: RSA + AES for Flow data exchange
-6. **Message Persistence**: All bot messages saved with WhatsApp IDs
-7. **Dynamic Lists/Buttons**: Data-driven interactive messages with pagination
-8. **REST API Integration**: Variable interpolation, nested paths, math expressions
-9. **Session Tracking**: Enhanced message metadata for bot detection
+3. **JWT Authentication**: Global guard with @Public() bypass decorator
+4. **Circular Dependencies**: Resolved with forwardRef()
+5. **Real-time**: Socket.IO with JWT-authenticated connections
+6. **Encryption**: RSA + AES for Flow data exchange
+7. **Message Persistence**: All bot messages saved with WhatsApp IDs
+8. **Dynamic Lists/Buttons**: Data-driven interactive messages with pagination
+9. **REST API Integration**: Variable interpolation, nested paths, math expressions
+10. **Session Tracking**: Enhanced message metadata for bot detection
 
 ---
 

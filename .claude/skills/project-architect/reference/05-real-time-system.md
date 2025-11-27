@@ -26,6 +26,95 @@ The real-time system uses **Socket.IO 4.8.x** for bidirectional communication be
 - **Transport**: WebSocket with long-polling fallback
 - **Namespace**: `/messages`
 - **Rooms**: `conversation:{conversationId}`
+- **Authentication**: JWT token validation via `WsAuthMiddleware`
+
+---
+
+## WebSocket Authentication (JWT)
+
+### WsAuthMiddleware
+**File**: `/backend/src/modules/websocket/middleware/ws-auth.middleware.ts`
+
+```typescript
+@Injectable()
+export class WsAuthMiddleware {
+  constructor(private readonly jwtService: JwtService) {}
+
+  use(socket: Socket, next: (err?: Error) => void) {
+    const token = this.extractToken(socket);
+
+    if (!token) {
+      return next(new Error('Authentication failed: No token provided'));
+    }
+
+    try {
+      const decoded = this.jwtService.verify<JwtPayload>(token);
+
+      // Attach user to socket.data
+      socket.data.userId = decoded.sub;
+      socket.data.user = {
+        id: decoded.sub,
+        email: decoded.email,
+        role: decoded.role,
+      };
+
+      next();
+    } catch (error) {
+      return next(new Error('Authentication failed: Invalid token'));
+    }
+  }
+
+  private extractToken(socket: Socket): string | null {
+    // Method 1 (preferred): auth object
+    if (socket.handshake.auth?.token) {
+      return socket.handshake.auth.token;
+    }
+
+    // Method 2 (fallback): Authorization header
+    const authHeader = socket.handshake.headers.authorization;
+    if (authHeader?.startsWith('Bearer ')) {
+      return authHeader.substring(7);
+    }
+
+    return null;
+  }
+}
+```
+
+### Frontend Connection with Token
+```typescript
+// socket.ts
+const token = localStorage.getItem('token');
+const socket = io(`${WS_URL}/messages`, {
+  auth: { token }, // Pass JWT token
+  transports: ['websocket', 'polling'],
+});
+```
+
+### Authentication Flow
+```
+Frontend                              Backend
+   |                                     |
+   | ---- connect(auth: {token}) ----> WsAuthMiddleware
+   |                                     |
+   |     [Middleware verifies JWT]       |
+   |     [Attaches user to socket.data]  |
+   |                                     |
+   | <--- connect (ACK) --------------- MessagesGateway
+   |                                     |
+   |    [socket.data.userId available]   |
+```
+
+### Error Handling
+```typescript
+// Frontend
+socket.on('connect_error', (error) => {
+  if (error.message.includes('Authentication failed')) {
+    localStorage.removeItem('token');
+    window.location.href = '/login';
+  }
+});
+```
 
 ---
 
@@ -125,14 +214,14 @@ export class MessagesGateway
   }
 
   private getUserIdFromSocket(client: Socket): string | null {
-    // Extract from handshake query
+    // JWT Token authentication (production)
+    // User ID is attached by WsAuthMiddleware after JWT validation
+    if (client.data?.userId) {
+      return client.data.userId;
+    }
+
+    // Fallback: Query parameter (development only)
     const userId = client.handshake.query.userId as string;
-
-    // TODO: In production, decode JWT token
-    // const token = client.handshake.auth.token;
-    // const decoded = this.jwtService.verify(token);
-    // return decoded.userId;
-
     return userId || null;
   }
 

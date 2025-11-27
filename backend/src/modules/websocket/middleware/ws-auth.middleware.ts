@@ -1,19 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { Socket } from 'socket.io';
+import { JwtPayload } from '../../auth/strategies/jwt.strategy';
 
 /**
  * WebSocket Authentication Middleware
  *
- * This middleware validates client connections before they're fully established.
- * In production, you should:
- * 1. Install @nestjs/jwt: npm install @nestjs/jwt
- * 2. Inject JwtService
- * 3. Verify the token from socket.handshake.auth.token
- * 4. Attach user information to socket.data.user
+ * Validates JWT tokens for WebSocket connections.
+ * Token can be provided via:
+ * 1. socket.handshake.auth.token (preferred)
+ * 2. socket.handshake.headers.authorization (Bearer token)
  */
 @Injectable()
 export class WsAuthMiddleware {
   private readonly logger = new Logger(WsAuthMiddleware.name);
+
+  constructor(private readonly jwtService: JwtService) {}
 
   /**
    * Validate WebSocket connection
@@ -22,43 +24,53 @@ export class WsAuthMiddleware {
    */
   use(socket: Socket, next: (err?: Error) => void) {
     try {
-      // Development mode: Accept userId from query params
-      const userId = socket.handshake.query.userId as string;
-
-      if (!userId) {
-        this.logger.warn(`Connection rejected: No userId provided`);
-        return next(new Error('Authentication failed: userId required'));
-      }
-
-      // Attach user information to socket
-      socket.data.userId = userId;
-
-      this.logger.log(`Client authenticated: ${socket.id} (User: ${userId})`);
-      next();
-
-      // TODO: Production implementation with JWT
-      /*
-      const token = socket.handshake.auth.token;
+      // Extract token from auth object or authorization header
+      const token = this.extractToken(socket);
 
       if (!token) {
+        this.logger.warn(`Connection rejected: No token provided`);
         return next(new Error('Authentication failed: No token provided'));
       }
 
       try {
-        const decoded = this.jwtService.verify(token);
-        socket.data.userId = decoded.userId;
-        socket.data.user = decoded;
+        // Verify JWT token
+        const decoded = this.jwtService.verify<JwtPayload>(token);
 
-        this.logger.log(`Client authenticated: ${socket.id} (User: ${decoded.userId})`);
+        // Attach user information to socket
+        socket.data.userId = decoded.sub;
+        socket.data.user = {
+          id: decoded.sub,
+          email: decoded.email,
+          role: decoded.role,
+        };
+
+        this.logger.log(`Client authenticated: ${socket.id} (User: ${decoded.sub})`);
         next();
       } catch (error) {
         this.logger.warn(`Invalid token: ${error.message}`);
         return next(new Error('Authentication failed: Invalid token'));
       }
-      */
     } catch (error) {
       this.logger.error(`Authentication error: ${error.message}`);
       next(new Error('Authentication failed'));
     }
+  }
+
+  /**
+   * Extract token from socket handshake
+   */
+  private extractToken(socket: Socket): string | null {
+    // First, check auth object (preferred method)
+    if (socket.handshake.auth?.token) {
+      return socket.handshake.auth.token;
+    }
+
+    // Fallback to authorization header
+    const authHeader = socket.handshake.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      return authHeader.substring(7);
+    }
+
+    return null;
   }
 }

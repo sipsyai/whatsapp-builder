@@ -7,8 +7,8 @@ WhatsApp Builder, WhatsApp Business API üzerinden görsel akış bazlı chatbot
 ### Temel İstatistikler
 
 - **Toplam Kod Satırı:** ~15,000+ satır (backend + frontend)
-- **Backend Modüller:** 8 feature module
-- **Frontend Features:** 7+ feature module
+- **Backend Modüller:** 9 feature module (including AuthModule)
+- **Frontend Features:** 8+ feature module (including auth)
 - **Database Tables:** 7 tablo
 - **Custom ReactFlow Nodes:** 4 tip
 - **API Endpoints:** 30+ REST endpoint
@@ -89,14 +89,15 @@ WhatsApp Builder, WhatsApp Business API üzerinden görsel akış bazlı chatbot
 ### Modül Yapısı
 
 **Backend Modules:**
-1. `chatbots` - Flow management & execution
-2. `conversations` - Chat sessions
-3. `messages` - Message CRUD & sending
-4. `users` - User management
-5. `webhooks` - WhatsApp webhook processing
-6. `websocket` - Real-time gateway
-7. `whatsapp` - WhatsApp API client
-8. `media` - File handling
+1. `auth` - JWT authentication & authorization
+2. `chatbots` - Flow management & execution
+3. `conversations` - Chat sessions
+4. `messages` - Message CRUD & sending
+5. `users` - User management
+6. `webhooks` - WhatsApp webhook processing
+7. `websocket` - Real-time gateway
+8. `whatsapp` - WhatsApp API client
+9. `media` - File handling
 
 **Frontend Features:**
 1. `builder` - Visual flow editor
@@ -160,28 +161,35 @@ ChatBot ─1:N→ ConversationContext
 - ✓ Webhook signature verification
 - ✓ Optimistic UI updates
 - ✓ Connection pooling
+- ✓ JWT authentication (global guard)
+- ✓ bcrypt password hashing
+- ✓ WebSocket JWT validation
+- ✓ Role-based user model
 
 **Geliştirilmeli:**
-- ⚠️ JWT authentication
 - ⚠️ Rate limiting
 - ⚠️ Structured logging
 - ⚠️ Redis adapter (WebSocket scaling)
 - ⚠️ Comprehensive testing
-- ⚠️ API documentation (Swagger)
-- ⚠️ Health checks
+- ⚠️ RBAC enforcement (roles defined but not enforced)
 
 ### Production Readiness
 
-**Status:** %80 hazır
+**Status:** %90 hazır
+
+**Tamamlanan:**
+- ✓ JWT Authentication (login, protected routes)
+- ✓ Password hashing (bcrypt)
+- ✓ WebSocket authentication
+- ✓ Global auth guard
 
 **Eksikler:**
-1. Authentication (JWT)
-2. Rate limiting
-3. Monitoring & logging
-4. Horizontal scaling (Redis)
-5. CI/CD pipeline
-6. Test coverage
-7. API documentation
+1. Rate limiting
+2. Monitoring & logging
+3. Horizontal scaling (Redis)
+4. CI/CD pipeline
+5. Test coverage
+6. RBAC enforcement
 
 ### Geliştirme İş Akışı
 

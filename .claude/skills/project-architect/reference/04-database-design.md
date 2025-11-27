@@ -43,14 +43,26 @@ Standalone:
 
 **Fields**:
 - `id` (UUID, PK)
-- `phoneNumber` (unique)
+- `phoneNumber` (unique, nullable)
 - `name`, `avatar` (nullable)
-- `role` ('customer' | 'business' | 'admin')
+- `email` (unique, nullable) - **NEW: for authentication**
+- `password` (nullable, select: false) - **NEW: bcrypt hashed**
+- `role` ('admin' | 'user')
+- `isActive` (boolean, default: true) - **NEW: account status**
+- `lastLoginAt` (timestamp, nullable) - **NEW: last login tracking**
 - Timestamps: `createdAt`, `updatedAt`
+
+**Authentication Notes**:
+- `password` has `select: false` - excluded from queries by default
+- Must explicitly select: `{ select: ['id', 'email', 'password'] }`
+- Password hashed with bcrypt (10 rounds)
+- `isActive: false` prevents login
 
 **Relationships**:
 - `sentMessages` (1:M → Message)
 - `conversations` (M:N via conversation_participants)
+
+**Migration**: `1764000000000-AddAuthFieldsToUser.ts`
 
 ### 2. conversations
 **File**: `/backend/src/entities/conversation.entity.ts`
@@ -222,6 +234,7 @@ WHERE isActive = true;
 2. `1701234567891-AddWhatsAppFlows.ts` - Add whatsapp_flows table
 3. `1701234567892-AddSessionTracking.ts` - Add session fields
 4. `1701234567893-AddFlowSync.ts` - Add syncedFromMeta field
+5. `1764000000000-AddAuthFieldsToUser.ts` - Add email, password, role, isActive, lastLoginAt
 
 ### Commands
 ```bash
@@ -382,8 +395,8 @@ npm run migration:revert  # Rolls back last migration
 - **Tables**: 7 (+ 1 junction table)
 - **Entities**: 7 TypeORM entities
 - **Relationships**: 6 (2 M:N, 4 1:M)
-- **Migrations**: 4 applied
-- **Indexes**: 8+ (including unique constraints)
+- **Migrations**: 5 applied (including auth fields)
+- **Indexes**: 9+ (including unique constraints on email)
 
 ---
 

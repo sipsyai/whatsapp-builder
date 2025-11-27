@@ -17,6 +17,7 @@ import { WebhookSignatureService } from './services/webhook-signature.service';
 import { WebhookParserService } from './services/webhook-parser.service';
 import { WebhookProcessorService } from './services/webhook-processor.service';
 import { WebhookPayloadDto, WebhookVerificationDto } from './dto/webhook-entry.dto';
+import { Public } from '../auth/decorators/public.decorator';
 
 /**
  * WhatsApp Webhooks Controller
@@ -26,6 +27,7 @@ import { WebhookPayloadDto, WebhookVerificationDto } from './dto/webhook-entry.d
  * - GET /api/webhooks/whatsapp - Webhook verification (setup)
  * - POST /api/webhooks/whatsapp - Receive incoming messages and status updates
  */
+@Public()
 @Controller('api/webhooks/whatsapp')
 export class WebhooksController {
   private readonly logger = new Logger(WebhooksController.name);

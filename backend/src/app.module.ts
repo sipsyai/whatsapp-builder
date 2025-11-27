@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
@@ -6,6 +7,8 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from './config/config.module';
 import { DatabaseModule } from './database/database.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { WhatsAppModule } from './modules/whatsapp/whatsapp.module';
 import { ChatBotsModule } from './modules/chatbots/chatbots.module';
 import { FlowsModule } from './modules/flows/flows.module';
@@ -30,6 +33,7 @@ import { HealthModule } from './modules/health/health.module';
         index: ['index.html'],
       },
     }),
+    AuthModule,
     WhatsAppModule,
     ChatBotsModule,
     FlowsModule,
@@ -42,6 +46,14 @@ import { HealthModule } from './modules/health/health.module';
     HealthModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    // Global JWT Auth Guard - all endpoints require auth by default
+    // Use @Public() decorator to make endpoints public
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+  ],
 })
 export class AppModule {}

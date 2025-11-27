@@ -16,7 +16,9 @@ import { AppointmentService } from './appointment.service';
 import { MockCalendarService } from './mock-calendar.service';
 import { ProductCatalogService } from './product-catalog.service';
 import { ChatBotCryptoUtil } from './chatbot-crypto.util';
+import { Public } from '../auth/decorators/public.decorator';
 
+@Public()
 @ApiTags('Chatbot Webhook')
 @Controller('chatbot-webhook')
 export class ChatBotWebhookController {

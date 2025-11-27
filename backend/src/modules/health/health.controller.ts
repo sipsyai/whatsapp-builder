@@ -6,7 +6,9 @@ import {
   MemoryHealthIndicator,
 } from '@nestjs/terminus';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Public } from '../auth/decorators/public.decorator';
 
+@Public()
 @ApiTags('Health')
 @Controller('health')
 export class HealthController {

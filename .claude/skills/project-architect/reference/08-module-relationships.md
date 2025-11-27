@@ -8,6 +8,12 @@ AppModule
   ├─→ DatabaseModule
   │     └─→ TypeOrmModule (PostgreSQL connection)
   │
+  ├─→ AuthModule
+  │     ├─→ PassportModule (JWT strategy)
+  │     ├─→ JwtModule (token generation)
+  │     ├─→ UsersModule (user validation)
+  │     └─→ Provides: APP_GUARD (JwtAuthGuard)
+  │
   ├─→ WhatsAppModule
   │     ├─→ ConfigModule
   │     └─→ TypeOrmModule.forFeature([WhatsAppConfig, WhatsAppFlow])
@@ -263,6 +269,16 @@ ChatPage Component
 - `WebhookProcessorService` - Emit message received
 - `ConversationsService` - Emit message sent
 - Any service needing real-time notifications
+
+### AuthService
+**Dependencies**:
+- `UserRepository` - User lookup and validation
+- `JwtService` - Token generation and verification
+- `bcrypt` - Password comparison
+
+**Used By**:
+- `AuthController` - Login endpoint
+- `JwtStrategy` - Token validation
 
 ### FlowsService
 **Dependencies**:

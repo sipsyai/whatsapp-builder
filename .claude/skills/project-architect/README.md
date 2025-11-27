@@ -36,9 +36,9 @@ WhatsApp Builder, WhatsApp Business API üzerinden görsel akış bazlı chatbot
 whatsapp-builder/
 ├── backend/                    # NestJS backend
 │   ├── src/
-│   │   ├── modules/           # 8 feature modules
+│   │   ├── modules/           # 9 feature modules
 │   │   ├── entities/          # 7 database entities
-│   │   ├── migrations/        # 4 applied migrations
+│   │   ├── migrations/        # 5 applied migrations
 │   │   ├── config/            # Configuration
 │   │   └── database/          # DB setup
 │   └── package.json
@@ -57,22 +57,24 @@ whatsapp-builder/
 
 ### Modüller (Backend)
 
-1. **chatbots** - Chatbot CRUD ve akış yürütme
-2. **conversations** - Sohbet yönetimi
-3. **messages** - Mesaj CRUD ve WhatsApp gönderimi
-4. **users** - Kullanıcı yönetimi
-5. **webhooks** - WhatsApp webhook işleme
-6. **websocket** - Real-time iletişim
-7. **whatsapp** - WhatsApp API entegrasyonu
-8. **media** - Medya dosya yönetimi
+1. **auth** - JWT authentication ve authorization
+2. **chatbots** - Chatbot CRUD ve akış yürütme
+3. **conversations** - Sohbet yönetimi
+4. **messages** - Mesaj CRUD ve WhatsApp gönderimi
+5. **users** - Kullanıcı yönetimi
+6. **webhooks** - WhatsApp webhook işleme
+7. **websocket** - Real-time iletişim
+8. **whatsapp** - WhatsApp API entegrasyonu
+9. **media** - Medya dosya yönetimi
 
 ### Features (Frontend)
 
-1. **builder** - ReactFlow görsel editör
-2. **chat** - Real-time chat arayüzü
-3. **chatbots** - Chatbot liste ve yönetim
-4. **nodes** - 4 özel ReactFlow node
-5. **users**, **settings**, **conversations**, **flows**, **landing**
+1. **auth** - Login sayfası ve AuthContext
+2. **builder** - ReactFlow görsel editör
+3. **chat** - Real-time chat arayüzü
+4. **chatbots** - Chatbot liste ve yönetim
+5. **nodes** - 4 özel ReactFlow node
+6. **users**, **settings**, **conversations**, **flows**, **landing**
 
 ### Veritabanı
 
@@ -147,6 +149,7 @@ whatsapp-builder/
 - [Module Relationships](reference/08-module-relationships.md) - Bağımlılıklar
 - [Development Guide](reference/09-development-guide.md) - Geliştirme rehberi
 - [Deployment](reference/10-deployment-architecture.md) - Production yapılandırması
+- [Authentication & Security](reference/15-authentication-security.md) - JWT auth ve güvenlik
 
 ### İlgili Skills
 - [NestJS Expert](../nestjs-expert/SKILL.md)
@@ -221,6 +224,11 @@ DB_USERNAME=postgres
 DB_PASSWORD=postgres
 DB_NAME=whatsapp_builder
 
+# Authentication
+JWT_SECRET=your-super-secret-key-change-in-production
+ADMIN_EMAIL=admin@whatsapp-builder.local
+ADMIN_PASSWORD=Admin123
+
 # WhatsApp API
 WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id
 WHATSAPP_ACCESS_TOKEN=your_access_token
@@ -249,10 +257,14 @@ VITE_GOOGLE_GENAI_API_KEY=your_gemini_api_key
 - Input validation
 - TypeScript type safety
 - CORS configuration
+- JWT authentication (global guard)
+- bcrypt password hashing
+- WebSocket JWT validation
+- Admin user seed script
 
 **⚠️ Gerekli:**
-- JWT authentication
 - Rate limiting
+- Refresh token mechanism
 - Structured logging (Winston/Pino)
 - Redis adapter (WebSocket scaling)
 - Health check endpoints
@@ -276,6 +288,6 @@ VITE_GOOGLE_GENAI_API_KEY=your_gemini_api_key
 
 ## Version
 
-- **Version:** 1.0.0
-- **Last Updated:** 2025-01-24
+- **Version:** 1.1.0
+- **Last Updated:** 2025-01-27
 - **Author:** Project Documentation System

@@ -57,6 +57,14 @@ PORT=3000
 NODE_ENV=development
 FRONTEND_URL=http://localhost:5173
 
+# Authentication
+JWT_SECRET=your-super-secret-key-change-in-production
+
+# Admin User (for seed script)
+ADMIN_EMAIL=admin@whatsapp-builder.local
+ADMIN_PASSWORD=Admin123
+ADMIN_NAME=Admin
+
 # WhatsApp API (get from Meta Developer Portal)
 PHONE_NUMBER_ID=your_phone_number_id
 WABA_ID=your_waba_id
@@ -157,6 +165,18 @@ cd backend
 npm run migration:run
 ```
 
+### 6. Create Admin User
+```bash
+cd backend
+npm run seed:admin
+```
+
+This creates an admin user with credentials from environment variables:
+- Email: `ADMIN_EMAIL` (default: admin@whatsapp-builder.local)
+- Password: `ADMIN_PASSWORD` (default: Admin123)
+
+**Important**: Change these credentials in production!
+
 Expected output:
 ```
 query: SELECT * FROM "information_schema"."tables" WHERE "table_schema" = current_schema() AND "table_name" = 'migrations'
@@ -238,6 +258,7 @@ npm run migration:generate  # Generate migration
 npm run migration:create    # Create empty migration
 npm run migration:run       # Run pending migrations
 npm run migration:revert    # Revert last migration
+npm run seed:admin          # Create admin user
 
 # WhatsApp testing scripts
 npm run flow:publish        # Publish WhatsApp Flow
@@ -375,13 +396,34 @@ Use tools like:
 - **curl**: Command-line testing
 - **Thunder Client**: VS Code extension
 
-Example:
+#### Authentication Testing
 ```bash
-# Get all chatbots
-curl http://localhost:3000/api/chatbots
+# Login (public endpoint)
+curl -X POST http://localhost:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@whatsapp-builder.local","password":"Admin123"}'
 
-# Create chatbot
+# Response: {"accessToken":"eyJhbG...", "user":{...}}
+
+# Get current user (protected)
+curl http://localhost:3000/api/auth/me \
+  -H "Authorization: Bearer YOUR_TOKEN"
+
+# Test protected endpoint without token (should fail with 401)
+curl http://localhost:3000/api/chatbots
+# Response: {"statusCode":401,"message":"Unauthorized"}
+```
+
+#### Protected API Examples
+```bash
+# Get all chatbots (requires auth)
+TOKEN="your_jwt_token_here"
+curl http://localhost:3000/api/chatbots \
+  -H "Authorization: Bearer $TOKEN"
+
+# Create chatbot (requires auth)
 curl -X POST http://localhost:3000/api/chatbots \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Test Bot",

@@ -16,7 +16,9 @@ React 19.2.x SPA with Vite, feature-based organization, and real-time Socket.IO 
 ```
 frontend/src/
 ├── app/                    # App.tsx (routing), main.tsx
+├── contexts/               # React contexts (AuthContext)
 ├── features/               # Feature modules
+│   ├── auth/               # Login page, auth API, types
 │   ├── builder/            # ChatBot flow builder (ReactFlow)
 │   ├── flow-builder/       # WhatsApp Flow visual builder
 │   ├── chat/               # Conversation UI
@@ -153,6 +155,113 @@ const [selectedChatBot, setSelectedChatBot] = useState<ChatBot | null>(null);
   {view === "chatbots" && <ChatBotsListPage onLoadChatBot={...} />}
   {/* ... */}
 </ReactFlowProvider>
+```
+
+---
+
+## Authentication
+
+### AuthContext
+**File**: `/frontend/src/contexts/AuthContext.tsx`
+
+**State**:
+```typescript
+interface AuthState {
+  user: User | null;
+  token: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+}
+```
+
+**Methods**:
+- `login(credentials)`: Authenticate & store token in localStorage
+- `logout()`: Clear token & user, redirect to login
+- Token verification on mount via `GET /api/auth/me`
+
+**Usage**:
+```typescript
+const { user, isAuthenticated, login, logout } = useAuth();
+```
+
+### Auth Feature
+**Path**: `/frontend/src/features/auth/`
+
+**Components**:
+- `LoginPage.tsx`: WhatsApp-themed login form with email/password
+
+**API** (`api.ts`):
+```typescript
+export const authApi = {
+  login(credentials: LoginCredentials): Promise<AuthResponse>,
+  getProfile(): Promise<User>,
+  logout(): void, // Clear localStorage
+};
+```
+
+**Types** (`types.ts`):
+```typescript
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'user';
+}
+
+interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+interface AuthResponse {
+  accessToken: string;
+  expiresIn: number; // 604800 (7 days)
+  user: User;
+}
+```
+
+### Protected Routes (App.tsx)
+```typescript
+function App() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
+
+  return <AppRouter />;
+}
+```
+
+### Axios Interceptor
+**File**: `/frontend/src/api/client.ts`
+
+```typescript
+// Request: Attach token
+client.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Response: Handle 401
+client.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
 ```
 
 ---
