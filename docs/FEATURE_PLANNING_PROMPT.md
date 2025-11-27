@@ -70,12 +70,48 @@ TODO 9-15 (Frontend) → Paralel gruplar halinde
 
 ### PHASE 6: Build & Test
 
-Backend ve frontend build'lerini paralel test et.
+Backend ve frontend build'lerini paralel test et:
 
-### PHASE 7: Documentation & Commit
+```bash
+# Paralel build test
+cd backend && npm run build &
+cd frontend && npm run build &
+wait
+```
 
-1. project-architect ile dokümantasyon güncelle
-2. Commit yap
+### PHASE 7: Docker Deployment
+
+Production ortamına deploy etmek için Docker işlemleri:
+
+```bash
+# 1. Docker image'ı yeniden build et
+docker compose -f docker-compose.prod.yml build backend
+
+# 2. Container'ı yeniden başlat
+docker compose -f docker-compose.prod.yml up -d backend
+
+# 3. Health check ve logları kontrol et
+docker ps | grep whatsapp
+docker logs whatsapp-backend --tail 30
+
+# 4. Opsiyonel: Migration çalıştır (yeni entity/column varsa)
+docker compose -f docker-compose.prod.yml exec backend npm run migration:run
+```
+
+**Production URL:** https://whatsapp.sipsy.ai
+
+### PHASE 8: Documentation & Commit
+
+1. **project-architect** agent ile dokümantasyon güncelle:
+   - Reference dosyası oluştur: `.claude/skills/project-architect/reference/XX-feature-name.md`
+   - İlgili docs dosyalarını güncelle
+   - README.md'yi güncelle
+
+2. Git commit yap:
+   ```bash
+   git add .
+   git commit -m "feat: [Feature description]"
+   ```
 
 ---
 
@@ -135,6 +171,10 @@ Backend ve frontend build'lerini paralel test et.
 - TODO 16: [Navigation] → react-expert
 - TODO 17: [Testing] → manuel
 
+### PHASE 5: Docker Deployment
+- TODO 18: [Docker Build] → manuel
+- TODO 19: [Health Check] → manuel
+
 ## Agent Kullanım Özeti
 | Agent | TODO'lar |
 |-------|----------|
@@ -154,3 +194,6 @@ Backend ve frontend build'lerini paralel test et.
 3. **Incremental**: Büyük değişiklikleri küçük commit'lere böl
 4. **Documentation**: Her özellik için implementation doc oluştur
 5. **Real Data**: Mock data kullanma, gerçek API/database kullan
+6. **Docker Deployment**: Feature tamamlandıktan sonra mutlaka Docker'a deploy et
+7. **Production URL**: https://whatsapp.sipsy.ai adresinden test et
+8. **Health Check**: Deploy sonrası `docker logs` ve `/health` endpoint'i kontrol et

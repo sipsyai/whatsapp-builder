@@ -72,7 +72,38 @@ Forwarding: https://your-unique-id.ngrok-free.dev -> http://localhost:3000
 
 ## 🔧 Meta Dashboard Webhook Yapılandırması
 
-### Yöntem 1: Meta Dashboard (Önerilen)
+### Yöntem 1: UI Üzerinden Konfigürasyon (Önerilen - Production)
+
+1. **Uygulamayı başlatın:**
+   ```bash
+   npm run start:dev
+   ```
+
+2. **WhatsApp Settings sayfasına gidin:**
+   - Frontend: http://localhost:3000/settings/whatsapp-config
+   - Production: https://whatsapp.sipsy.ai/settings/whatsapp-config
+
+3. **Konfigürasyon formunu doldurun:**
+   - **WhatsApp Access Token**: Meta Developer Portal'dan alın
+   - **Phone Number ID**: WhatsApp Business Phone Number ID
+   - **WhatsApp Business Account ID (WABA ID)**: Meta hesap ID'si
+   - **App Secret**: Meta App Secret (webhook signature verification için)
+   - **Backend URL**: `https://whatsapp.sipsy.ai` (veya ngrok URL'i)
+   - **Webhook Verify Token**: Özel bir token belirleyin
+   - **API Version**: v24.0 (önerilen)
+
+4. **Kaydet'e tıklayın**
+
+5. **Webhook URL'i kopyalayın** (otomatik oluşturulur):
+   - Örnek: `https://whatsapp.sipsy.ai/api/webhooks/whatsapp`
+
+6. **Meta Developer Dashboard'da yapılandırın:**
+   - Dashboard: https://developers.facebook.com/apps/YOUR_APP_ID/whatsapp-business/wa-settings/
+   - **Callback URL**: UI'dan kopyaladığınız URL
+   - **Verify Token**: UI'da belirlediğiniz token
+   - **Subscribe to fields**: `messages`, `message_status`
+
+### Yöntem 2: Meta Dashboard (Manuel - Development)
 
 1. **Meta Developer Dashboard'a gidin:**
    https://developers.facebook.com/apps/YOUR_APP_ID/whatsapp-business/wa-settings/
@@ -311,11 +342,13 @@ Ngrok ücretsiz versiyonda her restart'ta URL değişir.
 
 ## 📝 Önemli Notlar
 
-1. **Production için:** Ngrok yerine gerçek domain kullanın
-2. **Güvenlik:** Signature verification'ı mutlaka aktif tutun
-3. **Rate Limiting:** WhatsApp API rate limit'lerine dikkat edin
-4. **Idempotency:** Aynı mesaj ID'si için işlemi tekrarlamayın (kod zaten bunu yapıyor)
-5. **24-Hour Window:** Müşterinin son mesajından sonra 24 saat içinde ücretsiz mesaj gönderebilirsiniz
+1. **Production için:** Ngrok yerine gerçek domain kullanın (örnek: https://whatsapp.sipsy.ai)
+2. **UI Konfigürasyon:** Production'da tüm ayarları UI üzerinden yapabilirsiniz (https://whatsapp.sipsy.ai/settings/whatsapp-config)
+3. **Güvenlik:** Signature verification'ı mutlaka aktif tutun (App Secret gereklidir)
+4. **Rate Limiting:** WhatsApp API rate limit'lerine dikkat edin
+5. **Idempotency:** Aynı mesaj ID'si için işlemi tekrarlamayın (kod zaten bunu yapıyor)
+6. **24-Hour Window:** Müşterinin son mesajından sonra 24 saat içinde ücretsiz mesaj gönderebilirsiniz
+7. **API Version:** Güncel WhatsApp API versiyonunu kullanın (v24.0 önerilir)
 
 ## 🔗 İlgili Dosyalar
 

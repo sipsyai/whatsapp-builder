@@ -26,6 +26,15 @@ export class WhatsAppConfig {
   @Column({ type: 'text', nullable: true, name: 'app_secret' })
   appSecret?: string;
 
+  @Column({ length: 500, nullable: true, name: 'backend_url' })
+  backendUrl?: string;
+
+  @Column({ length: 500, nullable: true, name: 'flow_endpoint_url' })
+  flowEndpointUrl?: string;
+
+  @Column({ length: 20, default: 'v24.0', name: 'api_version' })
+  apiVersion: string;
+
   @Column({ type: 'boolean', default: true, name: 'is_active' })
   isActive: boolean;
 

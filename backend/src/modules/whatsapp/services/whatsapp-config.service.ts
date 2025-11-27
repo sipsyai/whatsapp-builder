@@ -65,6 +65,9 @@ export class WhatsAppConfigService {
       existingConfig.accessToken = dto.accessToken;
       existingConfig.webhookVerifyToken = dto.webhookVerifyToken;
       existingConfig.appSecret = dto.appSecret;
+      existingConfig.backendUrl = dto.backendUrl;
+      existingConfig.flowEndpointUrl = dto.flowEndpointUrl;
+      existingConfig.apiVersion = dto.apiVersion || 'v24.0';
 
       savedConfig = await this.configRepository.save(existingConfig);
     } else {
@@ -76,6 +79,9 @@ export class WhatsAppConfigService {
         accessToken: dto.accessToken,
         webhookVerifyToken: dto.webhookVerifyToken,
         appSecret: dto.appSecret,
+        backendUrl: dto.backendUrl,
+        flowEndpointUrl: dto.flowEndpointUrl,
+        apiVersion: dto.apiVersion || 'v24.0',
         isActive: true,
       });
 
@@ -125,7 +131,7 @@ export class WhatsAppConfigService {
       );
 
       const apiVersion =
-        this.configService.get<string>('whatsapp.apiVersion') || 'v18.0';
+        this.configService.get<string>('whatsapp.apiVersion') || 'v24.0';
       const baseUrl =
         this.configService.get<string>('whatsapp.baseUrl') ||
         'https://graph.facebook.com';
@@ -178,15 +184,17 @@ export class WhatsAppConfigService {
       where: { isActive: true },
     });
 
-    // Construct webhook URL
-    // This assumes the backend is accessible at a certain URL
-    // You might want to configure this in environment variables
+    // Use backendUrl from config if available, otherwise fallback to env variable
     const baseUrl =
-      process.env.BACKEND_URL || 'https://api.yourdomain.com';
+      config?.backendUrl ||
+      process.env.BACKEND_URL ||
+      'https://api.yourdomain.com';
     const webhookUrl = `${baseUrl}/api/webhooks/whatsapp`;
+    const flowEndpointUrl = `${baseUrl}/api/webhooks/flow-endpoint`;
 
     return {
       webhookUrl,
+      flowEndpointUrl,
       verifyToken: config?.webhookVerifyToken || '',
     };
   }
@@ -202,6 +210,9 @@ export class WhatsAppConfigService {
       phoneNumberId: config.phoneNumberId,
       businessAccountId: config.businessAccountId,
       webhookVerifyToken: config.webhookVerifyToken,
+      backendUrl: config.backendUrl,
+      flowEndpointUrl: config.flowEndpointUrl,
+      apiVersion: config.apiVersion || 'v24.0',
       isActive: config.isActive,
       createdAt: config.createdAt,
       updatedAt: config.updatedAt,

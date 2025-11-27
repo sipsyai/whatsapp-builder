@@ -17,6 +17,15 @@ A powerful WhatsApp chatbot builder with visual flow designer and conversation m
 
 ### WhatsApp Integration
 - WhatsApp Business API integration
+- **Enhanced Settings Management**
+  - UI-based configuration (no .env editing required)
+  - API credentials management (Access Token, Phone Number ID, WABA ID)
+  - App Secret for webhook signature verification
+  - Backend URL configuration (production/development)
+  - Automatic webhook URL generation
+  - Flow endpoint URL configuration
+  - API version selector (v18.0 - v24.0)
+  - Organized three-section UI (API Credentials, Webhook Config, Advanced Settings)
 - **WhatsApp Flows Management**
   - Create and manage WhatsApp Flows
   - Visual Flow Builder with drag-and-drop interface
@@ -260,6 +269,7 @@ This production instance is deployed using Docker Compose with:
 - Dark mode optimized UI
 - JWT Authentication for secure access
 - Real-time session tracking with WebSocket
+- UI-based WhatsApp configuration (no .env editing required)
 
 ### Environment Variables
 

@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsUrl } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateWhatsAppConfigDto {
@@ -26,6 +26,23 @@ export class CreateWhatsAppConfigDto {
   @IsString()
   @IsOptional()
   appSecret?: string;
+
+  @ApiPropertyOptional({ description: 'Backend URL for webhook configuration', example: 'https://api.yourdomain.com' })
+  @IsString()
+  @IsOptional()
+  @IsUrl()
+  backendUrl?: string;
+
+  @ApiPropertyOptional({ description: 'Flow endpoint URL for WhatsApp Flows', example: 'https://api.yourdomain.com/api/flows' })
+  @IsString()
+  @IsOptional()
+  @IsUrl()
+  flowEndpointUrl?: string;
+
+  @ApiPropertyOptional({ description: 'WhatsApp API version', example: 'v20.0', default: 'v20.0' })
+  @IsString()
+  @IsOptional()
+  apiVersion?: string;
 }
 
 export class WhatsAppConfigResponseDto {
@@ -43,6 +60,15 @@ export class WhatsAppConfigResponseDto {
 
   @ApiPropertyOptional({ description: 'App secret (masked)', example: 'abc1***456' })
   appSecret?: string;
+
+  @ApiPropertyOptional({ description: 'Backend URL for webhook configuration', example: 'https://api.yourdomain.com' })
+  backendUrl?: string;
+
+  @ApiPropertyOptional({ description: 'Flow endpoint URL for WhatsApp Flows', example: 'https://api.yourdomain.com/api/flows' })
+  flowEndpointUrl?: string;
+
+  @ApiProperty({ description: 'WhatsApp API version', example: 'v20.0' })
+  apiVersion: string;
 
   @ApiProperty({ description: 'Whether this configuration is active', example: true })
   isActive: boolean;
@@ -89,4 +115,7 @@ export class WebhookUrlResponseDto {
 
   @ApiProperty({ description: 'Verify token to use in webhook configuration', example: 'my_secure_verify_token' })
   verifyToken: string;
+
+  @ApiPropertyOptional({ description: 'Flow endpoint URL for WhatsApp Flows', example: 'https://yourdomain.com/api/flows' })
+  flowEndpointUrl?: string;
 }

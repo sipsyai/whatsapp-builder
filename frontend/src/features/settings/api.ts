@@ -7,6 +7,9 @@ export interface WhatsAppConfig {
     accessToken: string;
     webhookVerifyToken: string;
     appSecret?: string;
+    backendUrl?: string;
+    flowEndpointUrl?: string;
+    apiVersion?: string;
     isActive?: boolean;
     createdAt?: Date;
     updatedAt?: Date;
@@ -32,6 +35,7 @@ export interface TestConnectionResponse {
 export interface WebhookUrlResponse {
     webhookUrl: string;
     verifyToken: string;
+    flowEndpointUrl?: string;
 }
 
 export const whatsappConfigApi = {

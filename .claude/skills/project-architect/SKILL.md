@@ -28,6 +28,8 @@ The production instance runs on Docker Compose with:
 - Cloudflare Tunnel for secure HTTPS access
 - JWT Authentication
 - Real-time session tracking via WebSocket
+- UI-based WhatsApp configuration (no .env editing required)
+- Dark mode optimized UI
 
 ## Core Responsibilities
 
@@ -305,7 +307,18 @@ Implementation Guidance
      - Responsive table layout
      - Smooth transitions and hover states
 
-7. **settings**, **conversations**, **landing** - Supporting features
+7. **settings** - Application settings management
+   - WhatsappConfigPage.tsx: WhatsApp API configuration UI
+   - Features:
+     - Three-section layout (API Credentials, Webhook Config, Advanced Settings)
+     - UI-based configuration (no .env editing)
+     - Automatic webhook URL generation
+     - API version selector (v18.0 - v24.0)
+     - Masked sensitive fields (App Secret, Tokens)
+     - Backend URL and Flow Endpoint URL management
+   - See: `.claude/skills/project-architect/reference/17-whatsapp-settings-enhancement.md`
+
+8. **conversations**, **landing** - Supporting features
 
 **Shared Code** (`frontend/src/`):
 - **api/** - API clients and services
@@ -340,8 +353,9 @@ Implementation Guidance
    - Pattern: Polymorphic content via JSONB
 
 6. **WhatsAppConfig** - API configuration
-   - Fields: id, phoneNumberId, accessToken, webhookVerifyToken, appSecret, isActive
+   - Fields: id, phoneNumberId, accessToken, webhookVerifyToken, appSecret, backendUrl, flowEndpointUrl, apiVersion, isActive
    - Security: Sensitive data storage
+   - UI Management: All fields configurable via `/settings/whatsapp-config`
 
 ### Relationships
 
@@ -580,6 +594,8 @@ DB_USERNAME=postgres
 DB_PASSWORD=postgres
 DB_NAME=whatsapp_builder
 
+# WhatsApp credentials can be configured via UI at /settings/whatsapp-config
+# Or via environment variables (optional):
 WHATSAPP_PHONE_NUMBER_ID=...
 WHATSAPP_ACCESS_TOKEN=...
 WHATSAPP_WEBHOOK_VERIFY_TOKEN=...
@@ -695,6 +711,7 @@ For detailed documentation, see:
 14. [14-chatbot-builder-auto-layout.md](reference/14-chatbot-builder-auto-layout.md) - Auto layout system
 15. [15-authentication-security.md](reference/15-authentication-security.md) - JWT authentication and security
 16. [16-users-management-feature.md](reference/16-users-management-feature.md) - User management with security features
+17. [17-whatsapp-settings-enhancement.md](reference/17-whatsapp-settings-enhancement.md) - WhatsApp settings UI enhancement
 
 ## Summary
 

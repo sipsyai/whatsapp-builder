@@ -23,6 +23,8 @@ WhatsApp Builder uses a **single Docker container** that serves both frontend an
 
 **UI Design**: The application runs exclusively in dark mode with a WhatsApp-inspired color scheme. Light mode is not supported.
 
+**Configuration**: All WhatsApp settings (API credentials, webhook URLs, API version) are managed via the UI at `/settings/whatsapp-config`. No need to restart the backend after configuration changes.
+
 **Key Features**:
 - Multi-stage Docker build (Frontend + Backend)
 - Single container deployment (~200MB optimized image)
@@ -258,14 +260,60 @@ curl http://localhost:3000/health
 - Frontend: http://localhost:3000 (Dark mode UI)
 - API: http://localhost:3000/api
 - Health: http://localhost:3000/health
+- Settings: http://localhost:3000/settings/whatsapp-config
 - Swagger: http://localhost:3000/api/docs (disabled in production by default)
 
 **With Cloudflare Tunnel** (Production):
 - Frontend: https://whatsapp.sipsy.ai (Dark mode UI)
 - API: https://whatsapp.sipsy.ai/api
 - Health: https://whatsapp.sipsy.ai/health
+- Settings: https://whatsapp.sipsy.ai/settings/whatsapp-config
 
 **Note**: The application UI is exclusively dark mode for optimal user experience in messaging environments.
+
+### Step 7: Configure WhatsApp Settings (Important!)
+
+After deployment, configure your WhatsApp integration via the UI:
+
+1. **Open Settings Page**:
+   - Local: http://localhost:3000/settings/whatsapp-config
+   - Production: https://whatsapp.sipsy.ai/settings/whatsapp-config
+
+2. **Fill in Configuration**:
+   - **API Credentials Section**:
+     - WhatsApp Access Token
+     - Phone Number ID
+     - Business Account ID (WABA ID)
+     - App Secret (for signature verification)
+
+   - **Webhook Configuration Section**:
+     - Backend URL (e.g., https://whatsapp.sipsy.ai)
+     - Webhook Verify Token (create a secure random string)
+
+   - **Advanced Settings Section**:
+     - Flow Endpoint URL (optional, defaults to backend URL + /api/flow-endpoint)
+     - API Version (select v24.0 or newer)
+
+3. **Save Configuration**:
+   - Click "Save" button
+   - System will generate webhook URLs automatically
+
+4. **Copy Webhook URL**:
+   - The webhook URL is displayed (read-only)
+   - Example: `https://whatsapp.sipsy.ai/api/webhooks/whatsapp`
+
+5. **Configure in Meta Dashboard**:
+   - Go to: https://developers.facebook.com/apps/YOUR_APP_ID/whatsapp-business/wa-settings/
+   - Set Callback URL: (from UI)
+   - Set Verify Token: (from UI)
+   - Subscribe to: `messages`, `message_status`
+
+**Benefits of UI Configuration**:
+- No need to edit `.env` files
+- No backend restart required
+- Easy to update in production
+- Centralized configuration management
+- Automatic webhook URL generation
 
 ---
 
