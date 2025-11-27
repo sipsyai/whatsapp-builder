@@ -29,6 +29,7 @@ export class UpdateUserDto {
     maxLength: 255,
   })
   @IsOptional()
+  @IsString()
   @IsEmail({}, { message: 'Email must be a valid email address' })
   @MaxLength(255)
   email?: string;
