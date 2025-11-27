@@ -20,6 +20,7 @@ import type { RawBodyRequest } from '@nestjs/common';
 import type { Request } from 'express';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import * as crypto from 'crypto';
 import { FlowEndpointService } from './services/flow-endpoint.service';
 import { FlowEncryptionService } from '../whatsapp/services/flow-encryption.service';
 import { WhatsAppConfig } from '../../entities/whatsapp-config.entity';
@@ -42,7 +43,28 @@ export class FlowEndpointController {
     // Use environment variable if set, otherwise generate keys
     if (process.env.WHATSAPP_FLOW_PRIVATE_KEY) {
       this.flowPrivateKey = process.env.WHATSAPP_FLOW_PRIVATE_KEY;
-      this.logger.log('Using Flow private key from environment variable');
+
+      // Extract public key from private key
+      try {
+        const privateKeyObject = crypto.createPrivateKey(this.flowPrivateKey);
+        const publicKeyObject = crypto.createPublicKey(privateKeyObject);
+        this.flowPublicKey = publicKeyObject.export({
+          type: 'spki',
+          format: 'pem',
+        }).toString();
+
+        this.logger.log('Using Flow private key from environment variable');
+
+        console.log('\n=================================');
+        console.log('WhatsApp Flow Endpoint Public Key:');
+        console.log('=================================');
+        console.log(this.flowPublicKey);
+        console.log('=================================\n');
+        console.log('This public key should be uploaded to Meta WhatsApp Flow configuration.\n');
+      } catch (error) {
+        this.logger.error('Failed to extract public key from private key:', error.message);
+        throw new Error('Invalid WHATSAPP_FLOW_PRIVATE_KEY in environment');
+      }
     } else {
       // Generate keys for development/testing
       const keys = this.encryptionService.generateKeyPair();

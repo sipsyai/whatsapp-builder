@@ -1,3 +1,7 @@
+import { config } from 'dotenv';
+// Load environment variables FIRST before anything else
+config();
+
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { json } from 'express';

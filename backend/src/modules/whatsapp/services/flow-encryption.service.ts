@@ -93,11 +93,15 @@ export class FlowEncryptionService {
       // Convert response to JSON string
       const responseJson = JSON.stringify(response);
 
-      // Create cipher
+      // IMPORTANT: Flip the IV for response encryption (WhatsApp Flow API requirement)
+      // Each byte is XORed with 0xFF to create the flipped IV
+      const flippedIv = Buffer.from(initialVectorBuffer.map(byte => byte ^ 0xFF));
+
+      // Create cipher with flipped IV
       const cipher = crypto.createCipheriv(
         'aes-128-gcm',
         aesKeyBuffer,
-        initialVectorBuffer,
+        flippedIv,
       );
 
       // Encrypt the response
