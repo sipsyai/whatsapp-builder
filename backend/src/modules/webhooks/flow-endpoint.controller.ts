@@ -24,8 +24,10 @@ import * as crypto from 'crypto';
 import { FlowEndpointService } from './services/flow-endpoint.service';
 import { FlowEncryptionService } from '../whatsapp/services/flow-encryption.service';
 import { WhatsAppConfig } from '../../entities/whatsapp-config.entity';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('Flow Endpoint')
+@Public()
 @Controller('api/webhooks/flow-endpoint')
 export class FlowEndpointController {
   private readonly logger = new Logger(FlowEndpointController.name);

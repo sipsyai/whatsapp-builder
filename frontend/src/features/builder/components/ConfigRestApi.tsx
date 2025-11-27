@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { client } from "../../../api/client";
 
 type TabType = 'request' | 'headers' | 'response' | 'test';
 
@@ -60,22 +61,16 @@ export const ConfigRestApi = ({ data, onClose, onSave }: any) => {
                 if (h.key) headersObj[h.key] = h.value;
             });
 
-            const apiBaseUrl = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3000');
-            const response = await fetch(`${apiBaseUrl}/api/chatbots/test-rest-api`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    method: apiMethod,
-                    url: apiUrl,
-                    headers: headersObj,
-                    body: apiBody || undefined,
-                    responsePath: apiResponsePath,
-                    timeout: apiTimeout,
-                }),
+            const response = await client.post('/api/chatbots/test-rest-api', {
+                method: apiMethod,
+                url: apiUrl,
+                headers: headersObj,
+                body: apiBody || undefined,
+                responsePath: apiResponsePath,
+                timeout: apiTimeout,
             });
 
-            const result = await response.json();
-            setTestResult(result);
+            setTestResult(response.data);
         } catch (error: any) {
             setTestResult({ success: false, error: error.message });
         } finally {

@@ -12,6 +12,36 @@ This module handles incoming webhook requests from the WhatsApp Business API, in
 - **Status Updates**: Handle message delivery and read receipts
 - **Idempotency**: Prevent duplicate message processing
 
+## Authentication
+
+### Public Endpoints
+
+The following endpoints are marked with `@Public()` decorator and bypass JWT authentication:
+
+| Endpoint | Controller | Reason |
+|----------|------------|--------|
+| `GET /api/webhooks/whatsapp` | WebhooksController | WhatsApp webhook verification during setup |
+| `POST /api/webhooks/whatsapp` | WebhooksController | Incoming messages from WhatsApp servers |
+| `POST /api/webhooks/flow-endpoint` | FlowEndpointController | WhatsApp Flow data exchange |
+
+**Security Notes:**
+- WhatsApp endpoints use **signature verification** (`x-hub-signature-256` header) instead of JWT
+- Flow endpoint uses **RSA/AES encryption** for payload security
+- All requests are validated using HMAC-SHA256 with App Secret
+
+### Configuration Sources
+
+Credentials are loaded in this priority order:
+1. **Database**: `WhatsAppConfig` entity (Settings page in UI)
+2. **Environment**: `.env` file fallback
+
+```typescript
+// Signature Service reads from database first
+const config = await configRepository.findOne({ where: { isActive: true } });
+const appSecret = config?.appSecret || process.env.WHATSAPP_APP_SECRET;
+const verifyToken = config?.webhookVerifyToken || process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN;
+```
+
 ## Supported Message Types
 
 The webhook handler supports all WhatsApp message types:

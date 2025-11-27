@@ -6,6 +6,36 @@
 
 ---
 
+## 🤖 Related Claude Code Resources
+
+For development assistance, use these specialized AI agents and skills:
+
+### Agents
+
+| Agent | Use For |
+|-------|---------|
+| **@chatbot-builder-expert** | Chatbot flow design, node configuration, variable system |
+| **@whatsapp-flow-builder-expert** | WhatsApp Flow JSON, screens, components, endpoint integration |
+
+### Skills
+
+| Skill | Content |
+|-------|---------|
+| **chatbot-flow-development** | 8 comprehensive reference documents covering all node types, edge routing, variables, WhatsApp Flow screens/components/actions, REST API integration, and 7 complete examples |
+
+### Quick Access
+
+```bash
+# In Claude Code:
+@chatbot-builder-expert help me create a customer support bot
+@whatsapp-flow-builder-expert design an appointment booking flow
+
+# Reference files at:
+.claude/skills/chatbot-flow-development/reference/
+```
+
+---
+
 ## 📋 İçindekiler
 
 1. [Genel Bakış](#genel-bakış)

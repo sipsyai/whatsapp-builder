@@ -1,5 +1,4 @@
-// Production: relative URL (same domain), Development: localhost
-const API_BASE_URL = `${import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3000')}/api`;
+import { client } from '../../../api/client';
 
 // Types
 export type WhatsAppFlow = {
@@ -45,80 +44,54 @@ export type SyncResult = {
 export const flowsApi = {
   // Get all Flows
   async getAll(): Promise<WhatsAppFlow[]> {
-    const response = await fetch(`${API_BASE_URL}/flows`);
-    if (!response.ok) throw new Error('Failed to fetch flows');
-    return response.json();
+    const response = await client.get('/api/flows');
+    return response.data;
   },
 
   // Get active Flows (for ChatBot node selection)
   async getActive(): Promise<WhatsAppFlow[]> {
-    const response = await fetch(`${API_BASE_URL}/flows/active`);
-    if (!response.ok) throw new Error('Failed to fetch active flows');
-    return response.json();
+    const response = await client.get('/api/flows/active');
+    return response.data;
   },
 
   // Get Flow by ID
   async getById(id: string): Promise<WhatsAppFlow> {
-    const response = await fetch(`${API_BASE_URL}/flows/${id}`);
-    if (!response.ok) throw new Error('Failed to fetch flow');
-    return response.json();
+    const response = await client.get(`/api/flows/${id}`);
+    return response.data;
   },
 
   // Create a new Flow
   async create(data: CreateFlowDto): Promise<WhatsAppFlow> {
-    const response = await fetch(`${API_BASE_URL}/flows`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (!response.ok) throw new Error('Failed to create flow');
-    return response.json();
+    const response = await client.post('/api/flows', data);
+    return response.data;
   },
 
   // Update Flow
   async update(id: string, data: UpdateFlowDto): Promise<WhatsAppFlow> {
-    const response = await fetch(`${API_BASE_URL}/flows/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (!response.ok) throw new Error('Failed to update flow');
-    return response.json();
+    const response = await client.put(`/api/flows/${id}`, data);
+    return response.data;
   },
 
   // Publish Flow
   async publish(id: string): Promise<WhatsAppFlow> {
-    const response = await fetch(`${API_BASE_URL}/flows/${id}/publish`, {
-      method: 'POST',
-    });
-    if (!response.ok) throw new Error('Failed to publish flow');
-    return response.json();
+    const response = await client.post(`/api/flows/${id}/publish`);
+    return response.data;
   },
 
   // Get Flow preview URL
   async getPreview(id: string, invalidate = false): Promise<string> {
-    const response = await fetch(
-      `${API_BASE_URL}/flows/${id}/preview?invalidate=${invalidate}`,
-    );
-    if (!response.ok) throw new Error('Failed to get preview');
-    const data = await response.json();
-    return data.previewUrl;
+    const response = await client.get(`/api/flows/${id}/preview?invalidate=${invalidate}`);
+    return response.data.previewUrl;
   },
 
   // Delete Flow
   async delete(id: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/flows/${id}`, {
-      method: 'DELETE',
-    });
-    if (!response.ok) throw new Error('Failed to delete flow');
+    await client.delete(`/api/flows/${id}`);
   },
 
   // Sync flows from Meta/Facebook API
   async syncFromMeta(): Promise<SyncResult> {
-    const response = await fetch(`${API_BASE_URL}/flows/sync`, {
-      method: 'POST',
-    });
-    if (!response.ok) throw new Error('Failed to sync flows from Meta');
-    return response.json();
+    const response = await client.post('/api/flows/sync');
+    return response.data;
   },
 };

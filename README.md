@@ -317,6 +317,46 @@ docker compose exec postgres pg_dump -U postgres whatsapp_builder > backup.sql
 
 See [docs/PRODUCTION_DEPLOYMENT.md](./docs/PRODUCTION_DEPLOYMENT.md) for detailed production setup guide.
 
+## 🤖 Development Tools - Claude Code Integration
+
+This project includes specialized AI agents and skills for efficient development with Claude Code.
+
+### Available Agents (13 total)
+
+| Category | Agents |
+|----------|--------|
+| **Chatbot & Flow** | `chatbot-builder-expert`, `whatsapp-flow-builder-expert` |
+| **Backend** | `nestjs-expert`, `typeorm-expert`, `postgresql-expert`, `redis-expert`, `bullmq-expert` |
+| **Frontend** | `react-expert`, `reactflow-expert` |
+| **Integration** | `whatsapp-messaging-api-expert`, `whatsapp-flows-expert`, `socket-io-expert` |
+| **Architecture** | `project-architect` |
+
+### Available Skills (11 total)
+
+| Skill | Description |
+|-------|-------------|
+| `chatbot-flow-development` | Complete chatbot & WhatsApp Flow building guide |
+| `project-architect` | Project architecture and structure knowledge |
+| `nestjs-expert`, `typeorm-development`, etc. | Technology-specific references |
+
+### Quick Start
+
+```bash
+# In Claude Code chat:
+@chatbot-builder-expert create a customer support flow
+@whatsapp-flow-builder-expert design an appointment booking form
+@project-architect what modules are affected by adding notifications?
+```
+
+### Documentation
+
+- **Overview**: `.claude/OVERVIEW.md` - Getting started guide
+- **Agents**: `.claude/agents/README.md` - All 13 agents documented
+- **Skills**: `.claude/skills/README.md` - All 11 skills documented
+- **Plans**: `.claude/plans/` - Feature planning documents
+
+---
+
 ## 🔗 Resources
 
 - [Swagger API Documentation](http://localhost:3000/api/docs) - Interactive API explorer
