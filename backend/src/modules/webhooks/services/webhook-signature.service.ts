@@ -1,6 +1,9 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import * as crypto from 'crypto';
+import { WhatsAppConfig } from '../../../entities/whatsapp-config.entity';
 
 /**
  * Webhook Signature Verification Service
@@ -9,17 +12,12 @@ import * as crypto from 'crypto';
 @Injectable()
 export class WebhookSignatureService {
   private readonly logger = new Logger(WebhookSignatureService.name);
-  private readonly appSecret: string;
 
-  constructor(private readonly configService: ConfigService) {
-    this.appSecret = this.configService.get<string>('WHATSAPP_APP_SECRET') || '';
-
-    if (!this.appSecret) {
-      this.logger.warn(
-        'WHATSAPP_APP_SECRET is not configured. Webhook signature verification will fail.',
-      );
-    }
-  }
+  constructor(
+    private readonly configService: ConfigService,
+    @InjectRepository(WhatsAppConfig)
+    private readonly configRepository: Repository<WhatsAppConfig>,
+  ) {}
 
   /**
    * Verify the webhook signature using HMAC-SHA256
@@ -27,9 +25,11 @@ export class WebhookSignatureService {
    * @param payload - The raw request body as a string or Buffer
    * @returns true if signature is valid, false otherwise
    */
-  verifySignature(signature: string, payload: string | Buffer): boolean {
-    if (!this.appSecret) {
-      this.logger.error('Cannot verify signature: WHATSAPP_APP_SECRET not configured');
+  async verifySignature(signature: string, payload: string | Buffer): Promise<boolean> {
+    const appSecret = await this.getAppSecret();
+
+    if (!appSecret) {
+      this.logger.error('Cannot verify signature: App secret not configured in database or environment');
       return false;
     }
 
@@ -45,7 +45,7 @@ export class WebhookSignatureService {
         : signature;
 
       // Create HMAC using app secret
-      const hmac = crypto.createHmac('sha256', this.appSecret);
+      const hmac = crypto.createHmac('sha256', appSecret);
 
       // Update with payload
       const payloadString = Buffer.isBuffer(payload) ? payload.toString('utf8') : payload;
@@ -81,8 +81,8 @@ export class WebhookSignatureService {
    * @param payload - The raw request body
    * @throws UnauthorizedException if signature is invalid
    */
-  verifySignatureOrThrow(signature: string, payload: string | Buffer): void {
-    const isValid = this.verifySignature(signature, payload);
+  async verifySignatureOrThrow(signature: string, payload: string | Buffer): Promise<void> {
+    const isValid = await this.verifySignature(signature, payload);
 
     if (!isValid) {
       throw new UnauthorizedException(
@@ -93,14 +93,25 @@ export class WebhookSignatureService {
 
   /**
    * Verify the webhook verification token during initial setup
+   * First checks database config, then falls back to environment variable
    * @param token - The hub.verify_token from the verification request
    * @returns true if token matches configured verify token
    */
-  verifyToken(token: string): boolean {
-    const verifyToken = this.configService.get<string>('WHATSAPP_WEBHOOK_VERIFY_TOKEN');
+  async verifyToken(token: string): Promise<boolean> {
+    // First try to get verify token from database
+    const config = await this.configRepository.findOne({
+      where: { isActive: true },
+    });
+
+    let verifyToken = config?.webhookVerifyToken;
+
+    // Fallback to environment variable
+    if (!verifyToken) {
+      verifyToken = this.configService.get<string>('WHATSAPP_WEBHOOK_VERIFY_TOKEN');
+    }
 
     if (!verifyToken) {
-      this.logger.error('WHATSAPP_WEBHOOK_VERIFY_TOKEN not configured');
+      this.logger.error('Webhook verify token not configured in database or environment');
       return false;
     }
 
@@ -113,5 +124,16 @@ export class WebhookSignatureService {
     }
 
     return isValid;
+  }
+
+  /**
+   * Get app secret from database or environment
+   */
+  async getAppSecret(): Promise<string | null> {
+    const config = await this.configRepository.findOne({
+      where: { isActive: true },
+    });
+
+    return config?.appSecret || this.configService.get<string>('WHATSAPP_APP_SECRET') || null;
   }
 }

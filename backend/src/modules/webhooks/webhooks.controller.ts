@@ -50,7 +50,7 @@ export class WebhooksController {
    */
   @Get()
   @HttpCode(HttpStatus.OK)
-  verifyWebhook(@Query() query: WebhookVerificationDto): string {
+  async verifyWebhook(@Query() query: WebhookVerificationDto): Promise<string> {
     this.logger.log('Webhook verification request received');
 
     const mode = query['hub.mode'];
@@ -72,8 +72,8 @@ export class WebhooksController {
       throw new BadRequestException('Invalid hub.mode');
     }
 
-    // Verify the token matches our configuration
-    const isValidToken = this.signatureService.verifyToken(token);
+    // Verify the token matches our configuration (async - checks database first)
+    const isValidToken = await this.signatureService.verifyToken(token);
 
     if (!isValidToken) {
       this.logger.error('Webhook verification token mismatch');
@@ -113,8 +113,8 @@ export class WebhooksController {
       // Uncomment the line below to enforce signature verification:
       // throw new BadRequestException('Raw body required for signature verification');
     } else {
-      // Verify webhook signature
-      this.signatureService.verifySignatureOrThrow(signature, rawBody);
+      // Verify webhook signature (async - reads app secret from database)
+      await this.signatureService.verifySignatureOrThrow(signature, rawBody);
     }
 
     // Validate payload structure
