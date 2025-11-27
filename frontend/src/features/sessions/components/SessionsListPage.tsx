@@ -152,17 +152,17 @@ export const SessionsListPage: React.FC<SessionsListPageProps> = ({ onViewSessio
 
   if (loading && sessions.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full bg-background-light dark:bg-background-dark">
+      <div className="flex items-center justify-center h-full bg-background">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-zinc-500 dark:text-zinc-400">Loading sessions...</p>
+          <p className="text-zinc-400">Loading sessions...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-full bg-background-light dark:bg-background-dark overflow-y-auto">
+    <div className="h-full bg-background overflow-y-auto">
       <div className="max-w-7xl mx-auto p-8">
         {/* Toast Notification */}
         {toast && (
@@ -182,12 +182,12 @@ export const SessionsListPage: React.FC<SessionsListPageProps> = ({ onViewSessio
         <div className="mb-8">
           <div className="flex justify-between items-start mb-6">
             <div>
-              <h1 className="text-4xl font-bold text-zinc-900 dark:text-white mb-2">Chatbot Sessions</h1>
-              <p className="text-zinc-500 dark:text-zinc-400">Monitor and track active chatbot conversations</p>
+              <h1 className="text-4xl font-bold text-white mb-2">Chatbot Sessions</h1>
+              <p className="text-zinc-400">Monitor and track active chatbot conversations</p>
               {connected && (
                 <div className="flex items-center gap-2 mt-2">
                   <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                  <span className="text-xs text-green-600 dark:text-green-400 font-medium">Live Updates Active</span>
+                  <span className="text-xs text-green-600 font-medium">Live Updates Active</span>
                 </div>
               )}
             </div>
@@ -203,7 +203,7 @@ export const SessionsListPage: React.FC<SessionsListPageProps> = ({ onViewSessio
               className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all ${
                 currentTab === 'active'
                   ? 'bg-primary text-[#112217] shadow-lg'
-                  : 'bg-white dark:bg-surface-dark text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                  : 'bg-surface text-zinc-400 hover:bg-zinc-50'
               }`}
             >
               <span className="material-symbols-outlined">play_circle</span>
@@ -222,7 +222,7 @@ export const SessionsListPage: React.FC<SessionsListPageProps> = ({ onViewSessio
               className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all ${
                 currentTab === 'completed'
                   ? 'bg-primary text-[#112217] shadow-lg'
-                  : 'bg-white dark:bg-surface-dark text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                  : 'bg-surface text-zinc-400 hover:bg-zinc-50'
               }`}
             >
               <span className="material-symbols-outlined">check_circle</span>
@@ -232,36 +232,36 @@ export const SessionsListPage: React.FC<SessionsListPageProps> = ({ onViewSessio
 
           {/* Stats Cards */}
           <div className="grid grid-cols-3 gap-4 mb-6">
-            <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl p-4 border border-green-200 dark:border-green-800">
+            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-green-500 rounded-lg">
                   <span className="material-symbols-outlined text-white">play_circle</span>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-green-900 dark:text-green-100">{stats.active}</p>
-                  <p className="text-sm text-green-700 dark:text-green-300">Active Sessions</p>
+                  <p className="text-2xl font-bold text-green-900">{stats.active}</p>
+                  <p className="text-sm text-green-700">Active Sessions</p>
                 </div>
               </div>
             </div>
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-blue-500 rounded-lg">
                   <span className="material-symbols-outlined text-white">today</span>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{stats.completedToday}</p>
-                  <p className="text-sm text-blue-700 dark:text-blue-300">Completed Today</p>
+                  <p className="text-2xl font-bold text-blue-900">{stats.completedToday}</p>
+                  <p className="text-sm text-blue-700">Completed Today</p>
                 </div>
               </div>
             </div>
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl p-4 border border-purple-200 dark:border-purple-800">
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-purple-500 rounded-lg">
                   <span className="material-symbols-outlined text-white">chat</span>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">{stats.total}</p>
-                  <p className="text-sm text-purple-700 dark:text-purple-300">Total Sessions</p>
+                  <p className="text-2xl font-bold text-purple-900">{stats.total}</p>
+                  <p className="text-sm text-purple-700">Total Sessions</p>
                 </div>
               </div>
             </div>
@@ -275,7 +275,7 @@ export const SessionsListPage: React.FC<SessionsListPageProps> = ({ onViewSessio
                 setSelectedChatbotId(e.target.value);
                 setCurrentPage(1);
               }}
-              className="appearance-none w-full sm:w-64 pl-12 pr-10 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-surface-dark text-zinc-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all cursor-pointer"
+              className="appearance-none w-full sm:w-64 pl-12 pr-10 py-3 rounded-xl border border-zinc-200 bg-surface text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all cursor-pointer"
             >
               <option value="all">All Chatbots</option>
               {chatbots.map((chatbot) => (
@@ -303,16 +303,16 @@ export const SessionsListPage: React.FC<SessionsListPageProps> = ({ onViewSessio
 
         {/* Empty State */}
         {sessions.length === 0 && !loading ? (
-          <div className="text-center py-20 bg-white dark:bg-surface-dark rounded-2xl border-2 border-dashed border-zinc-300 dark:border-zinc-700">
-            <div className="inline-block p-6 bg-zinc-100 dark:bg-zinc-800 rounded-full mb-6">
-              <span className="material-symbols-outlined text-6xl text-zinc-400 dark:text-zinc-500">
+          <div className="text-center py-20 bg-surface rounded-2xl border-2 border-dashed border-zinc-700">
+            <div className="inline-block p-6 bg-zinc-800 rounded-full mb-6">
+              <span className="material-symbols-outlined text-6xl text-zinc-400">
                 {currentTab === 'active' ? 'play_circle' : 'check_circle'}
               </span>
             </div>
-            <h3 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">
+            <h3 className="text-2xl font-bold text-white mb-2">
               No {currentTab} sessions
             </h3>
-            <p className="text-zinc-500 dark:text-zinc-400 mb-8 max-w-md mx-auto">
+            <p className="text-zinc-400 mb-8 max-w-md mx-auto">
               {currentTab === 'active'
                 ? 'There are no active chatbot sessions at the moment. Sessions will appear here when customers interact with your chatbots.'
                 : 'No completed sessions found. Completed sessions will appear here once customers finish their conversations.'}
@@ -332,22 +332,22 @@ export const SessionsListPage: React.FC<SessionsListPageProps> = ({ onViewSessio
             </div>
 
             {/* Pagination Controls */}
-            <div className="flex justify-between items-center mt-8 pt-6 border-t border-zinc-200 dark:border-zinc-800">
+            <div className="flex justify-between items-center mt-8 pt-6 border-t border-zinc-800">
               <button
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="px-6 py-3 bg-white dark:bg-surface-dark border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
+                className="px-6 py-3 bg-surface border border-zinc-200 text-white rounded-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-zinc-50 transition-colors flex items-center gap-2"
               >
                 <span className="material-symbols-outlined text-sm">chevron_left</span>
                 Previous
               </button>
-              <div className="text-sm text-zinc-600 dark:text-zinc-400">
+              <div className="text-sm text-zinc-400">
                 Page {currentPage} • {sessions.length} session{sessions.length !== 1 ? 's' : ''}
               </div>
               <button
                 onClick={() => setCurrentPage(p => p + 1)}
                 disabled={!hasNext}
-                className="px-6 py-3 bg-white dark:bg-surface-dark border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white rounded-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
+                className="px-6 py-3 bg-surface border border-zinc-200 text-white rounded-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-zinc-50 transition-colors flex items-center gap-2"
               >
                 Next
                 <span className="material-symbols-outlined text-sm">chevron_right</span>

@@ -185,16 +185,16 @@ export const SessionTimeline = ({ messages, session }: SessionTimelineProps) => 
   }, [timelineEvents]);
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 h-full flex flex-col">
+    <div className="bg-bg-gray-800 rounded-lg shadow-sm border border-gray-700 h-full flex flex-col">
       {/* Header */}
-      <div className="flex items-center gap-2 p-4 border-b border-gray-200 dark:border-gray-700">
-        <span className="material-symbols-outlined text-indigo-600 dark:text-indigo-400">
+      <div className="flex items-center gap-2 p-4 border-b border-gray-700">
+        <span className="material-symbols-outlined text-indigo-600">
           timeline
         </span>
-        <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+        <h3 className="font-semibold text-gray-900">
           Session Timeline
         </h3>
-        <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">
+        <span className="text-xs text-gray-500 bg-bg-gray-700 px-2 py-0.5 rounded-full">
           {timelineEvents.length} events
         </span>
       </div>
@@ -202,7 +202,7 @@ export const SessionTimeline = ({ messages, session }: SessionTimelineProps) => 
       {/* Timeline content */}
       <div className="flex-1 overflow-y-auto p-4">
         {groupedEvents.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400">
+          <div className="flex flex-col items-center justify-center h-full text-gray-500">
             <span className="material-symbols-outlined text-4xl mb-2">hourglass_empty</span>
             <p className="text-sm">No events yet</p>
           </div>
@@ -212,11 +212,11 @@ export const SessionTimeline = ({ messages, session }: SessionTimelineProps) => 
               <div key={group.date}>
                 {/* Date header */}
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400 px-2">
+                  <div className="h-px flex-1 bg-gray-700"></div>
+                  <span className="text-xs font-medium text-gray-500 px-2">
                     {group.date}
                   </span>
-                  <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
+                  <div className="h-px flex-1 bg-gray-700"></div>
                 </div>
 
                 {/* Events */}
@@ -228,13 +228,13 @@ export const SessionTimeline = ({ messages, session }: SessionTimelineProps) => 
                     >
                       {/* Timeline line and icon */}
                       <div className="flex flex-col items-center">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-700 ${event.iconColor}`}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-bg-gray-700 ${event.iconColor}`}>
                           <span className="material-symbols-outlined text-lg">
                             {event.icon}
                           </span>
                         </div>
                         {index < group.events.length - 1 && (
-                          <div className="w-0.5 flex-1 bg-gray-200 dark:bg-gray-700 mt-1"></div>
+                          <div className="w-0.5 flex-1 bg-gray-700 mt-1"></div>
                         )}
                       </div>
 
@@ -242,16 +242,16 @@ export const SessionTimeline = ({ messages, session }: SessionTimelineProps) => 
                       <div className="flex-1 pb-3">
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            <p className="text-sm font-medium text-gray-900">
                               {event.title}
                             </p>
                             {event.description && (
-                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">
+                              <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
                                 {event.description}
                               </p>
                             )}
                           </div>
-                          <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                          <span className="text-xs text-gray-400 whitespace-nowrap">
                             {formatTime(event.timestamp)}
                           </span>
                         </div>
@@ -267,11 +267,11 @@ export const SessionTimeline = ({ messages, session }: SessionTimelineProps) => 
 
       {/* Footer - Current status */}
       {session.isActive && (
-        <div className="border-t border-gray-200 dark:border-gray-700 p-3 bg-gray-50 dark:bg-gray-750">
+        <div className="border-t border-gray-700 p-3 bg-bg-gray-750">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-            <span className="text-xs text-gray-600 dark:text-gray-400">
-              Session is active • Current node: <span className="font-medium text-gray-900 dark:text-gray-100">{session.currentNodeLabel}</span>
+            <span className="text-xs text-gray-600">
+              Session is active • Current node: <span className="font-medium text-gray-900">{session.currentNodeLabel}</span>
             </span>
           </div>
         </div>

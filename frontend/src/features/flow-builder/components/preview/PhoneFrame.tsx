@@ -33,9 +33,9 @@ export function PhoneFrame({ children, className = '' }: PhoneFrameProps) {
       <div
         className="
           relative w-full max-w-[390px] aspect-[390/844]
-          bg-white dark:bg-zinc-900
+          bg-zinc-900
           rounded-[40px] shadow-2xl
-          border-[8px] border-zinc-800 dark:border-zinc-700
+          border-[8px] border-zinc-700
           overflow-hidden
         "
         style={{ maxHeight: 'calc(100vh - 100px)' }}
@@ -45,12 +45,12 @@ export function PhoneFrame({ children, className = '' }: PhoneFrameProps) {
           className="
             absolute top-0 left-1/2 -translate-x-1/2 z-50
             w-[120px] h-[30px]
-            bg-zinc-900 dark:bg-black
+            bg-black
             rounded-b-[20px]
           "
         >
           {/* Camera */}
-          <div className="absolute top-[10px] left-1/2 -translate-x-1/2 w-[10px] h-[10px] bg-zinc-800 dark:bg-zinc-900 rounded-full" />
+          <div className="absolute top-[10px] left-1/2 -translate-x-1/2 w-[10px] h-[10px] bg-zinc-900 rounded-full" />
         </div>
 
         {/* Status Bar */}
@@ -59,8 +59,8 @@ export function PhoneFrame({ children, className = '' }: PhoneFrameProps) {
             absolute top-0 left-0 right-0 z-40
             h-[54px] px-6
             flex items-center justify-between
-            bg-gradient-to-b from-black/10 to-transparent dark:from-black/30
-            text-zinc-900 dark:text-white
+            bg-gradient-to-b from-black/30 to-transparent
+            text-white
           "
         >
           {/* Time */}
@@ -114,7 +114,7 @@ export function PhoneFrame({ children, className = '' }: PhoneFrameProps) {
         </div>
 
         {/* Screen Content */}
-        <div className="relative w-full h-full pt-[54px] bg-white dark:bg-zinc-900">
+        <div className="relative w-full h-full pt-[54px] bg-zinc-900">
           {children}
         </div>
       </div>

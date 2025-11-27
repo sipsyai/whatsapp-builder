@@ -41,7 +41,16 @@ frontend/src/
 
 ### Core
 - React 19.2.0, TypeScript 5.9.x, Vite 7.x (Rolldown)
-- CSS with CSS Variables for theming
+- Tailwind CSS v4
+
+### Styling & Theming
+- **Dark Mode Only**: Application exclusively uses dark mode (no light mode support)
+  - WhatsApp-inspired color scheme
+  - All `dark:` Tailwind prefixes removed (default is dark)
+  - Custom CSS variables for consistent theming
+  - Optimized for low-light messaging environments
+- No `darkMode: "class"` in Tailwind config
+- Global dark styles defined in `index.css`
 
 ### Flow Builder
 - @xyflow/react 12.3.5 (ReactFlow v12)

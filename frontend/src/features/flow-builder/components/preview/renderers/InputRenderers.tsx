@@ -62,7 +62,7 @@ export const PreviewTextInput: React.FC<PreviewTextInputProps> = ({
         htmlFor={component.name}
         className={`block mb-2 ${
           labelVariant === 'large' ? 'text-base font-semibold' : 'text-sm font-medium'
-        } text-gray-700 dark:text-gray-300`}
+        } text-gray-300`}
       >
         {component.label}
         {isRequired && <span className="text-red-500 ml-1">*</span>}
@@ -82,8 +82,8 @@ export const PreviewTextInput: React.FC<PreviewTextInputProps> = ({
         className={`w-full px-3 py-2 border rounded-lg transition-colors focus:outline-none focus:ring-2 ${
           errorMessage
             ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-            : 'border-gray-300 dark:border-gray-600 focus:ring-green-500 focus:border-green-500'
-        } bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400`}
+            : 'border-gray-600 focus:ring-green-500 focus:border-green-500'
+        } bg-gray-800 text-white placeholder-gray-400`}
         placeholder={helperText}
       />
 
@@ -91,12 +91,12 @@ export const PreviewTextInput: React.FC<PreviewTextInputProps> = ({
       {errorMessage ? (
         <p className="mt-1 text-xs text-red-500">{errorMessage}</p>
       ) : helperText ? (
-        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{helperText}</p>
+        <p className="mt-1 text-xs text-gray-400">{helperText}</p>
       ) : null}
 
       {/* Character Count */}
       {maxChars && (
-        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 text-right">
+        <p className="mt-1 text-xs text-gray-400 text-right">
           {initValue.length}/{maxChars}
         </p>
       )}
@@ -146,7 +146,7 @@ export const PreviewTextArea: React.FC<PreviewTextAreaProps> = ({
         htmlFor={component.name}
         className={`block mb-2 ${
           labelVariant === 'large' ? 'text-base font-semibold' : 'text-sm font-medium'
-        } text-gray-700 dark:text-gray-300`}
+        } text-gray-300`}
       >
         {component.label}
         {isRequired && <span className="text-red-500 ml-1">*</span>}
@@ -165,8 +165,8 @@ export const PreviewTextArea: React.FC<PreviewTextAreaProps> = ({
         className={`w-full px-3 py-2 border rounded-lg transition-colors focus:outline-none focus:ring-2 resize-none ${
           errorMessage
             ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-            : 'border-gray-300 dark:border-gray-600 focus:ring-green-500 focus:border-green-500'
-        } bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 ${
+            : 'border-gray-600 focus:ring-green-500 focus:border-green-500'
+        } bg-gray-800 text-white placeholder-gray-400 ${
           !isEnabled ? 'opacity-50 cursor-not-allowed' : ''
         }`}
         placeholder={helperText}
@@ -176,12 +176,12 @@ export const PreviewTextArea: React.FC<PreviewTextAreaProps> = ({
       {errorMessage ? (
         <p className="mt-1 text-xs text-red-500">{errorMessage}</p>
       ) : helperText ? (
-        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{helperText}</p>
+        <p className="mt-1 text-xs text-gray-400">{helperText}</p>
       ) : null}
 
       {/* Character Count */}
       {maxLength && (
-        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 text-right">
+        <p className="mt-1 text-xs text-gray-400 text-right">
           {initValue.length}/{maxLength}
         </p>
       )}

@@ -8,19 +8,19 @@ export const ConfigMessage = ({ data, onClose, onSave }: any) => {
     const [content, setContent] = useState(data.content || "");
     return (
         <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm fade-in">
-            <div className="w-full max-w-3xl h-full bg-white dark:bg-[#102216] shadow-2xl overflow-y-auto flex flex-col border-l border-zinc-200 dark:border-white/10">
+            <div className="w-full max-w-3xl h-full bg-[#102216] shadow-2xl overflow-y-auto flex flex-col border-l border-white/10">
                 <div className="p-8 flex-1">
                     <header className="flex justify-between items-center mb-6">
-                        <h1 className="text-2xl font-bold dark:text-white">Configure: Send a Message</h1>
-                        <button onClick={onClose}><span className="material-symbols-outlined dark:text-white">close</span></button>
+                        <h1 className="text-2xl font-bold text-white">Configure: Send a Message</h1>
+                        <button onClick={onClose}><span className="material-symbols-outlined text-white">close</span></button>
                     </header>
                     <label className="block">
-                        <span className="text-sm font-medium dark:text-white">Content</span>
-                        <textarea className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white min-h-[150px]" value={content} onChange={e => setContent(e.target.value)} placeholder="Type message..." />
+                        <span className="text-sm font-medium text-white">Content</span>
+                        <textarea className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white min-h-[150px]" value={content} onChange={e => setContent(e.target.value)} placeholder="Type message..." />
                     </label>
                 </div>
-                <div className="p-4 border-t border-gray-200 dark:border-white/10 flex justify-end gap-3">
-                    <button onClick={onClose} className="px-4 py-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-white/5 dark:text-white transition-colors">Cancel</button>
+                <div className="p-4 border-t border-white/10 flex justify-end gap-3">
+                    <button onClick={onClose} className="px-4 py-2 rounded-lg hover:bg-white/5 text-white transition-colors">Cancel</button>
                     <button onClick={() => { onSave({ ...data, content }); onClose(); }} className="px-4 py-2 rounded-lg bg-primary text-[#112217] font-bold hover:bg-primary/90 transition-colors">Save</button>
                 </div>
             </div>
@@ -146,41 +146,41 @@ export const ConfigQuestion = ({ data, onClose, onSave }: any) => {
 
     return (
         <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm fade-in">
-            <div className="w-full max-w-md h-full bg-white dark:bg-[#102216] shadow-2xl p-6 flex flex-col border-l border-zinc-200 dark:border-white/10">
-                <h2 className="text-xl font-bold mb-4 dark:text-white">Configure {data.label}</h2>
+            <div className="w-full max-w-md h-full bg-[#102216] shadow-2xl p-6 flex flex-col border-l border-white/10">
+                <h2 className="text-xl font-bold mb-4 text-white">Configure {data.label}</h2>
 
                 <div className="space-y-6 flex-1 overflow-y-auto pr-2">
                     {/* Common: Header (Optional) */}
                     {(isButtons || isList) && (
                         <label className="block">
-                            <span className="text-sm font-medium dark:text-gray-300">Header Text (Optional)</span>
-                            <input className="w-full mt-1 p-2 border rounded dark:bg-black/20 dark:text-white dark:border-white/10" value={headerText} onChange={e => setHeaderText(e.target.value)} placeholder="Header..." maxLength={60} />
+                            <span className="text-sm font-medium text-gray-300">Header Text (Optional)</span>
+                            <input className="w-full mt-1 p-2 border rounded bg-black/20 text-white border-white/10" value={headerText} onChange={e => setHeaderText(e.target.value)} placeholder="Header..." maxLength={60} />
                         </label>
                     )}
 
                     {/* Common: Body/Question Text */}
                     <label className="block">
-                        <span className="text-sm font-medium dark:text-gray-300">Body Text (Required)</span>
-                        <textarea className="w-full mt-1 p-2 border rounded dark:bg-black/20 dark:text-white dark:border-white/10 min-h-[80px]" value={content} onChange={e => setContent(e.target.value)} placeholder="Ask a question..." maxLength={1024} />
+                        <span className="text-sm font-medium text-gray-300">Body Text (Required)</span>
+                        <textarea className="w-full mt-1 p-2 border rounded bg-black/20 text-white border-white/10 min-h-[80px]" value={content} onChange={e => setContent(e.target.value)} placeholder="Ask a question..." maxLength={1024} />
                     </label>
 
                     {/* Common: Footer (Optional) */}
                     {(isButtons || isList) && (
                         <label className="block">
-                            <span className="text-sm font-medium dark:text-gray-300">Footer Text (Optional)</span>
-                            <input className="w-full mt-1 p-2 border rounded dark:bg-black/20 dark:text-white dark:border-white/10" value={footerText} onChange={e => setFooterText(e.target.value)} placeholder="Footer..." maxLength={60} />
+                            <span className="text-sm font-medium text-gray-300">Footer Text (Optional)</span>
+                            <input className="w-full mt-1 p-2 border rounded bg-black/20 text-white border-white/10" value={footerText} onChange={e => setFooterText(e.target.value)} placeholder="Footer..." maxLength={60} />
                         </label>
                     )}
 
                     {/* Buttons Configuration */}
                     {isButtons && (
-                        <div className="bg-zinc-50 dark:bg-white/5 p-4 rounded-lg border border-zinc-200 dark:border-white/10">
-                            <span className="text-sm font-bold dark:text-white block mb-2">Buttons (Max 3)</span>
+                        <div className="bg-white/5 p-4 rounded-lg border border-white/10">
+                            <span className="text-sm font-bold text-white block mb-2">Buttons (Max 3)</span>
                             <div className="space-y-2">
                                 {buttons.map((btn, i) => (
                                     <div key={btn.id} className="flex items-center gap-2">
                                         <input
-                                            className="flex-1 p-2 bg-white dark:bg-black/20 rounded border dark:border-white/10 text-sm dark:text-white"
+                                            className="flex-1 p-2 bg-black/20 rounded border border-white/10 text-sm text-white"
                                             value={btn.title}
                                             onChange={(e) => updateBtnTitle(i, e.target.value)}
                                             placeholder="Button title"
@@ -196,7 +196,7 @@ export const ConfigQuestion = ({ data, onClose, onSave }: any) => {
                                 <div className="flex flex-col gap-2 mt-3">
                                     <div className="flex gap-2">
                                         <input
-                                            className="flex-1 border rounded p-2 text-sm dark:bg-black/20 dark:text-white dark:border-white/10"
+                                            className="flex-1 border rounded p-2 text-sm bg-black/20 text-white border-white/10"
                                             value={newBtn}
                                             onChange={e => setNewBtn(e.target.value)}
                                             placeholder="New Button Label"
@@ -204,11 +204,11 @@ export const ConfigQuestion = ({ data, onClose, onSave }: any) => {
                                         />
                                         <button onClick={addBtn} className="bg-primary text-[#112217] px-3 py-1 rounded text-sm font-bold">Add</button>
                                     </div>
-                                    <span className="text-xs text-gray-500 dark:text-gray-400">(Max 20 chars)</span>
+                                    <span className="text-xs text-gray-400">(Max 20 chars)</span>
                                 </div>
                             )}
                             {buttons.length >= 3 && (
-                                <div className="mt-2 text-xs text-amber-600 dark:text-amber-400">Maximum 3 buttons reached</div>
+                                <div className="mt-2 text-xs text-amber-400">Maximum 3 buttons reached</div>
                             )}
                         </div>
                     )}
@@ -217,20 +217,20 @@ export const ConfigQuestion = ({ data, onClose, onSave }: any) => {
                     {isList && (
                         <div className="space-y-4">
                             <label className="block">
-                                <span className="text-sm font-medium dark:text-gray-300">List Button Label</span>
-                                <input className="w-full mt-1 p-2 border rounded dark:bg-black/20 dark:text-white dark:border-white/10" value={listButtonText} onChange={e => setListButtonText(e.target.value)} placeholder="e.g. Open Menu" maxLength={20} />
+                                <span className="text-sm font-medium text-gray-300">List Button Label</span>
+                                <input className="w-full mt-1 p-2 border rounded bg-black/20 text-white border-white/10" value={listButtonText} onChange={e => setListButtonText(e.target.value)} placeholder="e.g. Open Menu" maxLength={20} />
                             </label>
 
                             {/* List Mode Toggle */}
                             <div className="block">
-                                <label className="block text-sm font-medium dark:text-white mb-2">List Mode</label>
+                                <label className="block text-sm font-medium text-white mb-2">List Mode</label>
                                 <div className="flex gap-2">
                                     <button
                                         type="button"
                                         onClick={() => setListMode('static')}
                                         className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${listMode === 'static'
                                             ? 'bg-green-500 text-white'
-                                            : 'bg-gray-200 dark:bg-white/10 dark:text-white hover:bg-gray-300 dark:hover:bg-white/20'}`}
+                                            : 'bg-white/10 text-white hover:bg-white/20'}`}
                                     >
                                         Static
                                     </button>
@@ -239,7 +239,7 @@ export const ConfigQuestion = ({ data, onClose, onSave }: any) => {
                                         onClick={() => setListMode('dynamic')}
                                         className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${listMode === 'dynamic'
                                             ? 'bg-green-500 text-white'
-                                            : 'bg-gray-200 dark:bg-white/10 dark:text-white hover:bg-gray-300 dark:hover:bg-white/20'}`}
+                                            : 'bg-white/10 text-white hover:bg-white/20'}`}
                                     >
                                         Dynamic
                                     </button>
@@ -248,49 +248,49 @@ export const ConfigQuestion = ({ data, onClose, onSave }: any) => {
 
                             {/* Dynamic Mode UI */}
                             {listMode === 'dynamic' && (
-                                <div className="space-y-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                                <div className="space-y-4 p-4 bg-blue-900/20 rounded-lg border border-blue-800">
                                     <div>
-                                        <label className="block text-sm font-medium dark:text-white mb-2">
+                                        <label className="block text-sm font-medium text-white mb-2">
                                             Source Variable (API response)
                                         </label>
                                         <input
                                             type="text"
                                             value={dynamicListSource}
                                             onChange={(e) => setDynamicListSource(e.target.value)}
-                                            className="w-full p-3 border dark:border-white/20 rounded-lg dark:bg-black/20 dark:text-white"
+                                            className="w-full p-3 border border-white/20 rounded-lg bg-black/20 text-white"
                                             placeholder="e.g., categories, products, brands"
                                         />
-                                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                        <p className="text-xs text-gray-400 mt-1">
                                             Variable name from REST API Node output
                                         </p>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-sm font-medium dark:text-white mb-2">
+                                            <label className="block text-sm font-medium text-white mb-2">
                                                 Label Field
                                             </label>
                                             <input
                                                 type="text"
                                                 value={dynamicLabelField}
                                                 onChange={(e) => setDynamicLabelField(e.target.value)}
-                                                className="w-full p-3 border dark:border-white/20 rounded-lg dark:bg-black/20 dark:text-white"
+                                                className="w-full p-3 border border-white/20 rounded-lg bg-black/20 text-white"
                                                 placeholder="name"
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium dark:text-white mb-2">
+                                            <label className="block text-sm font-medium text-white mb-2">
                                                 Description Field (optional)
                                             </label>
                                             <input
                                                 type="text"
                                                 value={dynamicDescField}
                                                 onChange={(e) => setDynamicDescField(e.target.value)}
-                                                className="w-full p-3 border dark:border-white/20 rounded-lg dark:bg-black/20 dark:text-white"
+                                                className="w-full p-3 border border-white/20 rounded-lg bg-black/20 text-white"
                                                 placeholder="description"
                                             />
                                         </div>
                                     </div>
-                                    <div className="text-xs text-blue-800 dark:text-blue-300 space-y-1">
+                                    <div className="text-xs text-blue-300 space-y-1">
                                         <p>• Source variable must contain an array of objects</p>
                                         <p>• Label field will be used for option titles</p>
                                         <p>• Description field is optional</p>
@@ -302,16 +302,16 @@ export const ConfigQuestion = ({ data, onClose, onSave }: any) => {
                             {listMode === 'static' && (
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm font-bold dark:text-white">List Sections (Max 10)</span>
+                                    <span className="text-sm font-bold text-white">List Sections (Max 10)</span>
                                     <button onClick={addSection} disabled={sections.length >= 10} className="text-xs text-primary hover:underline disabled:text-gray-400 disabled:cursor-not-allowed">+ Add Section</button>
                                 </div>
 
                                 {sections.map((section, sIdx) => (
-                                    <div key={section.id} className="border border-zinc-200 dark:border-white/10 rounded-lg p-3 bg-zinc-50 dark:bg-white/5">
+                                    <div key={section.id} className="border border-white/10 rounded-lg p-3 bg-white/5">
                                         <div className="flex flex-col gap-1 mb-2">
                                             <div className="flex items-center gap-2">
                                                 <input
-                                                    className="flex-1 bg-transparent border-b border-dashed border-gray-400 dark:border-gray-500 focus:border-primary outline-none text-sm font-bold dark:text-white py-1"
+                                                    className="flex-1 bg-transparent border-b border-dashed border-gray-500 focus:border-primary outline-none text-sm font-bold text-white py-1"
                                                     value={section.title}
                                                     onChange={(e) => updateSectionTitle(sIdx, e.target.value)}
                                                     placeholder="Section Title (Optional)"
@@ -319,39 +319,39 @@ export const ConfigQuestion = ({ data, onClose, onSave }: any) => {
                                                 />
                                                 <button onClick={() => removeSection(sIdx)} className="text-red-500 hover:text-red-400"><span className="material-symbols-outlined text-lg">delete</span></button>
                                             </div>
-                                            <span className="text-xs text-gray-500 dark:text-gray-400">(Max 24 chars)</span>
+                                            <span className="text-xs text-gray-400">(Max 24 chars)</span>
                                         </div>
 
-                                        <div className="space-y-2 pl-2 border-l-2 border-gray-200 dark:border-white/10">
+                                        <div className="space-y-2 pl-2 border-l-2 border-white/10">
                                             {section.rows.map((row: any, rIdx: number) => (
-                                                <div key={row.id} className="group flex flex-col gap-1 relative bg-white dark:bg-black/20 p-2 rounded border dark:border-white/5">
+                                                <div key="{row.id}" className="group flex flex-col gap-1 relative bg-black/20 p-2 rounded border border-white/5">
                                                     <div className="flex items-center gap-2">
                                                         <div className="flex-1 flex flex-col gap-1">
                                                             <input
-                                                                className="w-full bg-transparent border-none p-0 text-sm font-medium dark:text-white placeholder:text-gray-400"
+                                                                className="w-full bg-transparent border-none p-0 text-sm font-medium text-white placeholder:text-gray-400"
                                                                 value={row.title}
                                                                 onChange={(e) => updateRow(sIdx, rIdx, 'title', e.target.value)}
                                                                 placeholder="Row Title"
                                                                 maxLength={24}
                                                             />
-                                                            <span className="text-xs text-gray-500 dark:text-gray-400">(Max 24 chars)</span>
+                                                            <span className="text-xs text-gray-400">(Max 24 chars)</span>
                                                         </div>
                                                         <button onClick={() => removeRow(sIdx, rIdx)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300"><span className="material-symbols-outlined text-sm">close</span></button>
                                                     </div>
                                                     <input
-                                                        className="w-full bg-transparent border-none p-0 text-xs text-gray-500 dark:text-gray-400 placeholder:text-gray-600"
+                                                        className="w-full bg-transparent border-none p-0 text-xs text-gray-400 placeholder:text-gray-600"
                                                         value={row.description}
                                                         onChange={(e) => updateRow(sIdx, rIdx, 'description', e.target.value)}
                                                         placeholder="Description (Optional)"
                                                         maxLength={72}
                                                     />
-                                                    <span className="text-xs text-gray-500 dark:text-gray-400">(Max 72 chars)</span>
+                                                    <span className="text-xs text-gray-400">(Max 72 chars)</span>
                                                 </div>
                                             ))}
                                             <button
                                                 onClick={() => addRow(sIdx)}
                                                 disabled={section.rows.length >= 10}
-                                                className="w-full py-1 text-xs text-center border border-dashed border-gray-300 dark:border-gray-600 rounded text-gray-500 hover:text-primary hover:border-primary transition-colors disabled:text-gray-400 disabled:cursor-not-allowed"
+                                                className="w-full py-1 text-xs text-center border border-dashed border-gray-600 rounded text-gray-500 hover:text-primary hover:border-primary transition-colors disabled:text-gray-400 disabled:cursor-not-allowed"
                                             >
                                                 + Add Row {section.rows.length >= 10 && '(Max 10 reached)'}
                                             </button>
@@ -363,14 +363,14 @@ export const ConfigQuestion = ({ data, onClose, onSave }: any) => {
                         </div>
                     )}
 
-                    <label className="block pt-4 border-t dark:border-white/10">
-                        <span className="text-sm font-medium dark:text-gray-300">Variable Name</span>
-                        <input className="w-full mt-1 p-2 border rounded dark:bg-black/20 dark:text-white dark:border-white/10" value={variable} onChange={e => setVariable(e.target.value)} placeholder="e.g. user_choice" />
+                    <label className="block pt-4 border-t border-white/10">
+                        <span className="text-sm font-medium text-gray-300">Variable Name</span>
+                        <input className="w-full mt-1 p-2 border rounded bg-black/20 text-white border-white/10" value={variable} onChange={e => setVariable(e.target.value)} placeholder="e.g. user_choice" />
                     </label>
                 </div>
 
-                <div className="mt-4 flex justify-end gap-2 pt-4 border-t border-zinc-200 dark:border-white/10">
-                    <button onClick={onClose} className="px-4 py-2 rounded dark:text-white hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors">Cancel</button>
+                <div className="mt-4 flex justify-end gap-2 pt-4 border-t border-white/10">
+                    <button onClick={onClose} className="px-4 py-2 rounded text-white hover:bg-white/5 transition-colors">Cancel</button>
                     <button onClick={handleSave} className="px-4 py-2 bg-primary text-[#112217] rounded font-bold hover:bg-primary/90 transition-colors">Save</button>
                 </div>
             </div>
@@ -504,21 +504,21 @@ export const ConfigCondition = ({ data, onClose, onSave }: any) => {
 
     return (
         <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm fade-in">
-            <div className="w-full max-w-2xl h-full bg-white dark:bg-[#102216] shadow-2xl overflow-y-auto flex flex-col border-l border-zinc-200 dark:border-white/10">
+            <div className="w-full max-w-2xl h-full bg-[#102216] shadow-2xl overflow-y-auto flex flex-col border-l border-white/10">
                 <div className="p-8 flex-1">
                     <header className="flex justify-between items-center mb-6">
-                        <h1 className="text-2xl font-bold dark:text-white">Configure: Condition</h1>
+                        <h1 className="text-2xl font-bold text-white">Configure: Condition</h1>
                         <button onClick={onClose}>
-                            <span className="material-symbols-outlined dark:text-white">close</span>
+                            <span className="material-symbols-outlined text-white">close</span>
                         </button>
                     </header>
 
                     <div className="space-y-6">
                         {/* Label */}
                         <label className="block">
-                            <span className="text-sm font-medium dark:text-white">Label</span>
+                            <span className="text-sm font-medium text-white">Label</span>
                             <input
-                                className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+                                className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
                                 value={label}
                                 onChange={e => setLabel(e.target.value)}
                                 placeholder="e.g. Check Age"
@@ -527,12 +527,12 @@ export const ConfigCondition = ({ data, onClose, onSave }: any) => {
 
                         {/* Available Variables Info */}
                         {availableVariables.length === 0 && (
-                            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                            <div className="bg-amber-900/20 border border-amber-800 rounded-lg p-4">
                                 <div className="flex items-start gap-2">
-                                    <span className="material-symbols-outlined text-amber-600 dark:text-amber-400 text-lg">warning</span>
+                                    <span className="material-symbols-outlined text-amber-400 text-lg">warning</span>
                                     <div className="flex-1">
-                                        <p className="text-sm font-medium text-amber-800 dark:text-amber-300">No variables available</p>
-                                        <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                                        <p className="text-sm font-medium text-amber-300">No variables available</p>
+                                        <p className="text-xs text-amber-400 mt-1">
                                             Add Question nodes with variable names before this condition node to make them available for comparison.
                                         </p>
                                     </div>
@@ -543,7 +543,7 @@ export const ConfigCondition = ({ data, onClose, onSave }: any) => {
                         {/* Conditions */}
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
-                                <span className="text-sm font-bold dark:text-white">Conditions {conditions.length > 1 && `(${conditions.length})`}</span>
+                                <span className="text-sm font-bold text-white">Conditions {conditions.length > 1 && `(${conditions.length})`}</span>
                                 {conditions.length < 5 && (
                                     <button
                                         onClick={addCondition}
@@ -557,9 +557,9 @@ export const ConfigCondition = ({ data, onClose, onSave }: any) => {
                             </div>
 
                             {conditions.map((condition, index) => (
-                                <div key={condition.id} className="bg-zinc-50 dark:bg-white/5 p-4 rounded-lg border border-zinc-200 dark:border-white/10">
+                                <div key={condition.id} className="bg-white/5 p-4 rounded-lg border border-white/10">
                                     <div className="flex items-start justify-between mb-3">
-                                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                        <span className="text-xs font-medium text-gray-400">
                                             Condition {index + 1}
                                         </span>
                                         {conditions.length > 1 && (
@@ -575,9 +575,9 @@ export const ConfigCondition = ({ data, onClose, onSave }: any) => {
                                     <div className="space-y-3">
                                         {/* Variable Selection */}
                                         <label className="block">
-                                            <span className="text-xs font-medium dark:text-gray-300">Variable</span>
+                                            <span className="text-xs font-medium text-gray-300">Variable</span>
                                             <select
-                                                className="w-full mt-1 p-2 rounded border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+                                                className="w-full mt-1 p-2 rounded border bg-black/20 text-white border-white/10"
                                                 value={condition.variable}
                                                 onChange={e => updateCondition(index, 'variable', e.target.value)}
                                                 disabled={availableVariables.length === 0}
@@ -597,9 +597,9 @@ export const ConfigCondition = ({ data, onClose, onSave }: any) => {
 
                                         {/* Operator Selection */}
                                         <label className="block">
-                                            <span className="text-xs font-medium dark:text-gray-300">Operator</span>
+                                            <span className="text-xs font-medium text-gray-300">Operator</span>
                                             <select
-                                                className="w-full mt-1 p-2 rounded border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+                                                className="w-full mt-1 p-2 rounded border bg-black/20 text-white border-white/10"
                                                 value={condition.operator}
                                                 onChange={e => updateCondition(index, 'operator', e.target.value)}
                                             >
@@ -611,9 +611,9 @@ export const ConfigCondition = ({ data, onClose, onSave }: any) => {
 
                                         {/* Value Input */}
                                         <label className="block">
-                                            <span className="text-xs font-medium dark:text-gray-300">Value</span>
+                                            <span className="text-xs font-medium text-gray-300">Value</span>
                                             <input
-                                                className="w-full mt-1 p-2 rounded border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+                                                className="w-full mt-1 p-2 rounded border bg-black/20 text-white border-white/10"
                                                 value={condition.value}
                                                 onChange={e => updateCondition(index, 'value', e.target.value)}
                                                 placeholder="Enter comparison value..."
@@ -623,14 +623,14 @@ export const ConfigCondition = ({ data, onClose, onSave }: any) => {
 
                                     {/* Logical operator between conditions */}
                                     {index < conditions.length - 1 && (
-                                        <div className="mt-3 pt-3 border-t border-zinc-300 dark:border-white/10">
+                                        <div className="mt-3 pt-3 border-t border-white/10">
                                             <div className="flex items-center justify-center gap-2">
                                                 <button
                                                     onClick={() => setLogicalOperator('AND')}
                                                     className={`px-3 py-1 rounded text-xs font-bold transition-colors ${
                                                         logicalOperator === 'AND'
                                                             ? 'bg-primary text-[#112217]'
-                                                            : 'bg-white dark:bg-black/20 dark:text-gray-400 border dark:border-white/10'
+                                                            : 'bg-black/20 text-gray-400 border border-white/10'
                                                     }`}
                                                 >
                                                     AND
@@ -640,7 +640,7 @@ export const ConfigCondition = ({ data, onClose, onSave }: any) => {
                                                     className={`px-3 py-1 rounded text-xs font-bold transition-colors ${
                                                         logicalOperator === 'OR'
                                                             ? 'bg-primary text-[#112217]'
-                                                            : 'bg-white dark:bg-black/20 dark:text-gray-400 border dark:border-white/10'
+                                                            : 'bg-black/20 text-gray-400 border border-white/10'
                                                     }`}
                                                 >
                                                     OR
@@ -652,19 +652,19 @@ export const ConfigCondition = ({ data, onClose, onSave }: any) => {
                             ))}
 
                             {conditions.length >= 5 && (
-                                <div className="text-xs text-amber-600 dark:text-amber-400">
+                                <div className="text-xs text-amber-600 text-amber-400">
                                     Maximum 5 conditions reached
                                 </div>
                             )}
                         </div>
 
                         {/* Preview */}
-                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                        <div className="bg-blue-900/20 border border-blue-800 rounded-lg p-4">
                             <div className="flex items-start gap-2">
-                                <span className="material-symbols-outlined text-blue-600 dark:text-blue-400 text-lg">visibility</span>
+                                <span className="material-symbols-outlined text-blue-400 text-lg">visibility</span>
                                 <div className="flex-1">
-                                    <p className="text-xs font-medium text-blue-800 dark:text-blue-300 mb-1">Condition Preview</p>
-                                    <p className="text-sm text-blue-700 dark:text-blue-400 font-mono">
+                                    <p className="text-xs font-medium text-blue-300 mb-1">Condition Preview</p>
+                                    <p className="text-sm text-blue-400 font-mono">
                                         {previewText}
                                     </p>
                                 </div>
@@ -672,7 +672,7 @@ export const ConfigCondition = ({ data, onClose, onSave }: any) => {
                         </div>
 
                         {/* Help Text */}
-                        <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                        <div className="text-xs text-gray-400 space-y-1">
                             <p>• Variables come from previous Question nodes in your flow</p>
                             <p>• Use AND when all conditions must be true</p>
                             <p>• Use OR when any condition can be true</p>
@@ -681,10 +681,10 @@ export const ConfigCondition = ({ data, onClose, onSave }: any) => {
                     </div>
                 </div>
 
-                <div className="p-4 border-t border-gray-200 dark:border-white/10 flex justify-end gap-3">
+                <div className="p-4 border-t border-white/10 flex justify-end gap-3">
                     <button
                         onClick={onClose}
-                        className="px-4 py-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-white/5 dark:text-white transition-colors"
+                        className="px-4 py-2 rounded-lg hover:bg-zinc-100 hover:bg-white/5 text-white transition-colors"
                     >
                         Cancel
                     </button>
@@ -787,31 +787,31 @@ export const ConfigWhatsAppFlow = ({ data, onClose, onSave }: any) => {
 
     return (
         <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm fade-in">
-            <div className="w-full max-w-2xl h-full bg-white dark:bg-[#102216] shadow-2xl overflow-y-auto flex flex-col border-l border-zinc-200 dark:border-white/10">
+            <div className="w-full max-w-2xl h-full bg-[#102216] shadow-2xl overflow-y-auto flex flex-col border-l border-white/10">
                 <div className="p-8 flex-1">
                     <header className="flex justify-between items-center mb-6">
-                        <h1 className="text-2xl font-bold dark:text-white">Configure: WhatsApp Flow</h1>
+                        <h1 className="text-2xl font-bold text-white">Configure: WhatsApp Flow</h1>
                         <button onClick={onClose}>
-                            <span className="material-symbols-outlined dark:text-white">close</span>
+                            <span className="material-symbols-outlined text-white">close</span>
                         </button>
                     </header>
 
                     {loading ? (
                         <div className="flex items-center justify-center py-12">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                            <span className="ml-3 dark:text-white">Loading flows...</span>
+                            <span className="ml-3 text-white">Loading flows...</span>
                         </div>
                     ) : error ? (
-                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                            <p className="text-red-800 dark:text-red-300">{error}</p>
+                        <div className="bg-red-900/20 border border-red-800 rounded-lg p-4">
+                            <p className="text-red-300">{error}</p>
                         </div>
                     ) : flows.length === 0 ? (
-                        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                        <div className="bg-amber-900/20 border border-amber-800 rounded-lg p-4">
                             <div className="flex items-start gap-2">
-                                <span className="material-symbols-outlined text-amber-600 dark:text-amber-400">warning</span>
+                                <span className="material-symbols-outlined text-amber-400">warning</span>
                                 <div>
-                                    <p className="font-medium text-amber-800 dark:text-amber-300">No Published Flows Available</p>
-                                    <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
+                                    <p className="font-medium text-amber-300">No Published Flows Available</p>
+                                    <p className="text-sm text-amber-400 mt-1">
                                         You need to create and publish a WhatsApp Flow first. Go to the Flows page to create one.
                                     </p>
                                 </div>
@@ -821,9 +821,9 @@ export const ConfigWhatsAppFlow = ({ data, onClose, onSave }: any) => {
                         <div className="space-y-6">
                             {/* Label */}
                             <label className="block">
-                                <span className="text-sm font-medium dark:text-white">Node Label</span>
+                                <span className="text-sm font-medium text-white">Node Label</span>
                                 <input
-                                    className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+                                    className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
                                     value={label}
                                     onChange={e => setLabel(e.target.value)}
                                     placeholder="e.g. Booking Form"
@@ -832,9 +832,9 @@ export const ConfigWhatsAppFlow = ({ data, onClose, onSave }: any) => {
 
                             {/* Flow Selection */}
                             <label className="block">
-                                <span className="text-sm font-medium dark:text-white">Select WhatsApp Flow *</span>
+                                <span className="text-sm font-medium text-white">Select WhatsApp Flow *</span>
                                 <select
-                                    className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+                                    className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
                                     value={selectedFlowId}
                                     onChange={e => setSelectedFlowId(e.target.value)}
                                 >
@@ -848,52 +848,52 @@ export const ConfigWhatsAppFlow = ({ data, onClose, onSave }: any) => {
                             </label>
 
                             {selectedFlow && (
-                                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
-                                    <p className="text-sm text-green-800 dark:text-green-300">
+                                <div className="bg-green-900/20 border border-green-800 rounded-lg p-3">
+                                    <p className="text-sm text-green-300">
                                         <strong>Selected:</strong> {selectedFlow.name}
                                     </p>
                                     {selectedFlow.description && (
-                                        <p className="text-xs text-green-700 dark:text-green-400 mt-1">{selectedFlow.description}</p>
+                                        <p className="text-xs text-green-400 mt-1">{selectedFlow.description}</p>
                                     )}
                                 </div>
                             )}
 
                             {/* Body Text */}
                             <label className="block">
-                                <span className="text-sm font-medium dark:text-white">Body Text *</span>
+                                <span className="text-sm font-medium text-white">Body Text *</span>
                                 <textarea
-                                    className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10 min-h-[80px]"
+                                    className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10 min-h-[80px]"
                                     value={bodyText}
                                     onChange={e => setBodyText(e.target.value)}
                                     placeholder="Message shown before the flow button..."
                                     maxLength={1024}
                                 />
-                                <span className="text-xs text-gray-500 dark:text-gray-400">{bodyText.length}/1024 chars</span>
+                                <span className="text-xs text-gray-400">{bodyText.length}/1024 chars</span>
                             </label>
 
                             {/* CTA Button Text */}
                             <label className="block">
-                                <span className="text-sm font-medium dark:text-white">Button Text (CTA) *</span>
+                                <span className="text-sm font-medium text-white">Button Text (CTA) *</span>
                                 <input
-                                    className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+                                    className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
                                     value={flowCta}
                                     onChange={e => setFlowCta(e.target.value)}
                                     placeholder="e.g. Start, Open Form, Book Now"
                                     maxLength={20}
                                 />
-                                <span className="text-xs text-gray-500 dark:text-gray-400">{flowCta.length}/20 chars (no emoji)</span>
+                                <span className="text-xs text-gray-400">{flowCta.length}/20 chars (no emoji)</span>
                             </label>
 
                             {/* Flow Mode */}
                             <div className="block">
-                                <span className="text-sm font-medium dark:text-white block mb-2">Flow Mode</span>
+                                <span className="text-sm font-medium text-white block mb-2">Flow Mode</span>
                                 <div className="flex gap-3">
                                     <button
                                         onClick={() => setFlowMode('navigate')}
                                         className={`flex-1 p-3 rounded-lg border transition-colors ${
                                             flowMode === 'navigate'
                                                 ? 'bg-primary text-[#112217] border-primary'
-                                                : 'bg-white dark:bg-black/20 dark:text-white border-zinc-200 dark:border-white/10'
+                                                : 'bg-black/20 text-white border-white/10'
                                         }`}
                                     >
                                         <span className="font-bold block">Navigate</span>
@@ -904,7 +904,7 @@ export const ConfigWhatsAppFlow = ({ data, onClose, onSave }: any) => {
                                         className={`flex-1 p-3 rounded-lg border transition-colors ${
                                             flowMode === 'data_exchange'
                                                 ? 'bg-primary text-[#112217] border-primary'
-                                                : 'bg-white dark:bg-black/20 dark:text-white border-zinc-200 dark:border-white/10'
+                                                : 'bg-black/20 text-white border-white/10'
                                         }`}
                                     >
                                         <span className="font-bold block">Data Exchange</span>
@@ -915,9 +915,9 @@ export const ConfigWhatsAppFlow = ({ data, onClose, onSave }: any) => {
 
                             {/* Header Text (Optional) */}
                             <label className="block">
-                                <span className="text-sm font-medium dark:text-gray-300">Header Text (Optional)</span>
+                                <span className="text-sm font-medium text-gray-300">Header Text (Optional)</span>
                                 <input
-                                    className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+                                    className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
                                     value={headerText}
                                     onChange={e => setHeaderText(e.target.value)}
                                     placeholder="Optional header..."
@@ -927,9 +927,9 @@ export const ConfigWhatsAppFlow = ({ data, onClose, onSave }: any) => {
 
                             {/* Footer Text (Optional) */}
                             <label className="block">
-                                <span className="text-sm font-medium dark:text-gray-300">Footer Text (Optional)</span>
+                                <span className="text-sm font-medium text-gray-300">Footer Text (Optional)</span>
                                 <input
-                                    className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+                                    className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
                                     value={footerText}
                                     onChange={e => setFooterText(e.target.value)}
                                     placeholder="Optional footer..."
@@ -938,28 +938,28 @@ export const ConfigWhatsAppFlow = ({ data, onClose, onSave }: any) => {
                             </label>
 
                             {/* Output Variable */}
-                            <label className="block pt-4 border-t dark:border-white/10">
-                                <span className="text-sm font-medium dark:text-white">Output Variable (Optional)</span>
+                            <label className="block pt-4 border-t border-white/10">
+                                <span className="text-sm font-medium text-white">Output Variable (Optional)</span>
                                 <input
-                                    className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+                                    className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
                                     value={outputVariable}
                                     onChange={e => setOutputVariable(e.target.value)}
                                     placeholder="e.g. flow_response"
                                 />
-                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                <span className="text-xs text-gray-400">
                                     Store flow response in this variable for use in subsequent nodes
                                 </span>
                             </label>
 
                             {/* Advanced: Initial Screen (for navigate mode) */}
                             {flowMode === 'navigate' && (
-                                <div className="bg-zinc-50 dark:bg-white/5 p-4 rounded-lg border border-zinc-200 dark:border-white/10">
-                                    <span className="text-sm font-bold dark:text-white block mb-3">Advanced Options</span>
+                                <div className="bg-white/5 p-4 rounded-lg border border-white/10">
+                                    <span className="text-sm font-bold text-white block mb-3">Advanced Options</span>
 
                                     <label className="block mb-4">
-                                        <span className="text-xs font-medium dark:text-gray-300">Initial Screen ID</span>
+                                        <span className="text-xs font-medium text-gray-300">Initial Screen ID</span>
                                         <input
-                                            className="w-full mt-1 p-2 rounded border bg-white dark:bg-black/20 dark:text-white dark:border-white/10 text-sm"
+                                            className="w-full mt-1 p-2 rounded border bg-black/20 text-white border-white/10 text-sm"
                                             value={initialScreen}
                                             onChange={e => setInitialScreen(e.target.value)}
                                             placeholder="e.g. WELCOME_SCREEN"
@@ -967,14 +967,14 @@ export const ConfigWhatsAppFlow = ({ data, onClose, onSave }: any) => {
                                     </label>
 
                                     <label className="block">
-                                        <span className="text-xs font-medium dark:text-gray-300">Initial Data (JSON)</span>
+                                        <span className="text-xs font-medium text-gray-300">Initial Data (JSON)</span>
                                         <textarea
-                                            className="w-full mt-1 p-2 rounded border bg-white dark:bg-black/20 dark:text-white dark:border-white/10 text-sm font-mono min-h-[80px]"
+                                            className="w-full mt-1 p-2 rounded border bg-black/20 text-white border-white/10 text-sm font-mono min-h-[80px]"
                                             value={initialDataJson}
                                             onChange={e => setInitialDataJson(e.target.value)}
                                             placeholder='{"customer_name": "{{name}}", "order_id": "{{order_id}}"}'
                                         />
-                                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                                        <span className="text-xs text-gray-400">
                                             Use {"{{variable}}"} syntax for dynamic values
                                         </span>
                                     </label>
@@ -982,7 +982,7 @@ export const ConfigWhatsAppFlow = ({ data, onClose, onSave }: any) => {
                             )}
 
                             {/* Help Text */}
-                            <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1 pt-4 border-t dark:border-white/10">
+                            <div className="text-xs text-gray-500 text-gray-400 space-y-1 pt-4 border-t border-white/10">
                                 <p>• Only published WhatsApp Flows can be used in chatbots</p>
                                 <p>• Navigate mode: Static forms with predefined screens</p>
                                 <p>• Data Exchange mode: Dynamic flows with backend interaction</p>
@@ -992,10 +992,10 @@ export const ConfigWhatsAppFlow = ({ data, onClose, onSave }: any) => {
                     )}
                 </div>
 
-                <div className="p-4 border-t border-gray-200 dark:border-white/10 flex justify-end gap-3">
+                <div className="p-4 border-t border-white/10 flex justify-end gap-3">
                     <button
                         onClick={onClose}
-                        className="px-4 py-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-white/5 dark:text-white transition-colors"
+                        className="px-4 py-2 rounded-lg hover:bg-zinc-100 hover:bg-white/5 text-white transition-colors"
                     >
                         Cancel
                     </button>

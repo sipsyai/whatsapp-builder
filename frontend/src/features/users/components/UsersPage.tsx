@@ -62,12 +62,12 @@ export const UsersPage: React.FC = () => {
     }
 
     return (
-        <div className="p-8 h-full bg-background-light dark:bg-background-dark overflow-y-auto">
+        <div className="p-8 h-full bg-background overflow-y-auto">
             <div className="max-w-6xl mx-auto">
                 <div className="flex justify-between items-center mb-8">
                     <div>
-                        <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">Users</h1>
-                        <p className="text-zinc-500 dark:text-zinc-400 mt-1">Manage system users</p>
+                        <h1 className="text-3xl font-bold text-white">Users</h1>
+                        <p className="text-zinc-400 mt-1">Manage system users</p>
                     </div>
                     <button
                         onClick={() => setShowModal(true)}
@@ -84,20 +84,20 @@ export const UsersPage: React.FC = () => {
                     </div>
                 )}
 
-                <div className="bg-white dark:bg-surface-dark rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+                <div className="bg-surface-dark rounded-xl border border-zinc-800 overflow-hidden">
                     <table className="w-full text-left">
-                        <thead className="bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800">
+                        <thead className="bg-zinc-900/50 border-b border-zinc-800">
                             <tr>
-                                <th className="px-6 py-4 text-sm font-semibold text-zinc-900 dark:text-white">Name</th>
-                                <th className="px-6 py-4 text-sm font-semibold text-zinc-900 dark:text-white">Email</th>
-                                <th className="px-6 py-4 text-sm font-semibold text-zinc-900 dark:text-white">Created At</th>
-                                <th className="px-6 py-4 text-sm font-semibold text-zinc-900 dark:text-white text-right">Actions</th>
+                                <th className="px-6 py-4 text-sm font-semibold text-white">Name</th>
+                                <th className="px-6 py-4 text-sm font-semibold text-white">Email</th>
+                                <th className="px-6 py-4 text-sm font-semibold text-white">Created At</th>
+                                <th className="px-6 py-4 text-sm font-semibold text-white text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+                        <tbody className="divide-y divide-zinc-800">
                             {users.map((user) => (
-                                <tr key={user.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900/20 transition-colors">
-                                    <td className="px-6 py-4 text-sm text-zinc-900 dark:text-white font-medium">
+                                <tr key={user.id} className="hover:bg-zinc-900/20 transition-colors">
+                                    <td className="px-6 py-4 text-sm text-white font-medium">
                                         <div className="flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
                                                 {user.name?.[0]?.toUpperCase() || user.email[0].toUpperCase()}
@@ -105,14 +105,14 @@ export const UsersPage: React.FC = () => {
                                             {user.name || 'N/A'}
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 text-sm text-zinc-600 dark:text-zinc-400">{user.email}</td>
-                                    <td className="px-6 py-4 text-sm text-zinc-600 dark:text-zinc-400">
+                                    <td className="px-6 py-4 text-sm text-zinc-400">{user.email}</td>
+                                    <td className="px-6 py-4 text-sm text-zinc-400">
                                         {new Date(user.createdAt).toLocaleDateString()}
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <button
                                             onClick={() => handleDelete(user.id)}
-                                            className="p-2 text-zinc-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                            className="p-2 text-zinc-400 hover:text-red-600 hover:bg-red-900/20 rounded-lg transition-colors"
                                             title="Delete User"
                                         >
                                             <span className="material-symbols-outlined">delete</span>
@@ -122,7 +122,7 @@ export const UsersPage: React.FC = () => {
                             ))}
                             {users.length === 0 && (
                                 <tr>
-                                    <td colSpan={4} className="px-6 py-12 text-center text-zinc-500 dark:text-zinc-400">
+                                    <td colSpan={4} className="px-6 py-12 text-center text-zinc-400">
                                         No users found
                                     </td>
                                 </tr>
@@ -135,28 +135,28 @@ export const UsersPage: React.FC = () => {
             {/* Add User Modal */}
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-                    <div className="w-full max-w-md bg-white dark:bg-surface-dark rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-2xl p-6">
-                        <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-4">Add New User</h2>
+                    <div className="w-full max-w-md bg-surface-dark rounded-xl border border-zinc-800 shadow-2xl p-6">
+                        <h2 className="text-xl font-bold text-white mb-4">Add New User</h2>
                         <form onSubmit={handleCreateUser}>
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Name</label>
+                                    <label className="block text-sm font-medium text-zinc-300 mb-1">Name</label>
                                     <input
                                         type="text"
                                         value={newUserName}
                                         onChange={(e) => setNewUserName(e.target.value)}
-                                        className="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
+                                        className="w-full px-3 py-2 rounded-lg border border-zinc-700 bg-zinc-900 text-white focus:ring-2 focus:ring-primary focus:border-transparent"
                                         placeholder="John Doe"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Email</label>
+                                    <label className="block text-sm font-medium text-zinc-300 mb-1">Email</label>
                                     <input
                                         type="email"
                                         required
                                         value={newUserEmail}
                                         onChange={(e) => setNewUserEmail(e.target.value)}
-                                        className="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
+                                        className="w-full px-3 py-2 rounded-lg border border-zinc-700 bg-zinc-900 text-white focus:ring-2 focus:ring-primary focus:border-transparent"
                                         placeholder="john@example.com"
                                     />
                                 </div>
@@ -165,7 +165,7 @@ export const UsersPage: React.FC = () => {
                                 <button
                                     type="button"
                                     onClick={() => setShowModal(false)}
-                                    className="px-4 py-2 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg font-medium"
+                                    className="px-4 py-2 text-zinc-300 hover:bg-zinc-800 rounded-lg font-medium"
                                 >
                                     Cancel
                                 </button>

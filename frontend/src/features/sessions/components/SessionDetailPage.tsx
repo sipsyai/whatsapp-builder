@@ -147,19 +147,19 @@ export const SessionDetailPage = ({ sessionId, onBack }: SessionDetailPageProps)
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
       case 'running':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+        return 'bg-green-100 text-green-800';
       case 'waiting_input':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+        return 'bg-yellow-100 text-yellow-800';
       case 'waiting_flow':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+        return 'bg-blue-100 text-blue-800';
       case 'completed':
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
+        return 'bg-gray-100 text-gray-800';
       case 'expired':
-        return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400';
+        return 'bg-orange-100 text-orange-800';
       case 'stopped':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+        return 'bg-red-100 text-red-800';
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -183,10 +183,10 @@ export const SessionDetailPage = ({ sessionId, onBack }: SessionDetailPageProps)
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-gray-900">
+      <div className="flex items-center justify-center h-full bg-gray-900">
         <div className="flex flex-col items-center gap-3">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Loading session details...</p>
+          <p className="text-sm text-gray-600">Loading session details...</p>
         </div>
       </div>
     );
@@ -194,10 +194,10 @@ export const SessionDetailPage = ({ sessionId, onBack }: SessionDetailPageProps)
 
   if (error || !session) {
     return (
-      <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-gray-900">
+      <div className="flex items-center justify-center h-full bg-gray-900">
         <div className="flex flex-col items-center gap-4">
           <span className="material-symbols-outlined text-red-500 text-5xl">error</span>
-          <p className="text-gray-900 dark:text-gray-100 font-medium">
+          <p className="text-gray-900 font-medium">
             {error || 'Session not found'}
           </p>
           <button
@@ -212,14 +212,14 @@ export const SessionDetailPage = ({ sessionId, onBack }: SessionDetailPageProps)
   }
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900">
+    <div className="flex flex-col h-full bg-gray-900">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+      <div className="bg-bg-gray-800 border-b border-gray-700 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
               onClick={onBack}
-              className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+              className="text-gray-600 hover:text-gray-900 transition-colors"
             >
               <span className="material-symbols-outlined">arrow_back</span>
             </button>
@@ -227,24 +227,24 @@ export const SessionDetailPage = ({ sessionId, onBack }: SessionDetailPageProps)
             <div className="flex flex-col">
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-gray-600 dark:text-gray-400">
+                  <span className="material-symbols-outlined text-gray-600">
                     person
                   </span>
-                  <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                  <h1 className="text-xl font-bold text-gray-900">
                     {session.customerName}
                   </h1>
                 </div>
-                <span className="text-sm text-gray-500 dark:text-gray-400">
+                <span className="text-sm text-gray-500">
                   {session.customerPhone}
                 </span>
               </div>
 
               <div className="flex items-center gap-3 mt-1">
                 <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-sm text-gray-500 dark:text-gray-400">
+                  <span className="material-symbols-outlined text-sm text-gray-500">
                     smart_toy
                   </span>
-                  <span className="text-sm text-gray-600 dark:text-gray-300">
+                  <span className="text-sm text-gray-600">
                     {session.chatbotName}
                   </span>
                 </div>
@@ -258,11 +258,11 @@ export const SessionDetailPage = ({ sessionId, onBack }: SessionDetailPageProps)
           <div className="flex items-center gap-3">
             {/* Session stats */}
             <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+              <div className="flex items-center gap-1 text-gray-600">
                 <span className="material-symbols-outlined text-sm">chat</span>
                 <span>{session.messageCount} messages</span>
               </div>
-              <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+              <div className="flex items-center gap-1 text-gray-600">
                 <span className="material-symbols-outlined text-sm">account_tree</span>
                 <span>{session.nodeCount} nodes</span>
               </div>
@@ -284,11 +284,11 @@ export const SessionDetailPage = ({ sessionId, onBack }: SessionDetailPageProps)
         {/* Current node info */}
         {session.currentNodeLabel && (
           <div className="mt-3 flex items-center gap-2 text-sm">
-            <span className="material-symbols-outlined text-purple-600 dark:text-purple-400 text-sm">
+            <span className="material-symbols-outlined text-purple-600 text-sm">
               location_on
             </span>
-            <span className="text-gray-600 dark:text-gray-400">Current Node:</span>
-            <span className="font-medium text-gray-900 dark:text-gray-100">
+            <span className="text-gray-600">Current Node:</span>
+            <span className="font-medium text-gray-900">
               {session.currentNodeLabel}
             </span>
           </div>
@@ -298,7 +298,7 @@ export const SessionDetailPage = ({ sessionId, onBack }: SessionDetailPageProps)
       {/* Main content - Split view */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left side - Conversation Log (60%) */}
-        <div className="w-[60%] border-r border-gray-200 dark:border-gray-700">
+        <div className="w-[60%] border-r border-gray-700">
           <ConversationLog messages={messages} isActive={session.isActive} />
         </div>
 

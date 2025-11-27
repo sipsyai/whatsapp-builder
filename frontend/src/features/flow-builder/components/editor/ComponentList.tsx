@@ -133,20 +133,20 @@ function SortableComponentItem({
       style={style}
       className={`
         group relative flex items-center gap-2 px-3 py-2.5 rounded-lg
-        bg-white dark:bg-[#193322] border border-zinc-200 dark:border-white/10
+        bg-[#193322] border border-white/10
         transition-all duration-200
-        ${isDragging ? 'opacity-50 shadow-lg scale-105' : 'hover:border-zinc-300 dark:hover:border-white/20'}
-        ${hasErrors ? 'border-red-300 dark:border-red-500/30 bg-red-50 dark:bg-red-900/10' : ''}
+        ${isDragging ? 'opacity-50 shadow-lg scale-105' : 'hover:border-white/20'}
+        ${hasErrors ? 'border-red-500/30 bg-red-900/10' : ''}
       `}
     >
       {/* Drag Handle */}
       <button
         {...attributes}
         {...listeners}
-        className="cursor-grab active:cursor-grabbing flex-shrink-0 p-1 rounded hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors"
+        className="cursor-grab active:cursor-grabbing flex-shrink-0 p-1 rounded hover:bg-white/5 transition-colors"
         aria-label="Drag to reorder"
       >
-        <span className="material-symbols-outlined text-base text-zinc-400 dark:text-zinc-500">
+        <span className="material-symbols-outlined text-base text-zinc-500">
           drag_indicator
         </span>
       </button>
@@ -155,7 +155,7 @@ function SortableComponentItem({
       <span
         className={`
           material-symbols-outlined text-base flex-shrink-0
-          ${hasErrors ? 'text-red-500 dark:text-red-400' : 'text-blue-500 dark:text-blue-400'}
+          ${hasErrors ? 'text-red-400' : 'text-blue-400'}
         `}
       >
         {icon}
@@ -164,7 +164,7 @@ function SortableComponentItem({
       {/* Component Label */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-zinc-900 dark:text-white truncate">
+          <span className="text-sm font-medium text-white truncate">
             {label}
           </span>
           {component.visible === false && (
@@ -173,7 +173,7 @@ function SortableComponentItem({
             </span>
           )}
         </div>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
+        <p className="text-xs text-zinc-400 truncate">
           {component.type}
         </p>
       </div>
@@ -181,7 +181,7 @@ function SortableComponentItem({
       {/* Validation Error Indicator */}
       {hasErrors && (
         <span
-          className="material-symbols-outlined text-sm text-red-500 dark:text-red-400 flex-shrink-0"
+          className="material-symbols-outlined text-sm text-red-400 flex-shrink-0"
           title={`${component.validation?.errors.length} error(s)`}
         >
           error
@@ -193,11 +193,11 @@ function SortableComponentItem({
         {/* Duplicate Button */}
         <button
           onClick={onDuplicate}
-          className="p-1.5 rounded hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors"
+          className="p-1.5 rounded hover:bg-white/5 transition-colors"
           aria-label="Duplicate component"
           title="Duplicate"
         >
-          <span className="material-symbols-outlined text-sm text-zinc-600 dark:text-zinc-400">
+          <span className="material-symbols-outlined text-sm text-zinc-400">
             content_copy
           </span>
         </button>
@@ -205,11 +205,11 @@ function SortableComponentItem({
         {/* Edit Button */}
         <button
           onClick={onEdit}
-          className="p-1.5 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+          className="p-1.5 rounded hover:bg-blue-900/30 transition-colors"
           aria-label="Edit component"
           title="Edit"
         >
-          <span className="material-symbols-outlined text-sm text-blue-600 dark:text-blue-400">
+          <span className="material-symbols-outlined text-sm text-blue-400">
             edit
           </span>
         </button>
@@ -217,11 +217,11 @@ function SortableComponentItem({
         {/* Delete Button */}
         <button
           onClick={onDelete}
-          className="p-1.5 rounded hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+          className="p-1.5 rounded hover:bg-red-900/30 transition-colors"
           aria-label="Delete component"
           title="Delete"
         >
-          <span className="material-symbols-outlined text-sm text-red-600 dark:text-red-400">
+          <span className="material-symbols-outlined text-sm text-red-400">
             delete
           </span>
         </button>
@@ -268,13 +268,13 @@ export function ComponentList({
   if (components.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-        <span className="material-symbols-outlined text-4xl text-zinc-300 dark:text-zinc-600 mb-3">
+        <span className="material-symbols-outlined text-4xl text-zinc-600 mb-3">
           widgets
         </span>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-1">
+        <p className="text-sm text-zinc-400 mb-1">
           No components yet
         </p>
-        <p className="text-xs text-zinc-400 dark:text-zinc-500">
+        <p className="text-xs text-zinc-500">
           Click "Add Component" to get started
         </p>
       </div>

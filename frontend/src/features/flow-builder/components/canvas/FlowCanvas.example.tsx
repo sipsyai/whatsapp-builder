@@ -82,12 +82,12 @@ export const FlowCanvasExample: React.FC = () => {
   return (
     <div className="h-screen w-full flex flex-col">
       {/* Header */}
-      <header className="flex items-center justify-between border-b border-zinc-200 dark:border-[#23482f] px-6 py-3 bg-background-light dark:bg-background-dark">
+      <header className="flex items-center justify-between border-b border-[#23482f] px-6 py-3 bg-background">
         <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold text-zinc-900 dark:text-white">
+          <h1 className="text-xl font-bold text-white">
             WhatsApp Flow Builder
           </h1>
-          <span className="text-sm text-zinc-500 dark:text-zinc-400">
+          <span className="text-sm text-zinc-400">
             {nodes.length} screen{nodes.length !== 1 ? 's' : ''}, {edges.length} connection
             {edges.length !== 1 ? 's' : ''}
           </span>
@@ -107,7 +107,7 @@ export const FlowCanvasExample: React.FC = () => {
             onClick={() => {
               console.log('Current Flow:', { nodes, edges });
             }}
-            className="px-4 py-2 bg-zinc-200 dark:bg-zinc-700 text-zinc-800 dark:text-white rounded-lg text-sm font-medium hover:bg-zinc-300 dark:hover:bg-zinc-600"
+            className="px-4 py-2 bg-zinc-700 text-white rounded-lg text-sm font-medium hover:bg-zinc-600"
           >
             Log Flow
           </button>
@@ -163,8 +163,8 @@ export const FlowBuilderWithSidebar: React.FC = () => {
   return (
     <div className="h-screen w-full flex">
       {/* Sidebar with draggable templates */}
-      <aside className="w-64 bg-white dark:bg-[#193322] border-r border-zinc-200 dark:border-white/10 p-4">
-        <h3 className="text-sm font-bold text-zinc-900 dark:text-white mb-4">
+      <aside className="w-64 bg-[#193322] border-r border-white/10 p-4">
+        <h3 className="text-sm font-bold text-white mb-4">
           Screen Templates
         </h3>
         <div className="space-y-2">
@@ -176,10 +176,10 @@ export const FlowBuilderWithSidebar: React.FC = () => {
                 title: 'Form Screen',
               })
             }
-            className="p-3 bg-zinc-50 dark:bg-[#112217] rounded-lg cursor-grab active:cursor-grabbing border border-zinc-200 dark:border-white/10 hover:bg-zinc-100 dark:hover:bg-[#1a3523]"
+            className="p-3 bg-[#112217] rounded-lg cursor-grab active:cursor-grabbing border border-white/10 hover:bg-[#1a3523]"
           >
-            <div className="font-medium text-sm text-zinc-900 dark:text-white">Form Screen</div>
-            <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+            <div className="font-medium text-sm text-white">Form Screen</div>
+            <div className="text-xs text-zinc-400 mt-1">
               Screen with form inputs
             </div>
           </div>
@@ -192,12 +192,12 @@ export const FlowBuilderWithSidebar: React.FC = () => {
                 terminal: true,
               })
             }
-            className="p-3 bg-zinc-50 dark:bg-[#112217] rounded-lg cursor-grab active:cursor-grabbing border border-zinc-200 dark:border-white/10 hover:bg-zinc-100 dark:hover:bg-[#1a3523]"
+            className="p-3 bg-[#112217] rounded-lg cursor-grab active:cursor-grabbing border border-white/10 hover:bg-[#1a3523]"
           >
-            <div className="font-medium text-sm text-zinc-900 dark:text-white">
+            <div className="font-medium text-sm text-white">
               Terminal Screen
             </div>
-            <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+            <div className="text-xs text-zinc-400 mt-1">
               Final screen (no navigation)
             </div>
           </div>

@@ -190,6 +190,11 @@ See [WEBHOOK_QUICKSTART.md](./WEBHOOK_QUICKSTART.md#-sorun-giderme) for common i
 - Vite 7.2.5
 - Tailwind CSS v4
 
+### UI/UX
+- **Dark Mode**: Application runs exclusively in dark mode with WhatsApp-inspired color scheme
+- Custom CSS variables for theming
+- Responsive design optimized for dark backgrounds
+
 ## 🐳 Production Deployment with Docker
 
 ### Quick Production Setup
@@ -222,7 +227,14 @@ The production setup includes:
 
 ### Production URL
 
-Live demo: https://whatsapp.sipsy.ai
+**Live Application**: https://whatsapp.sipsy.ai
+
+This production instance is deployed using Docker Compose with:
+- Single container deployment (Frontend + Backend)
+- PostgreSQL database with persistent storage
+- Cloudflare Tunnel for secure HTTPS access
+- Automatic health monitoring
+- Dark mode optimized UI
 
 ### Environment Variables
 

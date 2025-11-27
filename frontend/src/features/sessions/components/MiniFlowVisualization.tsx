@@ -59,10 +59,10 @@ const MiniNode = ({ data }: { data: NodeData & { isExecuted?: boolean; isCurrent
 
     const baseClasses = `
         rounded-lg shadow-md border transition-all
-        ${data.isExecuted ? 'border-green-500 border-2' : 'border-gray-300 dark:border-gray-600'}
+        ${data.isExecuted ? 'border-green-500 border-2' : 'border-gray-300'}
         ${data.isCurrent ? 'animate-pulse-glow' : ''}
         ${!data.isExecuted ? 'opacity-50' : 'opacity-100'}
-        bg-background-light dark:bg-background-dark
+        bg-background
     `;
 
     return (
@@ -72,7 +72,7 @@ const MiniNode = ({ data }: { data: NodeData & { isExecuted?: boolean; isCurrent
                     <span className="material-symbols-outlined text-sm">{getIcon(nodeType)}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-zinc-900 dark:text-white truncate">
+                    <p className="text-xs font-semibold text-white truncate">
                         {data.label}
                     </p>
                 </div>
@@ -158,7 +158,7 @@ const MiniFlowInner = ({
                 minZoom={0.5}
                 maxZoom={1.5}
                 fitView
-                className="bg-zinc-50 dark:bg-[#0a160e]"
+                className="bg-bg-[#0a160e]"
             >
                 <Background color="#666" gap={16} size={0.5} />
             </ReactFlow>

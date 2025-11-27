@@ -65,6 +65,12 @@ The frontend provides an intuitive interface for designing, managing, and monito
 - **TypeScript** 5.9 - Type safety
 - **Vite** 7.2.5 - Build tool (Rolldown variant)
 
+### Styling
+- **Tailwind CSS** v4 - Utility-first CSS framework
+- **Dark Mode**: Application exclusively uses dark mode (light mode not supported)
+- WhatsApp-inspired color scheme with custom CSS variables
+- No theme toggle - optimized dark UI throughout
+
 ### Flow Builder
 - **@xyflow/react** 12.3.5 - Visual flow editor
 - **Dagre** 0.8.5 - Graph layout algorithm
@@ -122,6 +128,8 @@ npm run lint
 ```
 
 The development server will start on `http://localhost:5173`.
+
+**Note**: The application is designed exclusively for dark mode. All components use dark backgrounds and light text optimized for low-light environments.
 
 ## Project Structure
 

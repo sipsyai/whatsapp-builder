@@ -85,13 +85,13 @@ export const DraggableComponent: React.FC<DraggableComponentProps> = ({
           onDragStart={handleDragStart}
           onMouseEnter={() => setShowTooltip(true)}
           onMouseLeave={() => setShowTooltip(false)}
-          className="flex-1 flex items-center gap-3 p-2.5 bg-white dark:bg-[#23482f] rounded-lg cursor-grab active:cursor-grabbing border dark:border-transparent shadow-sm hover:shadow-md hover:bg-gray-50 dark:hover:bg-[#1a3523] transition-all"
+          className="flex-1 flex items-center gap-3 p-2.5 bg-[#23482f] rounded-lg cursor-grab active:cursor-grabbing border border-transparent shadow-sm hover:shadow-md hover:bg-[#1a3523] transition-all"
         >
           <span className={`material-symbols-outlined ${getIconColor()} text-xl flex-shrink-0`}>
             {component.icon}
           </span>
           <div className="flex-1 min-w-0">
-            <span className="text-sm font-medium text-gray-900 dark:text-white block truncate">
+            <span className="text-sm font-medium text-white block truncate">
               {component.name}
             </span>
           </div>
@@ -103,7 +103,7 @@ export const DraggableComponent: React.FC<DraggableComponentProps> = ({
         {/* Add Button */}
         <button
           onClick={handleAddClick}
-          className="flex-shrink-0 p-2.5 bg-white dark:bg-[#23482f] rounded-lg border dark:border-transparent shadow-sm hover:bg-primary hover:text-[#112217] dark:hover:bg-primary text-primary transition-all"
+          className="flex-shrink-0 p-2.5 bg-[#23482f] rounded-lg border border-transparent shadow-sm hover:bg-primary hover:text-[#112217] text-primary transition-all"
           title={`Add ${component.name}`}
         >
           <span className="material-symbols-outlined text-lg">add</span>
@@ -113,7 +113,7 @@ export const DraggableComponent: React.FC<DraggableComponentProps> = ({
       {/* Tooltip */}
       {showTooltip && (
         <div className="absolute left-0 top-full mt-2 z-50 w-full max-w-xs">
-          <div className="bg-gray-900 dark:bg-[#112217] text-white text-xs rounded-lg p-3 shadow-xl border border-gray-700">
+          <div className="bg-[#112217] text-white text-xs rounded-lg p-3 shadow-xl border border-gray-700">
             <p className="font-semibold mb-1">{component.name}</p>
             <p className="text-gray-300">{component.description}</p>
             <div className="mt-2 pt-2 border-t border-gray-700">
@@ -124,7 +124,7 @@ export const DraggableComponent: React.FC<DraggableComponentProps> = ({
             </div>
           </div>
           {/* Tooltip Arrow */}
-          <div className="absolute left-4 -top-2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-b-8 border-b-gray-900 dark:border-b-[#112217]" />
+          <div className="absolute left-4 -top-2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-b-8 border-b-[#112217]" />
         </div>
       )}
     </div>

@@ -91,14 +91,14 @@ export const FlowsPage = ({ onEditInBuilder }: FlowsPageProps) => {
   };
 
   return (
-    <div className="h-full bg-background-light dark:bg-background-dark overflow-y-auto">
+    <div className="h-full bg-background overflow-y-auto">
       <div className="max-w-7xl mx-auto p-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex justify-between items-start mb-6">
             <div>
-              <h1 className="text-4xl font-bold text-zinc-900 dark:text-white mb-2">WhatsApp Flows</h1>
-              <p className="text-zinc-500 dark:text-zinc-400">Create and manage interactive WhatsApp Flows</p>
+              <h1 className="text-4xl font-bold text-white mb-2">WhatsApp Flows</h1>
+              <p className="text-zinc-400">Create and manage interactive WhatsApp Flows</p>
             </div>
             <div className="flex gap-3">
               <button
@@ -130,21 +130,21 @@ export const FlowsPage = ({ onEditInBuilder }: FlowsPageProps) => {
 
           {/* Sync Result Banner */}
           {syncResult && (
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 flex items-center justify-between">
+            <div className="bg-blue-900/20 border border-blue-800 rounded-xl p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-blue-600 dark:text-blue-400">check_circle</span>
+                <span className="material-symbols-outlined text-blue-400">check_circle</span>
                 <div>
-                  <p className="font-medium text-blue-900 dark:text-blue-100">
+                  <p className="font-medium text-blue-100">
                     Sync completed successfully!
                   </p>
-                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                  <p className="text-sm text-blue-300">
                     {syncResult.total} flows found: {syncResult.created} created, {syncResult.updated} updated, {syncResult.unchanged} unchanged
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setSyncResult(null)}
-                className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200"
+                className="text-blue-400 hover:text-blue-200"
               >
                 <span className="material-symbols-outlined">close</span>
               </button>
@@ -158,7 +158,7 @@ export const FlowsPage = ({ onEditInBuilder }: FlowsPageProps) => {
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-zinc-500 dark:text-zinc-400">Loading flows...</p>
+              <p className="text-zinc-400">Loading flows...</p>
             </div>
           </div>
         )}
@@ -171,14 +171,14 @@ export const FlowsPage = ({ onEditInBuilder }: FlowsPageProps) => {
         )}
 
         {!loading && !error && flows.length === 0 && (
-          <div className="text-center py-20 bg-white dark:bg-surface-dark rounded-2xl border-2 border-dashed border-zinc-300 dark:border-zinc-700">
-            <div className="inline-block p-6 bg-zinc-100 dark:bg-zinc-800 rounded-full mb-6">
-              <span className="material-symbols-outlined text-6xl text-zinc-400 dark:text-zinc-500">
+          <div className="text-center py-20 bg-surface rounded-2xl border-2 border-dashed border-zinc-700">
+            <div className="inline-block p-6 bg-zinc-800 rounded-full mb-6">
+              <span className="material-symbols-outlined text-6xl text-zinc-500">
                 check_box
               </span>
             </div>
-            <h3 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">No Flows yet</h3>
-            <p className="text-zinc-500 dark:text-zinc-400 mb-8 max-w-md mx-auto">
+            <h3 className="text-2xl font-bold text-white mb-2">No Flows yet</h3>
+            <p className="text-zinc-400 mb-8 max-w-md mx-auto">
               Create your first WhatsApp Flow to get started
             </p>
             <button
@@ -196,7 +196,7 @@ export const FlowsPage = ({ onEditInBuilder }: FlowsPageProps) => {
             {flows.map((flow) => (
               <div
                 key={flow.id}
-                className="bg-white dark:bg-surface-dark rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden hover:shadow-2xl transition-all duration-300 group hover:scale-105"
+                className="bg-surface rounded-2xl border border-zinc-800 overflow-hidden hover:shadow-2xl transition-all duration-300 group hover:scale-105"
               >
                 {/* Flow Header with gradient */}
                 <div className="h-32 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent relative overflow-hidden">
@@ -216,7 +216,7 @@ export const FlowsPage = ({ onEditInBuilder }: FlowsPageProps) => {
                     {onEditInBuilder && (
                       <button
                         onClick={() => onEditInBuilder(flow)}
-                        className="p-2 bg-white dark:bg-zinc-800 text-primary hover:bg-primary/10 dark:hover:bg-primary/20 rounded-lg transition-colors shadow-lg"
+                        className="p-2 bg-zinc-800 text-primary hover:bg-primary/20 rounded-lg transition-colors shadow-lg"
                         title="Edit in Builder"
                       >
                         <span className="material-symbols-outlined text-xl">edit_note</span>
@@ -225,7 +225,7 @@ export const FlowsPage = ({ onEditInBuilder }: FlowsPageProps) => {
                     {flow.status === 'DRAFT' && (
                       <button
                         onClick={() => handlePublish(flow.id)}
-                        className="p-2 bg-white dark:bg-zinc-800 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors shadow-lg"
+                        className="p-2 bg-zinc-800 text-green-600 hover:bg-green-900/20 rounded-lg transition-colors shadow-lg"
                         title="Publish Flow"
                       >
                         <span className="material-symbols-outlined text-xl">publish</span>
@@ -234,7 +234,7 @@ export const FlowsPage = ({ onEditInBuilder }: FlowsPageProps) => {
                     {flow.previewUrl && (
                       <button
                         onClick={() => handlePreview(flow.id)}
-                        className="p-2 bg-white dark:bg-zinc-800 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors shadow-lg"
+                        className="p-2 bg-zinc-800 text-blue-600 hover:bg-blue-900/20 rounded-lg transition-colors shadow-lg"
                         title="Preview Flow"
                       >
                         <span className="material-symbols-outlined text-xl">visibility</span>
@@ -242,7 +242,7 @@ export const FlowsPage = ({ onEditInBuilder }: FlowsPageProps) => {
                     )}
                     <button
                       onClick={() => handleDelete(flow.id)}
-                      className="p-2 bg-white dark:bg-zinc-800 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors shadow-lg"
+                      className="p-2 bg-zinc-800 text-red-600 hover:bg-red-900/20 rounded-lg transition-colors shadow-lg"
                       title="Delete"
                     >
                       <span className="material-symbols-outlined text-xl">delete</span>
@@ -252,9 +252,9 @@ export const FlowsPage = ({ onEditInBuilder }: FlowsPageProps) => {
 
                 {/* Flow Info */}
                 <div className="p-6">
-                  <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-2 truncate">{flow.name}</h3>
+                  <h3 className="text-xl font-bold text-white mb-2 truncate">{flow.name}</h3>
                   {flow.description && (
-                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3 line-clamp-2">
+                    <p className="text-sm text-zinc-400 mb-3 line-clamp-2">
                       {flow.description}
                     </p>
                   )}
@@ -263,7 +263,7 @@ export const FlowsPage = ({ onEditInBuilder }: FlowsPageProps) => {
                     {flow.categories.map((cat) => (
                       <span
                         key={cat}
-                        className="px-2 py-1 text-xs bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded"
+                        className="px-2 py-1 text-xs bg-blue-900/30 text-blue-400 rounded"
                       >
                         {cat.replace(/_/g, ' ')}
                       </span>
@@ -435,12 +435,12 @@ const CreateFlowModal = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-surface-dark rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-auto shadow-2xl">
-        <div className="sticky top-0 bg-white dark:bg-surface-dark border-b border-zinc-200 dark:border-zinc-800 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Create WhatsApp Flow</h2>
+      <div className="bg-surface rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-auto shadow-2xl">
+        <div className="sticky top-0 bg-surface border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-white">Create WhatsApp Flow</h2>
           <button
             onClick={onClose}
-            className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+            className="text-zinc-400 hover:text-zinc-300 transition-colors"
           >
             <span className="material-symbols-outlined">close</span>
           </button>
@@ -449,7 +449,7 @@ const CreateFlowModal = ({
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Name */}
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+            <label htmlFor="name" className="block text-sm font-medium text-zinc-300 mb-1">
               Name <span className="text-red-500">*</span>
             </label>
             <input
@@ -457,8 +457,8 @@ const CreateFlowModal = ({
               id="name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary ${
-                errors.name ? 'border-red-500' : 'border-zinc-300 dark:border-zinc-700'
+              className={`w-full px-3 py-2 border rounded-lg bg-zinc-900 text-white focus:outline-none focus:ring-2 focus:ring-primary ${
+                errors.name ? 'border-red-500' : 'border-zinc-700'
               }`}
               placeholder="Enter flow name"
             />
@@ -469,7 +469,7 @@ const CreateFlowModal = ({
           <div>
             <label
               htmlFor="description"
-              className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1"
+              className="block text-sm font-medium text-zinc-300 mb-1"
             >
               Description
             </label>
@@ -478,14 +478,14 @@ const CreateFlowModal = ({
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
-              className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2 border border-zinc-700 rounded-lg bg-zinc-900 text-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Enter flow description"
             />
           </div>
 
           {/* Categories */}
           <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+            <label className="block text-sm font-medium text-zinc-300 mb-2">
               Categories <span className="text-red-500">*</span>
             </label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -498,9 +498,9 @@ const CreateFlowModal = ({
                     type="checkbox"
                     checked={formData.categories.includes(category)}
                     onChange={() => handleCategoryToggle(category)}
-                    className="w-4 h-4 text-primary border-zinc-300 dark:border-zinc-700 rounded focus:ring-primary"
+                    className="w-4 h-4 text-primary border-zinc-700 rounded focus:ring-primary"
                   />
-                  <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                  <span className="text-sm text-zinc-300">
                     {category.replace(/_/g, ' ')}
                   </span>
                 </label>
@@ -515,7 +515,7 @@ const CreateFlowModal = ({
           <div>
             <label
               htmlFor="endpointUri"
-              className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1"
+              className="block text-sm font-medium text-zinc-300 mb-1"
             >
               Endpoint URI
             </label>
@@ -524,10 +524,10 @@ const CreateFlowModal = ({
               id="endpointUri"
               value={formData.endpointUri}
               onChange={(e) => setFormData({ ...formData, endpointUri: e.target.value })}
-              className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full px-3 py-2 border border-zinc-700 rounded-lg bg-zinc-900 text-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="https://your-webhook-endpoint.com"
             />
-            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="mt-1 text-xs text-zinc-400">
               Optional webhook endpoint URL for handling Flow responses
             </p>
           </div>
@@ -536,7 +536,7 @@ const CreateFlowModal = ({
           <div>
             <label
               htmlFor="flowJson"
-              className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1"
+              className="block text-sm font-medium text-zinc-300 mb-1"
             >
               Flow JSON <span className="text-red-500">*</span>
             </label>
@@ -545,13 +545,13 @@ const CreateFlowModal = ({
               value={formData.flowJson}
               onChange={(e) => setFormData({ ...formData, flowJson: e.target.value })}
               rows={15}
-              className={`w-full px-3 py-2 border rounded-lg font-mono text-sm bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary ${
-                errors.flowJson ? 'border-red-500' : 'border-zinc-300 dark:border-zinc-700'
+              className={`w-full px-3 py-2 border rounded-lg font-mono text-sm bg-zinc-900 text-white focus:outline-none focus:ring-2 focus:ring-primary ${
+                errors.flowJson ? 'border-red-500' : 'border-zinc-700'
               }`}
               placeholder="Enter Flow JSON structure"
             />
             {errors.flowJson && <p className="mt-1 text-sm text-red-600">{errors.flowJson}</p>}
-            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="mt-1 text-xs text-zinc-400">
               Define your Flow structure in JSON format (WhatsApp Flow JSON 3.0)
             </p>
           </div>
@@ -565,12 +565,12 @@ const CreateFlowModal = ({
           )}
 
           {/* Actions */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+          <div className="flex justify-end gap-3 pt-4 border-t border-zinc-800">
             <button
               type="button"
               onClick={onClose}
               disabled={submitting}
-              className="px-4 py-2 text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-zinc-300 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
@@ -606,23 +606,23 @@ const FlowDetailsModal = ({
 }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-surface-dark rounded-2xl p-6 max-w-3xl w-full max-h-[80vh] overflow-auto shadow-2xl">
+      <div className="bg-surface rounded-2xl p-6 max-w-3xl w-full max-h-[80vh] overflow-auto shadow-2xl">
         <div className="flex items-start justify-between mb-4">
-          <h2 className="text-xl font-bold text-zinc-900 dark:text-white">{flow.name}</h2>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">
+          <h2 className="text-xl font-bold text-white">{flow.name}</h2>
+          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-300 transition-colors">
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
 
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Status</label>
+            <label className="text-sm font-medium text-zinc-300">Status</label>
             <div className="mt-1">
               <span className={`px-3 py-1 text-xs font-bold rounded-full inline-block ${
-                flow.status === 'PUBLISHED' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
-                flow.status === 'DRAFT' ? 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400' :
-                flow.status === 'DEPRECATED' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
-                'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                flow.status === 'PUBLISHED' ? 'bg-green-900/30 text-green-400' :
+                flow.status === 'DRAFT' ? 'bg-gray-900/30 text-gray-400' :
+                flow.status === 'DEPRECATED' ? 'bg-red-900/30 text-red-400' :
+                'bg-yellow-900/30 text-yellow-400'
               }`}>
                 {flow.status}
               </span>
@@ -631,18 +631,18 @@ const FlowDetailsModal = ({
 
           {flow.description && (
             <div>
-              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Description</label>
-              <div className="mt-1 text-zinc-600 dark:text-zinc-400">{flow.description}</div>
+              <label className="text-sm font-medium text-zinc-300">Description</label>
+              <div className="mt-1 text-zinc-400">{flow.description}</div>
             </div>
           )}
 
           <div>
-            <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Categories</label>
+            <label className="text-sm font-medium text-zinc-300">Categories</label>
             <div className="mt-1 flex flex-wrap gap-2">
               {flow.categories.map((cat) => (
                 <span
                   key={cat}
-                  className="px-2 py-1 text-xs bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded"
+                  className="px-2 py-1 text-xs bg-blue-900/30 text-blue-400 rounded"
                 >
                   {cat.replace(/_/g, ' ')}
                 </span>
@@ -652,10 +652,10 @@ const FlowDetailsModal = ({
 
           {flow.whatsappFlowId && (
             <div>
-              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <label className="text-sm font-medium text-zinc-300">
                 WhatsApp Flow ID
               </label>
-              <div className="mt-1 font-mono text-sm text-zinc-600 dark:text-zinc-400">
+              <div className="mt-1 font-mono text-sm text-zinc-400">
                 {flow.whatsappFlowId}
               </div>
             </div>
@@ -663,16 +663,16 @@ const FlowDetailsModal = ({
 
           {flow.endpointUri && (
             <div>
-              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Endpoint URI</label>
-              <div className="mt-1 font-mono text-sm text-zinc-600 dark:text-zinc-400">
+              <label className="text-sm font-medium text-zinc-300">Endpoint URI</label>
+              <div className="mt-1 font-mono text-sm text-zinc-400">
                 {flow.endpointUri}
               </div>
             </div>
           )}
 
           <div>
-            <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Flow JSON</label>
-            <pre className="mt-1 p-3 bg-zinc-50 dark:bg-zinc-900 rounded text-xs overflow-auto max-h-96 text-zinc-900 dark:text-zinc-100">
+            <label className="text-sm font-medium text-zinc-300">Flow JSON</label>
+            <pre className="mt-1 p-3 bg-zinc-900 rounded text-xs overflow-auto max-h-96 text-zinc-100">
               {JSON.stringify(flow.flowJson, null, 2)}
             </pre>
           </div>

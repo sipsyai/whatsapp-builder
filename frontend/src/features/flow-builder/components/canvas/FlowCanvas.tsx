@@ -239,7 +239,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
         minZoom={0.1}
         maxZoom={2}
         proOptions={proOptions}
-        className="bg-zinc-50 dark:bg-[#0a160e]"
+        className="bg-[#0a160e]"
         deleteKeyCode={['Backspace', 'Delete']}
         multiSelectionKeyCode={['Control', 'Meta']}
         selectionKeyCode={['Shift']}
@@ -250,13 +250,13 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
           gap={20}
           size={1}
           variant={BackgroundVariant.Dots}
-          className="bg-zinc-50 dark:bg-[#0a160e]"
+          className="bg-[#0a160e]"
         />
 
         {/* Controls for zoom and fit view */}
         <Controls
           showInteractive={false}
-          className="bg-white dark:bg-[#193322] border border-zinc-200 dark:border-white/10 rounded-lg shadow-lg"
+          className="bg-[#193322] border border-white/10 rounded-lg shadow-lg"
         />
 
         {/* MiniMap in bottom right */}
@@ -265,7 +265,7 @@ export const FlowCanvas: React.FC<FlowCanvasProps> = ({
           nodeStrokeWidth={3}
           zoomable
           pannable
-          className="bg-white dark:bg-[#193322] border border-zinc-200 dark:border-white/10 rounded-lg shadow-lg"
+          className="bg-[#193322] border border-white/10 rounded-lg shadow-lg"
           style={{
             backgroundColor: 'transparent',
           }}

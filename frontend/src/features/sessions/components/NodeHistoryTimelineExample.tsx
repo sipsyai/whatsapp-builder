@@ -76,7 +76,7 @@ export const SessionDetailView = () => {
             <div className="flex-1">
                 {/* Your session content goes here */}
                 <div className="p-6">
-                    <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mb-4">
+                    <h1 className="text-2xl font-bold text-white mb-4">
                         Session Details
                     </h1>
                     {/* Session messages, etc. */}
@@ -84,7 +84,7 @@ export const SessionDetailView = () => {
             </div>
 
             {/* Timeline sidebar */}
-            <div className="w-96 border-l border-zinc-200 dark:border-[#23482f]">
+            <div className="w-96 border-l border-border-[#23482f]">
                 <NodeHistoryTimeline
                     nodeHistory={nodeHistory}
                     flowData={flowData}

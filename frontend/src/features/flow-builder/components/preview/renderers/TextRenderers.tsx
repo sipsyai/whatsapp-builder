@@ -30,7 +30,7 @@ export const PreviewTextHeading: React.FC<PreviewTextHeadingProps> = ({ componen
   if (!isVisible || component.visible === false) return null;
 
   return (
-    <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
+    <h1 className="text-xl font-bold text-gray-900 text-white mb-3">
       {component.text}
     </h1>
   );
@@ -49,7 +49,7 @@ export const PreviewTextSubheading: React.FC<PreviewTextSubheadingProps> = ({ co
   if (!isVisible || component.visible === false) return null;
 
   return (
-    <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-2">
+    <h2 className="text-base font-semibold text-gray-800 text-gray-200 mb-2">
       {component.text}
     </h2>
   );
@@ -71,7 +71,7 @@ export const PreviewTextBody: React.FC<PreviewTextBodyProps> = ({ component, vis
   const fontWeight = component['font-weight'] || 'normal';
   const strikethrough = component.strikethrough === true;
 
-  let className = 'text-sm text-gray-700 dark:text-gray-300 mb-2 ';
+  let className = 'text-sm text-gray-700 text-gray-300 mb-2 ';
 
   // Apply font weight
   if (fontWeight === 'bold') {
@@ -105,7 +105,7 @@ export const PreviewTextCaption: React.FC<PreviewTextCaptionProps> = ({ componen
   const fontWeight = component['font-weight'] || 'normal';
   const strikethrough = component.strikethrough === true;
 
-  let className = 'text-xs text-gray-500 dark:text-gray-400 mb-1 ';
+  let className = 'text-xs text-gray-500 text-gray-400 mb-1 ';
 
   if (fontWeight === 'bold') {
     className += 'font-bold ';

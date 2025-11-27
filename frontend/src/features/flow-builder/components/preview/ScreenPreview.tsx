@@ -30,9 +30,9 @@ export function ScreenPreview({
   const bodyComponents = screen.components.filter((c) => c.type !== 'Footer');
 
   return (
-    <div className="flex flex-col h-full bg-zinc-50 dark:bg-[#0d1912]">
+    <div className="flex flex-col h-full bg-[#0d1912]">
       {/* Screen Header */}
-      <div className="flex-shrink-0 bg-[#00a884] dark:bg-[#00a884] text-white">
+      <div className="flex-shrink-0 bg-[#00a884] bg-[#00a884] text-white">
         <div className="flex items-center gap-3 px-4 py-3">
           {/* Back Button */}
           <button
@@ -87,7 +87,7 @@ export function ScreenPreview({
 
       {/* Screen Footer - Fixed at Bottom */}
       {footerComponent && (
-        <div className="flex-shrink-0 border-t border-zinc-200 dark:border-zinc-700 bg-white dark:bg-[#112217]">
+        <div className="flex-shrink-0 border-t border-zinc-700 bg-[#112217]">
           <ComponentRenderer
             component={footerComponent}
             formData={formData}
@@ -130,7 +130,7 @@ function ComponentRenderer({
   if (!RendererComponent) {
     // Fallback for components without renderers
     return (
-      <div className="p-3 bg-zinc-100 dark:bg-zinc-800 rounded-lg text-sm text-zinc-600 dark:text-zinc-400">
+      <div className="p-3 bg-zinc-800 rounded-lg text-sm text-zinc-400">
         {component.type} (Preview not implemented)
       </div>
     );

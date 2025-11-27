@@ -33,11 +33,11 @@ const CharacterCounter = ({ current, max, className = "" }: CharacterCounterProp
   const remaining = max - current;
   const percentage = (current / max) * 100;
 
-  let colorClass = "text-gray-500 dark:text-gray-400";
+  let colorClass = "text-gray-400";
   if (percentage >= 90) {
-    colorClass = "text-red-500 dark:text-red-400";
+    colorClass = "text-red-400";
   } else if (percentage >= 75) {
-    colorClass = "text-amber-500 dark:text-amber-400";
+    colorClass = "text-amber-400";
   }
 
   return (
@@ -72,20 +72,20 @@ const ConfigModalWrapper = ({
 }) => {
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-sm fade-in">
-      <div className="w-full max-w-2xl h-full bg-white dark:bg-[#102216] shadow-2xl overflow-y-auto flex flex-col border-l border-zinc-200 dark:border-white/10">
+      <div className="w-full max-w-2xl h-full bg-[#102216] shadow-2xl overflow-y-auto flex flex-col border-l border-white/10">
         <div className="p-8 flex-1">
           <header className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold dark:text-white">{title}</h1>
-            <button onClick={onClose} className="hover:bg-zinc-100 dark:hover:bg-white/5 p-2 rounded-lg transition-colors">
-              <span className="material-symbols-outlined dark:text-white">close</span>
+            <h1 className="text-2xl font-bold text-white">{title}</h1>
+            <button onClick={onClose} className="hover:bg-white/5 p-2 rounded-lg transition-colors">
+              <span className="material-symbols-outlined text-white">close</span>
             </button>
           </header>
           {children}
         </div>
-        <div className="p-4 border-t border-gray-200 dark:border-white/10 flex justify-end gap-3">
+        <div className="p-4 border-t border-white/10 flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-white/5 dark:text-white transition-colors"
+            className="px-4 py-2 rounded-lg hover:bg-white/5 text-white transition-colors"
           >
             Cancel
           </button>
@@ -142,10 +142,10 @@ export const ConfigTextHeading = ({ onClose, onSave, initialConfig }: ConfigText
       <div className="space-y-6">
         {/* Text Input */}
         <label className="block">
-          <span className="text-sm font-medium dark:text-white">Text *</span>
+          <span className="text-sm font-medium text-white">Text *</span>
           <input
             type="text"
-            className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+            className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Enter heading text..."
@@ -163,16 +163,16 @@ export const ConfigTextHeading = ({ onClose, onSave, initialConfig }: ConfigText
             className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
           />
           <div>
-            <span className="text-sm font-medium dark:text-white">Visible</span>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <span className="text-sm font-medium text-white">Visible</span>
+            <p className="text-xs text-gray-400">
               Show this component in the flow
             </p>
           </div>
         </label>
 
         {/* Help Text */}
-        <div className="text-xs text-gray-500 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-          <p className="font-medium text-blue-800 dark:text-blue-300 mb-1">Text Heading</p>
+        <div className="text-xs text-gray-400 bg-blue-900/20 border border-blue-800 rounded-lg p-3">
+          <p className="font-medium text-blue-300 mb-1">Text Heading</p>
           <p>Display a prominent heading at the top of your screen. Use it for screen titles or important announcements.</p>
         </div>
       </div>
@@ -240,10 +240,10 @@ export const ConfigTextInput = ({ onClose, onSave, initialConfig }: ConfigTextIn
       <div className="space-y-6">
         {/* Label */}
         <label className="block">
-          <span className="text-sm font-medium dark:text-white">Label *</span>
+          <span className="text-sm font-medium text-white">Label *</span>
           <input
             type="text"
-            className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+            className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="e.g. Full Name"
@@ -254,24 +254,24 @@ export const ConfigTextInput = ({ onClose, onSave, initialConfig }: ConfigTextIn
 
         {/* Field Name */}
         <label className="block">
-          <span className="text-sm font-medium dark:text-white">Field Name *</span>
+          <span className="text-sm font-medium text-white">Field Name *</span>
           <input
             type="text"
-            className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10 font-mono text-sm"
+            className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10 font-mono text-sm"
             value={name}
             onChange={(e) => setName(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))}
             placeholder="e.g. full_name"
           />
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-xs text-gray-400 mt-1">
             Used to reference this field's value in data. Use lowercase letters, numbers, and underscores only.
           </p>
         </label>
 
         {/* Input Type */}
         <label className="block">
-          <span className="text-sm font-medium dark:text-white">Input Type</span>
+          <span className="text-sm font-medium text-white">Input Type</span>
           <select
-            className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+            className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
             value={inputType}
             onChange={(e) => setInputType(e.target.value as TextInput["input-type"])}
           >
@@ -287,10 +287,10 @@ export const ConfigTextInput = ({ onClose, onSave, initialConfig }: ConfigTextIn
         {/* Character Limits */}
         <div className="grid grid-cols-2 gap-4">
           <label className="block">
-            <span className="text-sm font-medium dark:text-white">Min Characters</span>
+            <span className="text-sm font-medium text-white">Min Characters</span>
             <input
               type="number"
-              className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+              className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
               value={minChars}
               onChange={(e) => setMinChars(e.target.value)}
               placeholder="0"
@@ -299,10 +299,10 @@ export const ConfigTextInput = ({ onClose, onSave, initialConfig }: ConfigTextIn
           </label>
 
           <label className="block">
-            <span className="text-sm font-medium dark:text-white">Max Characters</span>
+            <span className="text-sm font-medium text-white">Max Characters</span>
             <input
               type="number"
-              className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+              className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
               value={maxChars}
               onChange={(e) => setMaxChars(e.target.value)}
               placeholder="80"
@@ -313,10 +313,10 @@ export const ConfigTextInput = ({ onClose, onSave, initialConfig }: ConfigTextIn
 
         {/* Helper Text */}
         <label className="block">
-          <span className="text-sm font-medium dark:text-white">Helper Text (Optional)</span>
+          <span className="text-sm font-medium text-white">Helper Text (Optional)</span>
           <input
             type="text"
-            className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+            className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
             value={helperText}
             onChange={(e) => setHelperText(e.target.value)}
             placeholder="e.g. Enter your full legal name"
@@ -334,8 +334,8 @@ export const ConfigTextInput = ({ onClose, onSave, initialConfig }: ConfigTextIn
             className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
           />
           <div>
-            <span className="text-sm font-medium dark:text-white">Required</span>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <span className="text-sm font-medium text-white">Required</span>
+            <p className="text-xs text-gray-400">
               User must fill this field before proceeding
             </p>
           </div>
@@ -417,10 +417,10 @@ export const ConfigDropdown = ({ onClose, onSave, initialConfig }: ConfigDropdow
       <div className="space-y-6">
         {/* Label */}
         <label className="block">
-          <span className="text-sm font-medium dark:text-white">Label *</span>
+          <span className="text-sm font-medium text-white">Label *</span>
           <input
             type="text"
-            className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+            className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="e.g. Select Country"
@@ -430,9 +430,9 @@ export const ConfigDropdown = ({ onClose, onSave, initialConfig }: ConfigDropdow
         </label>
 
         {/* Data Source Editor */}
-        <div className="bg-zinc-50 dark:bg-white/5 p-4 rounded-lg border border-zinc-200 dark:border-white/10">
+        <div className="bg-white/5 p-4 rounded-lg border border-white/10">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-bold dark:text-white">Options</span>
+            <span className="text-sm font-bold text-white">Options</span>
             <button
               onClick={addOption}
               className="text-xs text-primary hover:underline flex items-center gap-1"
@@ -446,12 +446,12 @@ export const ConfigDropdown = ({ onClose, onSave, initialConfig }: ConfigDropdow
             {dataSource.map((option, index) => (
               <div
                 key={option.id}
-                className="bg-white dark:bg-black/20 p-3 rounded-lg border dark:border-white/5"
+                className="bg-black/20 p-3 rounded-lg border border-white/5"
               >
                 <div className="flex items-start gap-2 mb-2">
                   <input
                     type="text"
-                    className="flex-1 p-2 rounded border bg-white dark:bg-black/20 dark:text-white dark:border-white/10 text-sm"
+                    className="flex-1 p-2 rounded border bg-black/20 text-white border-white/10 text-sm"
                     value={option.title}
                     onChange={(e) => updateOption(index, "title", e.target.value)}
                     placeholder="Option title"
@@ -467,7 +467,7 @@ export const ConfigDropdown = ({ onClose, onSave, initialConfig }: ConfigDropdow
                 </div>
                 <input
                   type="text"
-                  className="w-full p-2 rounded border bg-white dark:bg-black/20 dark:text-white dark:border-white/10 text-xs"
+                  className="w-full p-2 rounded border bg-black/20 text-white border-white/10 text-xs"
                   value={option.description || ""}
                   onChange={(e) => updateOption(index, "description", e.target.value)}
                   placeholder="Description (optional)"
@@ -487,8 +487,8 @@ export const ConfigDropdown = ({ onClose, onSave, initialConfig }: ConfigDropdow
             className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
           />
           <div>
-            <span className="text-sm font-medium dark:text-white">Required</span>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <span className="text-sm font-medium text-white">Required</span>
+            <p className="text-xs text-gray-400">
               User must select an option before proceeding
             </p>
           </div>
@@ -579,10 +579,10 @@ export const ConfigRadioButtonsGroup = ({
       <div className="space-y-6">
         {/* Label */}
         <label className="block">
-          <span className="text-sm font-medium dark:text-white">Label *</span>
+          <span className="text-sm font-medium text-white">Label *</span>
           <input
             type="text"
-            className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+            className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="e.g. Choose a plan"
@@ -593,14 +593,14 @@ export const ConfigRadioButtonsGroup = ({
 
         {/* Media Size */}
         <div className="block">
-          <span className="text-sm font-medium dark:text-white block mb-2">Media Size</span>
+          <span className="text-sm font-medium text-white block mb-2">Media Size</span>
           <div className="flex gap-3">
             <button
               onClick={() => setMediaSize("regular")}
               className={`flex-1 p-3 rounded-lg border transition-colors ${
                 mediaSize === "regular"
                   ? "bg-primary text-[#112217] border-primary"
-                  : "bg-white dark:bg-black/20 dark:text-white border-zinc-200 dark:border-white/10"
+                  : "bg-black/20 text-white border-white/10"
               }`}
             >
               Regular
@@ -610,7 +610,7 @@ export const ConfigRadioButtonsGroup = ({
               className={`flex-1 p-3 rounded-lg border transition-colors ${
                 mediaSize === "large"
                   ? "bg-primary text-[#112217] border-primary"
-                  : "bg-white dark:bg-black/20 dark:text-white border-zinc-200 dark:border-white/10"
+                  : "bg-black/20 text-white border-white/10"
               }`}
             >
               Large
@@ -619,9 +619,9 @@ export const ConfigRadioButtonsGroup = ({
         </div>
 
         {/* Data Source Editor */}
-        <div className="bg-zinc-50 dark:bg-white/5 p-4 rounded-lg border border-zinc-200 dark:border-white/10">
+        <div className="bg-white/5 p-4 rounded-lg border border-white/10">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-bold dark:text-white">Options</span>
+            <span className="text-sm font-bold text-white">Options</span>
             <button
               onClick={addOption}
               className="text-xs text-primary hover:underline flex items-center gap-1"
@@ -635,12 +635,12 @@ export const ConfigRadioButtonsGroup = ({
             {dataSource.map((option, index) => (
               <div
                 key={option.id}
-                className="bg-white dark:bg-black/20 p-3 rounded-lg border dark:border-white/5"
+                className="bg-black/20 p-3 rounded-lg border border-white/5"
               >
                 <div className="flex items-start gap-2 mb-2">
                   <input
                     type="text"
-                    className="flex-1 p-2 rounded border bg-white dark:bg-black/20 dark:text-white dark:border-white/10 text-sm"
+                    className="flex-1 p-2 rounded border bg-black/20 text-white border-white/10 text-sm"
                     value={option.title}
                     onChange={(e) => updateOption(index, "title", e.target.value)}
                     placeholder="Option title"
@@ -656,7 +656,7 @@ export const ConfigRadioButtonsGroup = ({
                 </div>
                 <input
                   type="text"
-                  className="w-full p-2 rounded border bg-white dark:bg-black/20 dark:text-white dark:border-white/10 text-xs"
+                  className="w-full p-2 rounded border bg-black/20 text-white border-white/10 text-xs"
                   value={option.description || ""}
                   onChange={(e) => updateOption(index, "description", e.target.value)}
                   placeholder="Description (optional)"
@@ -676,8 +676,8 @@ export const ConfigRadioButtonsGroup = ({
             className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
           />
           <div>
-            <span className="text-sm font-medium dark:text-white">Required</span>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <span className="text-sm font-medium text-white">Required</span>
+            <p className="text-xs text-gray-400">
               User must select an option before proceeding
             </p>
           </div>
@@ -786,10 +786,10 @@ export const ConfigChipsSelector = ({
       <div className="space-y-6">
         {/* Label */}
         <label className="block">
-          <span className="text-sm font-medium dark:text-white">Label *</span>
+          <span className="text-sm font-medium text-white">Label *</span>
           <input
             type="text"
-            className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+            className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="e.g. Select your interests"
@@ -800,10 +800,10 @@ export const ConfigChipsSelector = ({
 
         {/* Name */}
         <label className="block">
-          <span className="text-sm font-medium dark:text-white">Name (form field name) *</span>
+          <span className="text-sm font-medium text-white">Name (form field name) *</span>
           <input
             type="text"
-            className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+            className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. interests"
@@ -812,10 +812,10 @@ export const ConfigChipsSelector = ({
 
         {/* Description */}
         <label className="block">
-          <span className="text-sm font-medium dark:text-white">Description</span>
+          <span className="text-sm font-medium text-white">Description</span>
           <input
             type="text"
-            className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+            className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Help text for users"
@@ -829,9 +829,9 @@ export const ConfigChipsSelector = ({
         </label>
 
         {/* Data Source Editor */}
-        <div className="bg-zinc-50 dark:bg-white/5 p-4 rounded-lg border border-zinc-200 dark:border-white/10">
+        <div className="bg-white/5 p-4 rounded-lg border border-white/10">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-bold dark:text-white">Chips Options</span>
+            <span className="text-sm font-bold text-white">Chips Options</span>
             <button
               onClick={addOption}
               className="text-xs text-primary hover:underline flex items-center gap-1"
@@ -845,12 +845,12 @@ export const ConfigChipsSelector = ({
             {dataSource.map((option, index) => (
               <div
                 key={option.id}
-                className="bg-white dark:bg-black/20 p-3 rounded-lg border dark:border-white/5"
+                className="bg-black/20 p-3 rounded-lg border border-white/5"
               >
                 <div className="flex items-start gap-2">
                   <input
                     type="text"
-                    className="flex-1 p-2 rounded border bg-white dark:bg-black/20 dark:text-white dark:border-white/10 text-sm"
+                    className="flex-1 p-2 rounded border bg-black/20 text-white border-white/10 text-sm"
                     value={option.title}
                     onChange={(e) => updateOption(index, "title", e.target.value)}
                     placeholder="Chip label"
@@ -871,11 +871,11 @@ export const ConfigChipsSelector = ({
         {/* Selection Limits */}
         <div className="grid grid-cols-2 gap-4">
           <label className="block">
-            <span className="text-sm font-medium dark:text-white">Min selections</span>
+            <span className="text-sm font-medium text-white">Min selections</span>
             <input
               type="number"
               min="0"
-              className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+              className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
               value={minSelectedItems ?? ""}
               onChange={(e) =>
                 setMinSelectedItems(e.target.value ? parseInt(e.target.value) : undefined)
@@ -884,11 +884,11 @@ export const ConfigChipsSelector = ({
             />
           </label>
           <label className="block">
-            <span className="text-sm font-medium dark:text-white">Max selections</span>
+            <span className="text-sm font-medium text-white">Max selections</span>
             <input
               type="number"
               min="1"
-              className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+              className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
               value={maxSelectedItems ?? ""}
               onChange={(e) =>
                 setMaxSelectedItems(e.target.value ? parseInt(e.target.value) : undefined)
@@ -907,8 +907,8 @@ export const ConfigChipsSelector = ({
             className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
           />
           <div>
-            <span className="text-sm font-medium dark:text-white">Required</span>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <span className="text-sm font-medium text-white">Required</span>
+            <p className="text-xs text-gray-400">
               User must select at least one chip before proceeding
             </p>
           </div>
@@ -1005,10 +1005,10 @@ export const ConfigFooter = ({ onClose, onSave, initialConfig }: ConfigFooterPro
       <div className="space-y-6">
         {/* Button Label */}
         <label className="block">
-          <span className="text-sm font-medium dark:text-white">Button Label *</span>
+          <span className="text-sm font-medium text-white">Button Label *</span>
           <input
             type="text"
-            className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+            className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="e.g. Continue, Submit, Next"
@@ -1020,10 +1020,10 @@ export const ConfigFooter = ({ onClose, onSave, initialConfig }: ConfigFooterPro
         {/* Captions */}
         <div className="space-y-3">
           <label className="block">
-            <span className="text-sm font-medium dark:text-white">Left Caption (Optional)</span>
+            <span className="text-sm font-medium text-white">Left Caption (Optional)</span>
             <input
               type="text"
-              className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+              className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
               value={leftCaption}
               onChange={(e) => setLeftCaption(e.target.value)}
               placeholder="e.g. $99"
@@ -1033,10 +1033,10 @@ export const ConfigFooter = ({ onClose, onSave, initialConfig }: ConfigFooterPro
           </label>
 
           <label className="block">
-            <span className="text-sm font-medium dark:text-white">Center Caption (Optional)</span>
+            <span className="text-sm font-medium text-white">Center Caption (Optional)</span>
             <input
               type="text"
-              className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+              className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
               value={centerCaption}
               onChange={(e) => setCenterCaption(e.target.value)}
               placeholder="e.g. Step 1/3"
@@ -1046,10 +1046,10 @@ export const ConfigFooter = ({ onClose, onSave, initialConfig }: ConfigFooterPro
           </label>
 
           <label className="block">
-            <span className="text-sm font-medium dark:text-white">Right Caption (Optional)</span>
+            <span className="text-sm font-medium text-white">Right Caption (Optional)</span>
             <input
               type="text"
-              className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+              className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
               value={rightCaption}
               onChange={(e) => setRightCaption(e.target.value)}
               placeholder="e.g. Total: $99"
@@ -1060,8 +1060,8 @@ export const ConfigFooter = ({ onClose, onSave, initialConfig }: ConfigFooterPro
         </div>
 
         {/* Action Configuration */}
-        <div className="bg-zinc-50 dark:bg-white/5 p-4 rounded-lg border border-zinc-200 dark:border-white/10">
-          <span className="text-sm font-bold dark:text-white block mb-3">On Click Action</span>
+        <div className="bg-white/5 p-4 rounded-lg border border-white/10">
+          <span className="text-sm font-bold text-white block mb-3">On Click Action</span>
 
           <div className="space-y-3">
             <div className="flex gap-2">
@@ -1070,7 +1070,7 @@ export const ConfigFooter = ({ onClose, onSave, initialConfig }: ConfigFooterPro
                 className={`flex-1 p-2 rounded text-sm font-medium transition-colors ${
                   actionType === "navigate"
                     ? "bg-primary text-[#112217]"
-                    : "bg-white dark:bg-black/20 dark:text-white border dark:border-white/10"
+                    : "bg-black/20 text-white border border-white/10"
                 }`}
               >
                 Navigate
@@ -1080,7 +1080,7 @@ export const ConfigFooter = ({ onClose, onSave, initialConfig }: ConfigFooterPro
                 className={`flex-1 p-2 rounded text-sm font-medium transition-colors ${
                   actionType === "complete"
                     ? "bg-primary text-[#112217]"
-                    : "bg-white dark:bg-black/20 dark:text-white border dark:border-white/10"
+                    : "bg-black/20 text-white border border-white/10"
                 }`}
               >
                 Complete
@@ -1090,7 +1090,7 @@ export const ConfigFooter = ({ onClose, onSave, initialConfig }: ConfigFooterPro
                 className={`flex-1 p-2 rounded text-sm font-medium transition-colors ${
                   actionType === "data_exchange"
                     ? "bg-primary text-[#112217]"
-                    : "bg-white dark:bg-black/20 dark:text-white border dark:border-white/10"
+                    : "bg-black/20 text-white border border-white/10"
                 }`}
               >
                 Data Exchange
@@ -1099,30 +1099,30 @@ export const ConfigFooter = ({ onClose, onSave, initialConfig }: ConfigFooterPro
 
             {actionType === "navigate" && (
               <label className="block">
-                <span className="text-sm font-medium dark:text-white">Navigate to Screen *</span>
+                <span className="text-sm font-medium text-white">Navigate to Screen *</span>
                 <input
                   type="text"
-                  className="w-full mt-2 p-2 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10 font-mono text-sm"
+                  className="w-full mt-2 p-2 rounded-lg border bg-black/20 text-white border-white/10 font-mono text-sm"
                   value={navigateScreen}
                   onChange={(e) => setNavigateScreen(e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, '_'))}
                   placeholder="e.g. SCREEN_2"
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-xs text-gray-400 mt-1">
                   Screen ID to navigate to. Use uppercase letters, numbers, and underscores.
                 </p>
               </label>
             )}
 
             {actionType === "complete" && (
-              <div className="text-xs text-gray-500 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                <p className="font-medium text-blue-800 dark:text-blue-300 mb-1">Complete Flow</p>
+              <div className="text-xs text-gray-400 bg-blue-900/20 border border-blue-800 rounded-lg p-3">
+                <p className="font-medium text-blue-300 mb-1">Complete Flow</p>
                 <p>Ends the flow and returns collected data to WhatsApp. Use this on the final screen.</p>
               </div>
             )}
 
             {actionType === "data_exchange" && (
-              <div className="text-xs text-gray-500 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                <p className="font-medium text-blue-800 dark:text-blue-300 mb-1">Data Exchange</p>
+              <div className="text-xs text-gray-400 bg-blue-900/20 border border-blue-800 rounded-lg p-3">
+                <p className="font-medium text-blue-300 mb-1">Data Exchange</p>
                 <p>Sends current form data to your backend endpoint for validation or processing before proceeding.</p>
               </div>
             )}
@@ -1130,8 +1130,8 @@ export const ConfigFooter = ({ onClose, onSave, initialConfig }: ConfigFooterPro
         </div>
 
         {/* Help Text */}
-        <div className="text-xs text-gray-500 dark:text-gray-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
-          <p className="font-medium text-amber-800 dark:text-amber-300 mb-1">Footer Button</p>
+        <div className="text-xs text-gray-400 bg-amber-900/20 border border-amber-800 rounded-lg p-3">
+          <p className="font-medium text-amber-300 mb-1">Footer Button</p>
           <p>
             The Footer component creates a sticky button at the bottom of the screen. Only one Footer
             is allowed per screen.
@@ -1168,10 +1168,10 @@ export const ConfigTextSubheading = ({ onClose, onSave, initialConfig }: ConfigT
     <ConfigModalWrapper title="Configure Text Subheading" onClose={onClose} onSave={handleSave} saveDisabled={!text.trim()}>
       <div className="space-y-6">
         <label className="block">
-          <span className="text-sm font-medium dark:text-white">Text *</span>
+          <span className="text-sm font-medium text-white">Text *</span>
           <input
             type="text"
-            className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+            className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Enter subheading text..."
@@ -1181,7 +1181,7 @@ export const ConfigTextSubheading = ({ onClose, onSave, initialConfig }: ConfigT
         </label>
         <label className="flex items-center gap-3 cursor-pointer">
           <input type="checkbox" checked={visible} onChange={(e) => setVisible(e.target.checked)} className="w-4 h-4 rounded" />
-          <span className="text-sm font-medium dark:text-white">Visible</span>
+          <span className="text-sm font-medium text-white">Visible</span>
         </label>
       </div>
     </ConfigModalWrapper>
@@ -1214,9 +1214,9 @@ export const ConfigTextBody = ({ onClose, onSave, initialConfig }: ConfigTextBod
     <ConfigModalWrapper title="Configure Text Body" onClose={onClose} onSave={handleSave} saveDisabled={!text.trim()}>
       <div className="space-y-6">
         <label className="block">
-          <span className="text-sm font-medium dark:text-white">Text *</span>
+          <span className="text-sm font-medium text-white">Text *</span>
           <textarea
-            className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10 min-h-[120px]"
+            className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10 min-h-[120px]"
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Enter body text..."
@@ -1226,7 +1226,7 @@ export const ConfigTextBody = ({ onClose, onSave, initialConfig }: ConfigTextBod
         </label>
         <label className="flex items-center gap-3 cursor-pointer">
           <input type="checkbox" checked={visible} onChange={(e) => setVisible(e.target.checked)} className="w-4 h-4 rounded" />
-          <span className="text-sm font-medium dark:text-white">Visible</span>
+          <span className="text-sm font-medium text-white">Visible</span>
         </label>
       </div>
     </ConfigModalWrapper>
@@ -1259,9 +1259,9 @@ export const ConfigTextCaption = ({ onClose, onSave, initialConfig }: ConfigText
     <ConfigModalWrapper title="Configure Text Caption" onClose={onClose} onSave={handleSave} saveDisabled={!text.trim()}>
       <div className="space-y-6">
         <label className="block">
-          <span className="text-sm font-medium dark:text-white">Text *</span>
+          <span className="text-sm font-medium text-white">Text *</span>
           <textarea
-            className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10 min-h-[80px]"
+            className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10 min-h-[80px]"
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Enter caption text..."
@@ -1271,7 +1271,7 @@ export const ConfigTextCaption = ({ onClose, onSave, initialConfig }: ConfigText
         </label>
         <label className="flex items-center gap-3 cursor-pointer">
           <input type="checkbox" checked={visible} onChange={(e) => setVisible(e.target.checked)} className="w-4 h-4 rounded" />
-          <span className="text-sm font-medium dark:text-white">Visible</span>
+          <span className="text-sm font-medium text-white">Visible</span>
         </label>
       </div>
     </ConfigModalWrapper>
@@ -1315,10 +1315,10 @@ export const ConfigTextArea = ({ onClose, onSave, initialConfig }: ConfigTextAre
     <ConfigModalWrapper title="Configure Text Area" onClose={onClose} onSave={handleSave} saveDisabled={!label.trim() || !name.trim()}>
       <div className="space-y-6">
         <label className="block">
-          <span className="text-sm font-medium dark:text-white">Label *</span>
+          <span className="text-sm font-medium text-white">Label *</span>
           <input
             type="text"
-            className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+            className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="e.g. Description"
@@ -1328,10 +1328,10 @@ export const ConfigTextArea = ({ onClose, onSave, initialConfig }: ConfigTextAre
         </label>
 
         <label className="block">
-          <span className="text-sm font-medium dark:text-white">Field Name *</span>
+          <span className="text-sm font-medium text-white">Field Name *</span>
           <input
             type="text"
-            className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10 font-mono text-sm"
+            className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10 font-mono text-sm"
             value={name}
             onChange={(e) => setName(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))}
             placeholder="e.g. description"
@@ -1339,10 +1339,10 @@ export const ConfigTextArea = ({ onClose, onSave, initialConfig }: ConfigTextAre
         </label>
 
         <label className="block">
-          <span className="text-sm font-medium dark:text-white">Max Length</span>
+          <span className="text-sm font-medium text-white">Max Length</span>
           <input
             type="number"
-            className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+            className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
             value={maxLength}
             onChange={(e) => setMaxLength(e.target.value)}
             placeholder="e.g. 500"
@@ -1350,10 +1350,10 @@ export const ConfigTextArea = ({ onClose, onSave, initialConfig }: ConfigTextAre
         </label>
 
         <label className="block">
-          <span className="text-sm font-medium dark:text-white">Helper Text</span>
+          <span className="text-sm font-medium text-white">Helper Text</span>
           <input
             type="text"
-            className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+            className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
             value={helperText}
             onChange={(e) => setHelperText(e.target.value)}
             placeholder="Optional hint for users"
@@ -1362,7 +1362,7 @@ export const ConfigTextArea = ({ onClose, onSave, initialConfig }: ConfigTextAre
 
         <label className="flex items-center gap-3 cursor-pointer">
           <input type="checkbox" checked={required} onChange={(e) => setRequired(e.target.checked)} className="w-4 h-4 rounded" />
-          <span className="text-sm font-medium dark:text-white">Required</span>
+          <span className="text-sm font-medium text-white">Required</span>
         </label>
       </div>
     </ConfigModalWrapper>
@@ -1417,10 +1417,10 @@ export const ConfigCheckboxGroup = ({ onClose, onSave, initialConfig }: ConfigCh
     <ConfigModalWrapper title="Configure Checkbox Group" onClose={onClose} onSave={handleSave} saveDisabled={!label.trim() || !name.trim()}>
       <div className="space-y-6">
         <label className="block">
-          <span className="text-sm font-medium dark:text-white">Label *</span>
+          <span className="text-sm font-medium text-white">Label *</span>
           <input
             type="text"
-            className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+            className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="e.g. Select options"
@@ -1428,10 +1428,10 @@ export const ConfigCheckboxGroup = ({ onClose, onSave, initialConfig }: ConfigCh
         </label>
 
         <label className="block">
-          <span className="text-sm font-medium dark:text-white">Field Name *</span>
+          <span className="text-sm font-medium text-white">Field Name *</span>
           <input
             type="text"
-            className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10 font-mono text-sm"
+            className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10 font-mono text-sm"
             value={name}
             onChange={(e) => setName(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))}
             placeholder="e.g. selected_options"
@@ -1439,17 +1439,17 @@ export const ConfigCheckboxGroup = ({ onClose, onSave, initialConfig }: ConfigCh
         </label>
 
         <div>
-          <span className="text-sm font-medium dark:text-white">Options</span>
+          <span className="text-sm font-medium text-white">Options</span>
           <div className="space-y-2 mt-2">
             {dataSource.map((option) => (
               <div key={option.id} className="flex gap-2">
                 <input
                   type="text"
-                  className="flex-1 p-2 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+                  className="flex-1 p-2 rounded-lg border bg-black/20 text-white border-white/10"
                   value={option.title}
                   onChange={(e) => updateOption(option.id, e.target.value)}
                 />
-                <button onClick={() => removeOption(option.id)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded">
+                <button onClick={() => removeOption(option.id)} className="p-2 text-red-500 hover:bg-red-900/20 rounded">
                   <span className="material-symbols-outlined text-sm">delete</span>
                 </button>
               </div>
@@ -1460,7 +1460,7 @@ export const ConfigCheckboxGroup = ({ onClose, onSave, initialConfig }: ConfigCh
 
         <label className="flex items-center gap-3 cursor-pointer">
           <input type="checkbox" checked={required} onChange={(e) => setRequired(e.target.checked)} className="w-4 h-4 rounded" />
-          <span className="text-sm font-medium dark:text-white">Required</span>
+          <span className="text-sm font-medium text-white">Required</span>
         </label>
       </div>
     </ConfigModalWrapper>
@@ -1492,9 +1492,9 @@ export const ConfigOptIn = ({ onClose, onSave, initialConfig }: ConfigOptInProps
     <ConfigModalWrapper title="Configure Opt-In" onClose={onClose} onSave={handleSave} saveDisabled={!label.trim() || !name.trim()}>
       <div className="space-y-6">
         <label className="block">
-          <span className="text-sm font-medium dark:text-white">Label *</span>
+          <span className="text-sm font-medium text-white">Label *</span>
           <textarea
-            className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10 min-h-[80px]"
+            className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10 min-h-[80px]"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="e.g. I agree to the terms and conditions"
@@ -1502,10 +1502,10 @@ export const ConfigOptIn = ({ onClose, onSave, initialConfig }: ConfigOptInProps
         </label>
 
         <label className="block">
-          <span className="text-sm font-medium dark:text-white">Field Name *</span>
+          <span className="text-sm font-medium text-white">Field Name *</span>
           <input
             type="text"
-            className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10 font-mono text-sm"
+            className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10 font-mono text-sm"
             value={name}
             onChange={(e) => setName(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))}
             placeholder="e.g. terms_accepted"
@@ -1514,11 +1514,11 @@ export const ConfigOptIn = ({ onClose, onSave, initialConfig }: ConfigOptInProps
 
         <label className="flex items-center gap-3 cursor-pointer">
           <input type="checkbox" checked={required} onChange={(e) => setRequired(e.target.checked)} className="w-4 h-4 rounded" />
-          <span className="text-sm font-medium dark:text-white">Required</span>
+          <span className="text-sm font-medium text-white">Required</span>
         </label>
 
-        <div className="text-xs text-gray-500 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-          <p className="font-medium text-blue-800 dark:text-blue-300 mb-1">Opt-In Component</p>
+        <div className="text-xs text-gray-400 bg-blue-900/20 border border-blue-800 rounded-lg p-3">
+          <p className="font-medium text-blue-300 mb-1">Opt-In Component</p>
           <p>Use for consent checkboxes, terms acceptance, or marketing opt-ins.</p>
         </div>
       </div>
@@ -1553,10 +1553,10 @@ export const ConfigDatePicker = ({ onClose, onSave, initialConfig }: ConfigDateP
     <ConfigModalWrapper title="Configure Date Picker" onClose={onClose} onSave={handleSave} saveDisabled={!label.trim() || !name.trim()}>
       <div className="space-y-6">
         <label className="block">
-          <span className="text-sm font-medium dark:text-white">Label *</span>
+          <span className="text-sm font-medium text-white">Label *</span>
           <input
             type="text"
-            className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+            className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="e.g. Date of Birth"
@@ -1564,10 +1564,10 @@ export const ConfigDatePicker = ({ onClose, onSave, initialConfig }: ConfigDateP
         </label>
 
         <label className="block">
-          <span className="text-sm font-medium dark:text-white">Field Name *</span>
+          <span className="text-sm font-medium text-white">Field Name *</span>
           <input
             type="text"
-            className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10 font-mono text-sm"
+            className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10 font-mono text-sm"
             value={name}
             onChange={(e) => setName(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))}
             placeholder="e.g. date_of_birth"
@@ -1575,10 +1575,10 @@ export const ConfigDatePicker = ({ onClose, onSave, initialConfig }: ConfigDateP
         </label>
 
         <label className="block">
-          <span className="text-sm font-medium dark:text-white">Helper Text</span>
+          <span className="text-sm font-medium text-white">Helper Text</span>
           <input
             type="text"
-            className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+            className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
             value={helperText}
             onChange={(e) => setHelperText(e.target.value)}
             placeholder="Optional hint for users"
@@ -1620,10 +1620,10 @@ export const ConfigImage = ({ onClose, onSave, initialConfig }: ConfigImageProps
     <ConfigModalWrapper title="Configure Image" onClose={onClose} onSave={handleSave} saveDisabled={!src.trim()}>
       <div className="space-y-6">
         <label className="block">
-          <span className="text-sm font-medium dark:text-white">Image URL *</span>
+          <span className="text-sm font-medium text-white">Image URL *</span>
           <input
             type="url"
-            className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+            className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
             value={src}
             onChange={(e) => setSrc(e.target.value)}
             placeholder="https://example.com/image.png"
@@ -1632,20 +1632,20 @@ export const ConfigImage = ({ onClose, onSave, initialConfig }: ConfigImageProps
 
         <div className="grid grid-cols-2 gap-4">
           <label className="block">
-            <span className="text-sm font-medium dark:text-white">Width (px)</span>
+            <span className="text-sm font-medium text-white">Width (px)</span>
             <input
               type="number"
-              className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+              className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
               value={width}
               onChange={(e) => setWidth(e.target.value)}
               placeholder="Auto"
             />
           </label>
           <label className="block">
-            <span className="text-sm font-medium dark:text-white">Height (px)</span>
+            <span className="text-sm font-medium text-white">Height (px)</span>
             <input
               type="number"
-              className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+              className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
               value={height}
               onChange={(e) => setHeight(e.target.value)}
               placeholder="Auto"
@@ -1654,11 +1654,11 @@ export const ConfigImage = ({ onClose, onSave, initialConfig }: ConfigImageProps
         </div>
 
         <label className="block">
-          <span className="text-sm font-medium dark:text-white">Aspect Ratio</span>
+          <span className="text-sm font-medium text-white">Aspect Ratio</span>
           <input
             type="number"
             step="0.1"
-            className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+            className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
             value={aspectRatio}
             onChange={(e) => setAspectRatio(e.target.value)}
             placeholder="e.g. 1.5 (width/height)"
@@ -1666,9 +1666,9 @@ export const ConfigImage = ({ onClose, onSave, initialConfig }: ConfigImageProps
         </label>
 
         <label className="block">
-          <span className="text-sm font-medium dark:text-white">Scale Type</span>
+          <span className="text-sm font-medium text-white">Scale Type</span>
           <select
-            className="w-full mt-2 p-3 rounded-lg border bg-white dark:bg-black/20 dark:text-white dark:border-white/10"
+            className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
             value={scaleType}
             onChange={(e) => setScaleType(e.target.value as Image["scale-type"])}
           >
@@ -1741,8 +1741,8 @@ export const ComponentConfigModal = ({ component, onSave, onClose }: ComponentCo
     default:
       return (
         <ConfigModalWrapper title="Unsupported Component" onClose={onClose} onSave={onClose}>
-          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-            <p className="text-amber-800 dark:text-amber-300">
+          <div className="bg-amber-900/20 border border-amber-800 rounded-lg p-4">
+            <p className="text-amber-300">
               Configuration modal for {component.type} is not yet implemented.
             </p>
           </div>

@@ -435,23 +435,23 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
     return (
         <div className="flex h-screen w-full flex-col">
             {/* Header */}
-            <header className="flex items-center justify-between border-b border-zinc-200 dark:border-b-[#23482f] px-6 py-3 bg-background-light dark:bg-background-dark z-20">
-                <div className="flex items-center gap-4 text-zinc-900 dark:text-white">
+            <header className="flex items-center justify-between border-b border-b-[#23482f] px-6 py-3 bg-background z-20">
+                <div className="flex items-center gap-4 text-white">
                     <div className="size-6 text-primary">
                         <span className="material-symbols-outlined text-primary">smart_toy</span>
                     </div>
                     <div>
                         <h2 className="text-lg font-bold">ChatBot Builder (React Flow + NestJS)</h2>
-                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                        <p className="text-xs text-zinc-400">
                             {currentFlowId ? `Editing: ${currentFlowName}` : 'New Flow'}
                         </p>
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <button onClick={handleNewFlow} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg flex items-center gap-2 text-sm font-bold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                    <button onClick={handleNewFlow} className="px-4 py-2 bg-gray-700 text-white rounded-lg flex items-center gap-2 text-sm font-bold hover:bg-gray-600 transition-colors">
                         <span className="material-symbols-outlined text-sm">add</span> New Flow
                     </button>
-                    <button onClick={onSwitchToChat} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg flex items-center gap-2 text-sm font-bold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                    <button onClick={onSwitchToChat} className="px-4 py-2 bg-gray-700 text-white rounded-lg flex items-center gap-2 text-sm font-bold hover:bg-gray-600 transition-colors">
                         <span className="material-symbols-outlined text-sm">chat</span> Preview
                     </button>
                     <button
@@ -486,31 +486,31 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
                             {isLayouting ? 'Layouting...' : 'Auto Layout'}
                         </button>
                         {/* Dropdown for layout directions */}
-                        <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#193322] border border-zinc-200 dark:border-white/10 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 min-w-[160px]">
+                        <div className="absolute right-0 top-full mt-1 bg-[#193322] border border-white/10 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 min-w-[160px]">
                             <button
                                 onClick={() => handleAutoLayout('TB')}
-                                className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-white hover:bg-zinc-100 dark:hover:bg-[#23482f] flex items-center gap-2 rounded-t-lg"
+                                className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#23482f] flex items-center gap-2 rounded-t-lg"
                             >
                                 <span className="material-symbols-outlined text-sm">arrow_downward</span>
                                 Top to Bottom
                             </button>
                             <button
                                 onClick={() => handleAutoLayout('LR')}
-                                className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-white hover:bg-zinc-100 dark:hover:bg-[#23482f] flex items-center gap-2"
+                                className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#23482f] flex items-center gap-2"
                             >
                                 <span className="material-symbols-outlined text-sm">arrow_forward</span>
                                 Left to Right
                             </button>
                             <button
                                 onClick={() => handleAutoLayout('BT')}
-                                className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-white hover:bg-zinc-100 dark:hover:bg-[#23482f] flex items-center gap-2"
+                                className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#23482f] flex items-center gap-2"
                             >
                                 <span className="material-symbols-outlined text-sm">arrow_upward</span>
                                 Bottom to Top
                             </button>
                             <button
                                 onClick={() => handleAutoLayout('RL')}
-                                className="w-full px-4 py-2 text-left text-sm text-zinc-700 dark:text-white hover:bg-zinc-100 dark:hover:bg-[#23482f] flex items-center gap-2 rounded-b-lg"
+                                className="w-full px-4 py-2 text-left text-sm text-white hover:bg-[#23482f] flex items-center gap-2 rounded-b-lg"
                             >
                                 <span className="material-symbols-outlined text-sm">arrow_back</span>
                                 Right to Left
@@ -537,27 +537,27 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
                 ) : (
                     <>
                         {/* Sidebar */}
-                        <aside className="w-72 bg-background-light dark:bg-background-dark border-r border-zinc-200 dark:border-[#23482f] p-4 z-10 overflow-y-auto">
+                        <aside className="w-72 bg-background border-r border-[#23482f] p-4 z-10 overflow-y-auto">
                     {/* Flow Info Section */}
-                    <div className="mb-6 pb-4 border-b border-zinc-200 dark:border-zinc-700">
+                    <div className="mb-6 pb-4 border-b border-zinc-700">
                         <h3 className="text-sm font-bold text-gray-500 mb-3 uppercase tracking-wider">Flow Details</h3>
                         <div className="space-y-3">
                             <div>
-                                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Flow Name</label>
+                                <label className="block text-xs font-medium text-gray-400 mb-1">Flow Name</label>
                                 <input
                                     type="text"
                                     value={currentFlowName}
                                     onChange={(e) => setCurrentFlowName(e.target.value)}
-                                    className="w-full px-3 py-2 bg-white dark:bg-[#23482f] border border-zinc-200 dark:border-transparent rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
+                                    className="w-full px-3 py-2 bg-[#23482f] border border-transparent rounded-lg text-sm text-white focus:ring-2 focus:ring-primary focus:border-transparent"
                                     placeholder="Enter flow name..."
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Description (Optional)</label>
+                                <label className="block text-xs font-medium text-gray-400 mb-1">Description (Optional)</label>
                                 <textarea
                                     value={currentFlowDescription}
                                     onChange={(e) => setCurrentFlowDescription(e.target.value)}
-                                    className="w-full px-3 py-2 bg-white dark:bg-[#23482f] border border-zinc-200 dark:border-transparent rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+                                    className="w-full px-3 py-2 bg-[#23482f] border border-transparent rounded-lg text-sm text-white focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
                                     rows={3}
                                     placeholder="Describe what this flow does..."
                                 />
@@ -568,58 +568,58 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
                     <h3 className="text-sm font-bold text-gray-500 mb-4 uppercase tracking-wider">Nodes</h3>
                     <div className="space-y-3">
                         <div className="flex items-center gap-2">
-                            <div className="flex-1 p-3 bg-white dark:bg-[#23482f] rounded-lg cursor-grab border dark:border-transparent shadow-sm flex items-center gap-3" onDragStart={(event) => event.dataTransfer.setData('application/reactflow', 'message')} draggable>
+                            <div className="flex-1 p-3 bg-[#23482f] rounded-lg cursor-grab border border-transparent shadow-sm flex items-center gap-3" onDragStart={(event) => event.dataTransfer.setData('application/reactflow', 'message')} draggable>
                                 <span className="material-symbols-outlined text-blue-500">chat</span>
-                                <span className="dark:text-white font-medium">Message</span>
+                                <span className="text-white font-medium">Message</span>
                             </div>
-                            <button onClick={() => addNode('message')} className="p-3 bg-white dark:bg-[#23482f] rounded-lg border dark:border-transparent shadow-sm hover:bg-gray-50 dark:hover:bg-[#1a3523] text-primary">
+                            <button onClick={() => addNode('message')} className="p-3 bg-[#23482f] rounded-lg border border-transparent shadow-sm hover:bg-[#1a3523] text-primary">
                                 <span className="material-symbols-outlined">add</span>
                             </button>
                         </div>
 
                         <div className="flex items-center gap-2">
-                            <div className="flex-1 p-3 bg-white dark:bg-[#23482f] rounded-lg cursor-grab border dark:border-transparent shadow-sm flex items-center gap-3" onDragStart={(event) => event.dataTransfer.setData('application/reactflow', 'question')} draggable>
+                            <div className="flex-1 p-3 bg-[#23482f] rounded-lg cursor-grab border border-transparent shadow-sm flex items-center gap-3" onDragStart={(event) => event.dataTransfer.setData('application/reactflow', 'question')} draggable>
                                 <span className="material-symbols-outlined text-orange-500">help</span>
-                                <span className="dark:text-white font-medium">Question</span>
+                                <span className="text-white font-medium">Question</span>
                             </div>
-                            <button onClick={() => addNode('question')} className="p-3 bg-white dark:bg-[#23482f] rounded-lg border dark:border-transparent shadow-sm hover:bg-gray-50 dark:hover:bg-[#1a3523] text-primary">
+                            <button onClick={() => addNode('question')} className="p-3 bg-[#23482f] rounded-lg border border-transparent shadow-sm hover:bg-[#1a3523] text-primary">
                                 <span className="material-symbols-outlined">add</span>
                             </button>
                         </div>
 
                         <div className="flex items-center gap-2">
-                            <div className="flex-1 p-3 bg-white dark:bg-[#23482f] rounded-lg cursor-grab border dark:border-transparent shadow-sm flex items-center gap-3" onDragStart={(event) => event.dataTransfer.setData('application/reactflow', 'condition')} draggable>
+                            <div className="flex-1 p-3 bg-[#23482f] rounded-lg cursor-grab border border-transparent shadow-sm flex items-center gap-3" onDragStart={(event) => event.dataTransfer.setData('application/reactflow', 'condition')} draggable>
                                 <span className="material-symbols-outlined text-purple-500">call_split</span>
-                                <span className="dark:text-white font-medium">Condition</span>
+                                <span className="text-white font-medium">Condition</span>
                             </div>
-                            <button onClick={() => addNode('condition')} className="p-3 bg-white dark:bg-[#23482f] rounded-lg border dark:border-transparent shadow-sm hover:bg-gray-50 dark:hover:bg-[#1a3523] text-primary">
+                            <button onClick={() => addNode('condition')} className="p-3 bg-[#23482f] rounded-lg border border-transparent shadow-sm hover:bg-[#1a3523] text-primary">
                                 <span className="material-symbols-outlined">add</span>
                             </button>
                         </div>
 
                         <div className="flex items-center gap-2">
-                            <div className="flex-1 p-3 bg-white dark:bg-[#23482f] rounded-lg cursor-grab border dark:border-transparent shadow-sm flex items-center gap-3" onDragStart={(event) => event.dataTransfer.setData('application/reactflow', 'whatsapp_flow')} draggable>
+                            <div className="flex-1 p-3 bg-[#23482f] rounded-lg cursor-grab border border-transparent shadow-sm flex items-center gap-3" onDragStart={(event) => event.dataTransfer.setData('application/reactflow', 'whatsapp_flow')} draggable>
                                 <span className="material-symbols-outlined text-green-500">check_box</span>
-                                <span className="dark:text-white font-medium">WhatsApp Flow</span>
+                                <span className="text-white font-medium">WhatsApp Flow</span>
                             </div>
-                            <button onClick={() => addNode('whatsapp_flow')} className="p-3 bg-white dark:bg-[#23482f] rounded-lg border dark:border-transparent shadow-sm hover:bg-gray-50 dark:hover:bg-[#1a3523] text-primary">
+                            <button onClick={() => addNode('whatsapp_flow')} className="p-3 bg-[#23482f] rounded-lg border border-transparent shadow-sm hover:bg-[#1a3523] text-primary">
                                 <span className="material-symbols-outlined">add</span>
                             </button>
                         </div>
 
                         <div className="flex items-center gap-2">
-                            <div className="flex-1 p-3 bg-white dark:bg-[#23482f] rounded-lg cursor-grab border dark:border-transparent shadow-sm flex items-center gap-3" onDragStart={(event) => event.dataTransfer.setData('application/reactflow', 'rest_api')} draggable>
+                            <div className="flex-1 p-3 bg-[#23482f] rounded-lg cursor-grab border border-transparent shadow-sm flex items-center gap-3" onDragStart={(event) => event.dataTransfer.setData('application/reactflow', 'rest_api')} draggable>
                                 <span className="material-symbols-outlined text-cyan-500">api</span>
-                                <span className="dark:text-white font-medium">REST API</span>
+                                <span className="text-white font-medium">REST API</span>
                             </div>
-                            <button onClick={() => addNode('rest_api')} className="p-3 bg-white dark:bg-[#23482f] rounded-lg border dark:border-transparent shadow-sm hover:bg-gray-50 dark:hover:bg-[#1a3523] text-primary">
+                            <button onClick={() => addNode('rest_api')} className="p-3 bg-[#23482f] rounded-lg border border-transparent shadow-sm hover:bg-[#1a3523] text-primary">
                                 <span className="material-symbols-outlined">add</span>
                             </button>
                         </div>
                     </div>
 
-                    <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                        <p className="text-xs text-blue-600 dark:text-blue-300">
+                    <div className="mt-8 p-4 bg-blue-900/20 rounded-lg">
+                        <p className="text-xs text-blue-300">
                             <strong>NestJS Integration:</strong>
                             <br />
                             The nodes and edges are sent to `POST /flows`.
@@ -650,7 +650,7 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
                         maxZoom={2}
                         panOnScroll={false}
                         zoomOnDoubleClick={true}
-                        className="bg-zinc-100 dark:bg-[#0a160e]"
+                        className="bg-[#0a160e]"
                     >
                         <Background color="#333" gap={20} />
                         <Controls />
@@ -703,15 +703,15 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
 
             {/* Validation Errors Panel */}
             {showValidationPanel && validationErrors.length > 0 && (
-                <div className="fixed bottom-4 right-4 z-50 w-96 max-h-96 overflow-y-auto bg-white dark:bg-[#193322] border border-zinc-200 dark:border-white/10 rounded-lg shadow-2xl">
-                    <div className="sticky top-0 flex items-center justify-between p-4 bg-white dark:bg-[#193322] border-b border-zinc-200 dark:border-white/10">
-                        <h3 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                <div className="fixed bottom-4 right-4 z-50 w-96 max-h-96 overflow-y-auto bg-[#193322] border border-white/10 rounded-lg shadow-2xl">
+                    <div className="sticky top-0 flex items-center justify-between p-4 bg-[#193322] border-b border-white/10">
+                        <h3 className="text-lg font-bold text-white flex items-center gap-2">
                             <span className="material-symbols-outlined text-yellow-500">warning</span>
                             Validation Issues
                         </h3>
                         <button
                             onClick={() => setShowValidationPanel(false)}
-                            className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                            className="text-zinc-400 hover:text-zinc-200"
                         >
                             <span className="material-symbols-outlined">close</span>
                         </button>
@@ -722,25 +722,25 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
                                 key={index}
                                 className={`p-3 rounded-lg border ${
                                     error.severity === 'error'
-                                        ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
-                                        : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'
+                                        ? 'bg-red-900/20 border-red-800'
+                                        : 'bg-yellow-900/20 border-yellow-800'
                                 }`}
                             >
                                 <div className="flex items-start gap-2">
                                     <span className={`material-symbols-outlined text-sm ${
-                                        error.severity === 'error' ? 'text-red-600 dark:text-red-400' : 'text-yellow-600 dark:text-yellow-400'
+                                        error.severity === 'error' ? 'text-red-400' : 'text-yellow-400'
                                     }`}>
                                         {error.severity === 'error' ? 'error' : 'warning'}
                                     </span>
                                     <div className="flex-1">
                                         <p className={`text-sm font-medium ${
                                             error.severity === 'error'
-                                                ? 'text-red-800 dark:text-red-200'
-                                                : 'text-yellow-800 dark:text-yellow-200'
+                                                ? 'text-red-200'
+                                                : 'text-yellow-200'
                                         }`}>
                                             {error.message}
                                         </p>
-                                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                                        <p className="text-xs text-zinc-400 mt-1">
                                             Node: {error.nodeId === 'flow' ? 'Flow Level' : error.nodeId.slice(0, 8)}
                                         </p>
                                     </div>
@@ -748,13 +748,13 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
                             </div>
                         ))}
                     </div>
-                    <div className="sticky bottom-0 p-4 bg-white dark:bg-[#193322] border-t border-zinc-200 dark:border-white/10 flex justify-between items-center">
-                        <span className="text-sm text-zinc-600 dark:text-zinc-400">
+                    <div className="sticky bottom-0 p-4 bg-[#193322] border-t border-white/10 flex justify-between items-center">
+                        <span className="text-sm text-zinc-400">
                             {validationErrors.filter(e => e.severity === 'error').length} errors, {validationErrors.filter(e => e.severity === 'warning').length} warnings
                         </span>
                         <button
                             onClick={() => setShowValidationPanel(false)}
-                            className="px-4 py-2 bg-zinc-200 dark:bg-zinc-700 text-zinc-800 dark:text-white rounded-lg text-sm font-medium hover:bg-zinc-300 dark:hover:bg-zinc-600"
+                            className="px-4 py-2 bg-zinc-700 text-white rounded-lg text-sm font-medium hover:bg-zinc-600"
                         >
                             Dismiss
                         </button>

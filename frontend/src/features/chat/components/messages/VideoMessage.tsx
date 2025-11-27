@@ -34,7 +34,7 @@ export function VideoMessage({ content }: VideoMessageProps) {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center w-64 h-48 bg-gray-200 dark:bg-gray-700 rounded-lg">
+            <div className="flex items-center justify-center w-64 h-48 bg-gray-700 rounded-lg">
                 <span className="material-symbols-outlined animate-spin text-gray-500">
                     progress_activity
                 </span>
@@ -55,7 +55,7 @@ export function VideoMessage({ content }: VideoMessageProps) {
                     )}
                 </>
             ) : (
-                <div className="flex items-center justify-center w-64 h-48 bg-gray-200 dark:bg-gray-700 rounded-lg">
+                <div className="flex items-center justify-center w-64 h-48 bg-gray-700 rounded-lg">
                     <span className="text-sm text-gray-500">Failed to load video</span>
                 </div>
             )}

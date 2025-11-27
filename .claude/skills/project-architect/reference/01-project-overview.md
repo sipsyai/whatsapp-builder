@@ -14,6 +14,12 @@
 
 **WhatsApp Builder** is a comprehensive chatbot platform that enables visual flow design and automated conversation management for WhatsApp Business API. The platform combines a powerful visual flow builder with real-time conversation handling, providing a complete solution for building, deploying, and managing WhatsApp chatbots.
 
+**Production Instance**: https://whatsapp.sipsy.ai
+- Deployed via Docker with Cloudflare Tunnel
+- Dark mode optimized UI for messaging environments
+- Real-time message synchronization
+- Persistent PostgreSQL database
+
 ### Core Value Proposition
 - **Visual Flow Design**: Drag-and-drop interface using ReactFlow for creating conversation flows
 - **Real-time Communication**: Socket.IO-powered live messaging and status updates
@@ -155,7 +161,13 @@
 **Framework**: React 19.2.x
 - **Language**: TypeScript 5.9.x
 - **Build Tool**: Vite 7.x (using Rolldown)
-- **UI Library**: Custom components with native CSS
+- **Styling**: Tailwind CSS v4
+
+**UI/UX**:
+- **Dark Mode Only**: Exclusive dark mode interface (no light mode)
+- WhatsApp-inspired color scheme
+- Optimized for messaging environments
+- Custom CSS variables for theming
 
 **Flow Builder**: @xyflow/react 12.3.x (ReactFlow)
 - Custom node components

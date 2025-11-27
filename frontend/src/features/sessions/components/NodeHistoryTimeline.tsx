@@ -80,9 +80,9 @@ export const NodeHistoryTimeline = ({
     const executedNodeIds = nodeHistory;
 
     return (
-        <div className="flex flex-col h-full bg-background-light dark:bg-background-dark">
+        <div className="flex flex-col h-full bg-background">
             {/* Top Half: Mini Flow Visualization */}
-            <div className="h-1/2 border-b-2 border-zinc-200 dark:border-[#23482f]">
+            <div className="h-1/2 border-b-2 border-border-[#23482f]">
                 <MiniFlowVisualization
                     nodes={flowData.nodes}
                     edges={flowData.edges}
@@ -93,9 +93,9 @@ export const NodeHistoryTimeline = ({
 
             {/* Bottom Half: Timeline List */}
             <div className="h-1/2 overflow-y-auto p-6">
-                <div className="flex items-center gap-2 mb-4 pb-2 border-b border-zinc-200 dark:border-zinc-700">
+                <div className="flex items-center gap-2 mb-4 pb-2 border-b border-zinc-200">
                     <span className="material-symbols-outlined text-primary text-xl">timeline</span>
-                    <h3 className="text-sm font-bold text-zinc-900 dark:text-white uppercase tracking-wider">
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wider">
                         Execution Timeline
                     </h3>
                     {isActive && (
@@ -110,7 +110,7 @@ export const NodeHistoryTimeline = ({
                         <span className="material-symbols-outlined text-zinc-400 text-4xl mb-2">
                             hourglass_empty
                         </span>
-                        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                        <p className="text-sm text-zinc-400">
                             No nodes executed yet
                         </p>
                     </div>
@@ -158,7 +158,7 @@ export const NodeHistoryTimeline = ({
                                         {/* Content */}
                                         <div className="flex-1 min-w-0 pt-1">
                                             <div className="flex items-center gap-2">
-                                                <p className={`font-semibold truncate ${isCurrent ? 'text-primary dark:text-primary text-base' : 'text-zinc-900 dark:text-white text-sm'}`}>
+                                                <p className={`font-semibold truncate ${isCurrent ? 'text-primary text-base' : 'text-white text-sm'}`}>
                                                     {label}
                                                 </p>
                                                 {isCurrent && (
@@ -172,10 +172,10 @@ export const NodeHistoryTimeline = ({
                                                     </span>
                                                 )}
                                             </div>
-                                            <p className="text-xs text-zinc-500 dark:text-zinc-400 capitalize">
+                                            <p className="text-xs text-zinc-400 capitalize">
                                                 {type.replace('_', ' ')}
                                             </p>
-                                            <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">
+                                            <p className="text-xs text-zinc-400 mt-0.5">
                                                 Step {index + 1} of {nodeHistory.length}
                                             </p>
                                         </div>

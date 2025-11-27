@@ -367,15 +367,15 @@ export function FlowBuilderPage({
 
   return (
     <ReactFlowProvider>
-      <div className="flex flex-col h-screen w-full bg-zinc-50 dark:bg-[#0a160e]">
+      <div className="flex flex-col h-screen w-full bg-[#0a160e]">
         {/* Header / Toolbar */}
-        <header className="flex-shrink-0 flex items-center justify-between border-b border-zinc-200 dark:border-[#23482f] px-6 py-3 bg-white dark:bg-[#112217] z-20 shadow-sm">
+        <header className="flex-shrink-0 flex items-center justify-between border-b border-[#23482f] px-6 py-3 bg-[#112217] z-20 shadow-sm">
           {/* Left: Flow Info */}
           <div className="flex items-center gap-4">
             {onBack && (
               <button
                 onClick={onBack}
-                className="p-2 rounded-lg text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors"
+                className="p-2 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-white/5 transition-colors"
                 aria-label="Go back"
               >
                 <span className="material-symbols-outlined">arrow_back</span>
@@ -390,10 +390,10 @@ export function FlowBuilderPage({
                   type="text"
                   value={flowBuilder.flowName}
                   onChange={(e) => flowBuilder.setFlowName(e.target.value)}
-                  className="text-lg font-bold text-zinc-900 dark:text-white bg-transparent border-none outline-none focus:ring-2 focus:ring-primary/20 rounded px-2 py-1"
+                  className="text-lg font-bold text-white bg-transparent border-none outline-none focus:ring-2 focus:ring-primary/20 rounded px-2 py-1"
                   placeholder="Flow name..."
                 />
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                <p className="text-xs text-zinc-400">
                   {flowBuilder.flowId
                     ? `Editing Flow • ${flowBuilder.screens.length} screens`
                     : `New Flow • ${flowBuilder.screens.length} screens`}
@@ -409,7 +409,7 @@ export function FlowBuilderPage({
               <button
                 onClick={handleUndo}
                 disabled
-                className="p-2 rounded-lg text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="p-2 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 title="Undo (Ctrl+Z)"
               >
                 <span className="material-symbols-outlined text-lg">undo</span>
@@ -417,19 +417,19 @@ export function FlowBuilderPage({
               <button
                 onClick={handleRedo}
                 disabled
-                className="p-2 rounded-lg text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="p-2 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 title="Redo (Ctrl+Y)"
               >
                 <span className="material-symbols-outlined text-lg">redo</span>
               </button>
             </div>
 
-            <div className="w-px h-6 bg-zinc-200 dark:bg-zinc-700" />
+            <div className="w-px h-6 bg-zinc-700" />
 
             {/* Validate */}
             <button
               onClick={handleValidate}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-blue-300 hover:bg-blue-900/20 transition-colors"
             >
               <span className="material-symbols-outlined text-lg">check_circle</span>
               Validate
@@ -438,7 +438,7 @@ export function FlowBuilderPage({
             {/* Export JSON */}
             <button
               onClick={handleExportJSON}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-zinc-300 hover:bg-white/5 transition-colors"
             >
               <span className="material-symbols-outlined text-lg">download</span>
               Export JSON
@@ -499,7 +499,7 @@ export function FlowBuilderPage({
           </div>
 
           {/* Right Panel: Editor + Preview */}
-          <div className="w-96 flex flex-col border-l border-zinc-200 dark:border-[#23482f] bg-white dark:bg-[#112217]">
+          <div className="w-96 flex flex-col border-l border-[#23482f] bg-[#112217]">
             {/* Screen Editor */}
             {flowBuilder.selectedScreen ? (
               <div className="flex-1 overflow-hidden">
@@ -515,13 +515,13 @@ export function FlowBuilderPage({
               </div>
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-                <span className="material-symbols-outlined text-6xl text-zinc-300 dark:text-zinc-600 mb-4">
+                <span className="material-symbols-outlined text-6xl text-zinc-600 mb-4">
                   edit_square
                 </span>
-                <h3 className="text-sm font-semibold text-zinc-900 dark:text-white mb-2">
+                <h3 className="text-sm font-semibold text-white mb-2">
                   No Screen Selected
                 </h3>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-4">
+                <p className="text-xs text-zinc-400 mb-4">
                   Select a screen from the canvas to edit its properties and components.
                 </p>
                 <button
@@ -535,7 +535,7 @@ export function FlowBuilderPage({
             )}
 
             {/* Divider */}
-            <div className="h-px bg-zinc-200 dark:bg-zinc-700" />
+            <div className="h-px bg-zinc-700" />
 
             {/* Flow Preview */}
             <div className="h-96 flex-shrink-0">
@@ -548,10 +548,10 @@ export function FlowBuilderPage({
                 />
               ) : (
                 <div className="h-full flex flex-col items-center justify-center p-4 text-center">
-                  <span className="material-symbols-outlined text-4xl text-zinc-300 dark:text-zinc-600 mb-2">
+                  <span className="material-symbols-outlined text-4xl text-zinc-600 mb-2">
                     phonelink
                   </span>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  <p className="text-xs text-zinc-400">
                     Add screens to see preview
                   </p>
                 </div>

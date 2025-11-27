@@ -53,7 +53,7 @@ const App = () => {
   // Show loading spinner while checking authentication
   if (isLoading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gray-900">
+      <div className="h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <svg className="animate-spin h-10 w-10 text-emerald-500" viewBox="0 0 24 24">
             <circle

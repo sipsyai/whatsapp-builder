@@ -4,7 +4,7 @@ export const LandingPage = ({ onStart }: { onStart: () => void }) => {
     const [showModal, setShowModal] = useState(false);
 
     return (
-        <div className="relative flex h-screen w-full flex-col bg-background-light dark:bg-background-dark overflow-x-hidden">
+        <div className="relative flex h-screen w-full flex-col bg-background overflow-x-hidden">
             <div className="flex flex-1 h-full">
                 <aside className="hidden lg:flex w-64 flex-col bg-[#112217] p-4 border-r border-white/10">
                     <div className="flex flex-col gap-4">

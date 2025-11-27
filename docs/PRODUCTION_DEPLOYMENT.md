@@ -21,6 +21,8 @@ WhatsApp Builder uses a **single Docker container** that serves both frontend an
 
 **Production URL**: https://whatsapp.sipsy.ai
 
+**UI Design**: The application runs exclusively in dark mode with a WhatsApp-inspired color scheme. Light mode is not supported.
+
 **Key Features**:
 - Multi-stage Docker build (Frontend + Backend)
 - Single container deployment (~200MB optimized image)
@@ -253,15 +255,17 @@ curl http://localhost:3000/health
 ### Step 6: Access Application
 
 **Without Cloudflare Tunnel**:
-- Frontend: http://localhost:3000
+- Frontend: http://localhost:3000 (Dark mode UI)
 - API: http://localhost:3000/api
 - Health: http://localhost:3000/health
 - Swagger: http://localhost:3000/api/docs (disabled in production by default)
 
-**With Cloudflare Tunnel** (see next section):
-- Frontend: https://whatsapp.sipsy.ai
+**With Cloudflare Tunnel** (Production):
+- Frontend: https://whatsapp.sipsy.ai (Dark mode UI)
 - API: https://whatsapp.sipsy.ai/api
 - Health: https://whatsapp.sipsy.ai/health
+
+**Note**: The application UI is exclusively dark mode for optimal user experience in messaging environments.
 
 ---
 

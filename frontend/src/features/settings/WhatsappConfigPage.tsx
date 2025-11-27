@@ -61,10 +61,10 @@ export const WhatsappConfigPage = () => {
     }, []);
 
     return (
-        <div className="flex flex-col h-full w-full max-w-4xl mx-auto p-6 bg-white dark:bg-surface-dark rounded-lg shadow-sm">
-            <div className="mb-8 border-b border-gray-200 dark:border-gray-700 pb-4">
-                <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">WhatsApp API Configuration</h1>
-                <p className="text-gray-500 dark:text-gray-400 mt-1">
+        <div className="flex flex-col h-full w-full max-w-4xl mx-auto p-6 bg-surface rounded-lg shadow-sm">
+            <div className="mb-8 border-b border-gray-700 pb-4">
+                <h1 className="text-2xl font-semibold text-gray-100">WhatsApp API Configuration</h1>
+                <p className="text-gray-400 mt-1">
                     Configure your WhatsApp Business API credentials to enable messaging.
                 </p>
             </div>
@@ -73,7 +73,7 @@ export const WhatsappConfigPage = () => {
                 {/* Credentials Section */}
                 <div className="grid grid-cols-1 gap-6">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label className="block text-sm font-medium text-gray-300 mb-1">
                             Phone Number ID
                         </label>
                         <input
@@ -82,13 +82,13 @@ export const WhatsappConfigPage = () => {
                             value={config.phoneNumberId || ''}
                             onChange={handleChange}
                             placeholder="e.g., 105954558954423"
-                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+                            className="w-full px-4 py-2 border border-gray-600 rounded-md bg-gray-800 text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
                         />
                         <p className="text-xs text-gray-500 mt-1">Found in App Dashboard &gt; WhatsApp &gt; API Setup</p>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label className="block text-sm font-medium text-gray-300 mb-1">
                             WhatsApp Business Account ID
                         </label>
                         <input
@@ -97,12 +97,12 @@ export const WhatsappConfigPage = () => {
                             value={config.businessAccountId || ''}
                             onChange={handleChange}
                             placeholder="e.g., 108954558954423"
-                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+                            className="w-full px-4 py-2 border border-gray-600 rounded-md bg-gray-800 text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label className="block text-sm font-medium text-gray-300 mb-1">
                             System User Access Token
                         </label>
                         <div className="relative">
@@ -112,7 +112,7 @@ export const WhatsappConfigPage = () => {
                                 value={config.accessToken || ''}
                                 onChange={handleChange}
                                 placeholder="EAAG..."
-                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all font-mono"
+                                className="w-full px-4 py-2 border border-gray-600 rounded-md bg-gray-800 text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all font-mono"
                             />
                         </div>
                         <p className="text-xs text-gray-500 mt-1">
@@ -122,12 +122,12 @@ export const WhatsappConfigPage = () => {
                 </div>
 
                 {/* Webhook Section */}
-                <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
-                    <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Webhook Configuration</h2>
+                <div className="pt-6 border-t border-gray-700">
+                    <h2 className="text-lg font-medium text-gray-100 mb-4">Webhook Configuration</h2>
 
                     <div className="grid grid-cols-1 gap-6">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label className="block text-sm font-medium text-gray-300 mb-1">
                                 Callback URL
                             </label>
                             <div className="flex items-center">
@@ -135,7 +135,7 @@ export const WhatsappConfigPage = () => {
                                     type="text"
                                     readOnly
                                     value={webhookUrl}
-                                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 font-mono text-sm"
+                                    className="w-full px-4 py-2 border border-gray-600 rounded-md bg-gray-900 text-gray-400 font-mono text-sm"
                                 />
                                 <button
                                     className="ml-2 p-2 text-gray-500 hover:text-green-600 transition-colors"
@@ -148,7 +148,7 @@ export const WhatsappConfigPage = () => {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label className="block text-sm font-medium text-gray-300 mb-1">
                                 Verify Token
                             </label>
                             <input
@@ -157,7 +157,7 @@ export const WhatsappConfigPage = () => {
                                 value={config.webhookVerifyToken || ''}
                                 onChange={handleChange}
                                 placeholder="Create a secure random string"
-                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+                                className="w-full px-4 py-2 border border-gray-600 rounded-md bg-gray-800 text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
                             />
                             <p className="text-xs text-gray-500 mt-1">
                                 Enter this same token in the Meta App Dashboard Webhook configuration.
@@ -167,7 +167,7 @@ export const WhatsappConfigPage = () => {
                 </div>
 
                 {/* Actions */}
-                <div className="pt-6 flex items-center justify-between border-t border-gray-200 dark:border-gray-700">
+                <div className="pt-6 flex items-center justify-between border-t border-gray-700">
                     <div className="flex items-center space-x-2">
                         {status === "success" && (
                             <span className="text-green-600 flex items-center text-sm font-medium">
@@ -187,7 +187,7 @@ export const WhatsappConfigPage = () => {
                         <button
                             onClick={handleTest}
                             disabled={status === "testing" || status === "saving"}
-                            className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+                            className="px-4 py-2 border border-gray-600 text-gray-300 rounded-md hover:bg-gray-800 transition-colors disabled:opacity-50"
                         >
                             {status === "testing" ? "Testing..." : "Test Connection"}
                         </button>

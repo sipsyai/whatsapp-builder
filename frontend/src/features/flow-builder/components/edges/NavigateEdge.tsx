@@ -114,7 +114,7 @@ export const NavigateEdge = memo((props: EdgeProps) => {
                     ? 'bg-primary text-[#112217] ring-2 ring-primary/30'
                     : isHovered
                     ? 'bg-red-500 text-white scale-105'
-                    : 'text-white border border-zinc-200 dark:border-white/10'
+                    : 'text-white border border-white/10'
                 }
               `}
               style={
@@ -134,7 +134,7 @@ export const NavigateEdge = memo((props: EdgeProps) => {
                 ${
                   isHovered
                     ? 'bg-red-500 border-red-500 scale-110 opacity-100'
-                    : 'bg-zinc-200 dark:bg-zinc-700 border-zinc-300 dark:border-zinc-600 opacity-0'
+                    : 'bg-zinc-700 border-zinc-600 opacity-0'
                 }
               `}
               title="Delete connection"
@@ -143,7 +143,7 @@ export const NavigateEdge = memo((props: EdgeProps) => {
               }}
             >
               <span
-                className={`material-symbols-outlined ${isHovered ? 'text-white' : 'text-zinc-500 dark:text-zinc-400'}`}
+                className={`material-symbols-outlined ${isHovered ? 'text-white' : 'text-zinc-400'}`}
                 style={{ fontSize: '14px' }}
               >
                 close

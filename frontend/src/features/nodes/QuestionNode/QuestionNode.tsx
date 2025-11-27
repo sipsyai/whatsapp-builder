@@ -77,16 +77,16 @@ export const QuestionNode = ({ data }: { data: NodeData }) => {
 
     // Standard/List Style
     return (
-        <div className={`bg-background-light dark:bg-background-dark rounded-xl shadow-lg border border-zinc-200 dark:border-[#23482f] group hover:ring-2 hover:ring-primary transition-all flex flex-col ${isBranching ? 'min-w-[280px]' : 'w-64'}`}>
-            <Handle type="target" position={Position.Left} className="!bg-white dark:!bg-zinc-500 !border-zinc-400" />
+        <div className={`bg-background rounded-xl shadow-lg border border-[#23482f] group hover:ring-2 hover:ring-primary transition-all flex flex-col ${isBranching ? 'min-w-[280px]' : 'w-64'}`}>
+            <Handle type="target" position={Position.Left} className="!bg-zinc-500 !border-zinc-400" />
 
             <div className="flex items-start gap-3 p-4">
                 <div className="bg-orange-500 text-white flex items-center justify-center rounded-lg shrink-0 size-10">
                     <span className="material-symbols-outlined">help</span>
                 </div>
                 <div className="flex-1 overflow-hidden">
-                    <p className="font-bold text-zinc-900 dark:text-white truncate">{data.label}</p>
-                    <p className="text-xs text-zinc-500 dark:text-gray-400 truncate">{data.content || "Click to configure"}</p>
+                    <p className="font-bold text-white truncate">{data.label}</p>
+                    <p className="text-xs text-gray-400 truncate">{data.content || "Click to configure"}</p>
                     {data.variable && (
                         <span className="text-[10px] bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded mt-1 inline-block">
                             @{data.variable}
@@ -105,27 +105,27 @@ export const QuestionNode = ({ data }: { data: NodeData }) => {
 
             {isList && (
                 <div className="flex flex-col pb-4 w-full">
-                    <div className="h-px bg-zinc-200 dark:bg-[#23482f] w-full mb-2"></div>
+                    <div className="h-px bg-[#23482f] w-full mb-2"></div>
                     {outputs.map((opt) => (
                         <div key={opt.id} className="relative flex items-center justify-end h-8 pr-0 group/row">
-                            <span className="text-xs font-medium text-zinc-600 dark:text-zinc-300 mr-3 truncate max-w-[180px] group-hover/row:text-primary transition-colors">{opt.label}</span>
+                            <span className="text-xs font-medium text-zinc-300 mr-3 truncate max-w-[180px] group-hover/row:text-primary transition-colors">{opt.label}</span>
                             <Handle
                                 type="source"
                                 position={Position.Right}
                                 id={opt.id}
-                                className="!bg-white dark:!bg-zinc-500 !border-zinc-400 hover:!bg-primary"
+                                className="!bg-zinc-500 !border-zinc-400 hover:!bg-primary"
                                 style={{ top: 'auto', right: -6, transform: 'none', position: 'absolute' }}
                             />
                         </div>
                     ))}
                     {/* Default */}
-                    <div className="relative flex items-center justify-end h-8 pr-0 group/row mt-1 border-t border-zinc-200 dark:border-[#23482f] pt-1">
-                        <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mr-3">Default</span>
+                    <div className="relative flex items-center justify-end h-8 pr-0 group/row mt-1 border-t border-[#23482f] pt-1">
+                        <span className="text-xs font-medium text-zinc-400 mr-3">Default</span>
                         <Handle
                             type="source"
                             position={Position.Right}
                             id="default"
-                            className="!bg-white dark:!bg-zinc-500 !border-zinc-400 hover:!bg-primary"
+                            className="!bg-zinc-500 !border-zinc-400 hover:!bg-primary"
                             style={{ top: 'auto', right: -6, transform: 'none', position: 'absolute' }}
                         />
                     </div>
@@ -134,7 +134,7 @@ export const QuestionNode = ({ data }: { data: NodeData }) => {
 
             {/* Standard Text Question Output */}
             {!isBranching && (
-                <Handle type="source" position={Position.Right} className="!bg-white dark:!bg-zinc-500 !border-zinc-400" />
+                <Handle type="source" position={Position.Right} className="!bg-zinc-500 !border-zinc-400" />
             )}
         </div>
     );

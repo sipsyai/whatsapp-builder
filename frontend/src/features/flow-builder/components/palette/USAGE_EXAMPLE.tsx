@@ -137,23 +137,23 @@ export const FlowBuilderPageExample = () => {
   return (
     <div className="flex h-screen w-full flex-col">
       {/* Header */}
-      <header className="flex items-center justify-between border-b border-zinc-200 dark:border-[#23482f] px-6 py-3 bg-background-light dark:bg-background-dark">
+      <header className="flex items-center justify-between border-b border-[#23482f] px-6 py-3 bg-background">
         <div className="flex items-center gap-4">
           <div className="size-6 text-primary">
             <span className="material-symbols-outlined text-primary">account_tree</span>
           </div>
           <div>
-            <h2 className="text-lg font-bold text-zinc-900 dark:text-white">
+            <h2 className="text-lg font-bold text-white">
               WhatsApp Flow Builder
             </h2>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-xs text-zinc-400">
               {currentScreen ? `Editing: ${currentScreen.title}` : 'No screen selected'}
             </p>
           </div>
         </div>
 
         <div className="flex gap-2">
-          <button className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg text-sm font-bold hover:bg-gray-300 dark:hover:bg-gray-600">
+          <button className="px-4 py-2 bg-gray-700 text-white rounded-lg text-sm font-bold hover:bg-gray-600">
             Preview
           </button>
           <button className="px-4 py-2 bg-primary text-[#112217] rounded-lg text-sm font-bold hover:opacity-90">
@@ -172,15 +172,15 @@ export const FlowBuilderPageExample = () => {
           onDrop={handleCanvasDrop}
           onDragOver={handleCanvasDragOver}
         >
-          <div className="h-full bg-zinc-100 dark:bg-[#0a160e]">
+          <div className="h-full bg-[#0a160e]">
             {currentScreen ? (
               <div className="h-full p-8">
                 {/* Screen Info */}
                 <div className="mb-6">
-                  <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">
+                  <h3 className="text-xl font-bold text-white mb-2">
                     {currentScreen.title}
                   </h3>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                  <p className="text-sm text-zinc-400">
                     {currentScreen.components.length} components
                   </p>
                 </div>
@@ -188,7 +188,7 @@ export const FlowBuilderPageExample = () => {
                 {/* Component List */}
                 <div className="space-y-3">
                   {currentScreen.components.length === 0 ? (
-                    <div className="text-center py-16 text-zinc-500 dark:text-zinc-400">
+                    <div className="text-center py-16 text-zinc-400">
                       <span className="material-symbols-outlined text-6xl mb-4 opacity-30">
                         widgets
                       </span>
@@ -201,24 +201,24 @@ export const FlowBuilderPageExample = () => {
                     currentScreen.components.map((component, index) => (
                       <div
                         key={component.id}
-                        className="p-4 bg-white dark:bg-[#23482f] rounded-lg border dark:border-transparent shadow-sm"
+                        className="p-4 bg-[#23482f] rounded-lg border border-transparent shadow-sm"
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <span className="text-zinc-500 dark:text-zinc-400">
+                            <span className="text-zinc-400">
                               {index + 1}.
                             </span>
-                            <span className="font-medium text-zinc-900 dark:text-white">
+                            <span className="font-medium text-white">
                               {component.type}
                             </span>
                           </div>
                           <div className="flex gap-2">
-                            <button className="p-2 hover:bg-gray-100 dark:hover:bg-[#1a3523] rounded">
+                            <button className="p-2 hover:bg-[#1a3523] rounded">
                               <span className="material-symbols-outlined text-sm">
                                 settings
                               </span>
                             </button>
-                            <button className="p-2 hover:bg-red-100 dark:hover:bg-red-900/20 text-red-600 rounded">
+                            <button className="p-2 hover:bg-red-900/20 text-red-600 rounded">
                               <span className="material-symbols-outlined text-sm">
                                 delete
                               </span>
@@ -231,7 +231,7 @@ export const FlowBuilderPageExample = () => {
                 </div>
               </div>
             ) : (
-              <div className="h-full flex items-center justify-center text-zinc-500 dark:text-zinc-400">
+              <div className="h-full flex items-center justify-center text-zinc-400">
                 <div className="text-center">
                   <span className="material-symbols-outlined text-6xl mb-4 opacity-30">
                     info
@@ -244,15 +244,15 @@ export const FlowBuilderPageExample = () => {
         </main>
 
         {/* Properties Panel (Optional) */}
-        <aside className="w-80 bg-background-light dark:bg-background-dark border-l border-zinc-200 dark:border-[#23482f] p-4 overflow-y-auto">
-          <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4 uppercase tracking-wider">
+        <aside className="w-80 bg-background border-l border-[#23482f] p-4 overflow-y-auto">
+          <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">
             Properties
           </h3>
 
           {currentScreen ? (
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                <label className="block text-xs font-medium text-gray-400 mb-1">
                   Screen Title
                 </label>
                 <input
@@ -265,7 +265,7 @@ export const FlowBuilderPageExample = () => {
                       )
                     );
                   }}
-                  className="w-full px-3 py-2 bg-white dark:bg-[#23482f] border border-zinc-200 dark:border-transparent rounded-lg text-sm text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 bg-[#23482f] border border-transparent rounded-lg text-sm text-white"
                 />
               </div>
 
@@ -285,14 +285,14 @@ export const FlowBuilderPageExample = () => {
                     }}
                     className="rounded"
                   />
-                  <span className="text-sm text-gray-900 dark:text-white">
+                  <span className="text-sm text-white">
                     Terminal Screen
                   </span>
                 </label>
               </div>
             </div>
           ) : (
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm text-zinc-400">
               Select a screen to edit properties
             </p>
           )}

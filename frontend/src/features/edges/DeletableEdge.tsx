@@ -76,12 +76,12 @@ export const DeletableEdge = ({
                         className={`flex items-center justify-center w-5 h-5 rounded-full border shadow-sm transition-all duration-150 ${
                             isHovered
                                 ? 'bg-red-500 border-red-500 scale-110'
-                                : 'bg-zinc-200 dark:bg-zinc-700 border-zinc-300 dark:border-zinc-600'
+                                : 'bg-zinc-700 border-zinc-600'
                         }`}
                         title="Delete connection"
                     >
                         <span
-                            className={`material-symbols-outlined ${isHovered ? 'text-white' : 'text-zinc-500 dark:text-zinc-400'}`}
+                            className={`material-symbols-outlined ${isHovered ? 'text-white' : 'text-zinc-400'}`}
                             style={{ fontSize: '14px' }}
                         >
                             close

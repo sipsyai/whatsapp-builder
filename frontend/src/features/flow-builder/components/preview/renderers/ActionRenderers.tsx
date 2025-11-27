@@ -41,10 +41,10 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = ({ component, onActio
   const rightCaption = component['right-caption'];
 
   return (
-    <div className="sticky bottom-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4 mt-6">
+    <div className="sticky bottom-0 bg-gray-800 border-t border-gray-700 p-4 mt-6">
       {/* Captions */}
       {(leftCaption || centerCaption || rightCaption) && (
-        <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-2">
+        <div className="flex justify-between text-xs text-gray-400 mb-2">
           <span>{leftCaption}</span>
           <span>{centerCaption}</span>
           <span>{rightCaption}</span>
@@ -59,7 +59,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = ({ component, onActio
         className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-all ${
           isEnabled
             ? 'bg-green-500 hover:bg-green-600 active:bg-green-700 shadow-md hover:shadow-lg'
-            : 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed opacity-50'
+            : 'bg-gray-600 cursor-not-allowed opacity-50'
         }`}
       >
         {component.label}
@@ -128,7 +128,7 @@ export const PreviewOptIn: React.FC<PreviewOptInProps> = ({
         />
 
         {/* Label with optional link */}
-        <span className="ml-3 text-sm text-gray-700 dark:text-gray-300">
+        <span className="ml-3 text-sm text-gray-300">
           {component['on-click-action'] ? (
             <button
               type="button"

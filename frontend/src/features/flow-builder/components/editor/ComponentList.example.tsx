@@ -110,8 +110,8 @@ export function BasicComponentListExample() {
   };
 
   return (
-    <div className="w-96 p-4 bg-zinc-50 dark:bg-[#0d1912] min-h-screen">
-      <h2 className="text-lg font-bold mb-4 text-zinc-900 dark:text-white">
+    <div className="w-96 p-4 bg-[#0d1912] min-h-screen">
+      <h2 className="text-lg font-bold mb-4 text-white">
         Component List Example
       </h2>
       <ComponentList
@@ -132,8 +132,8 @@ export function EmptyComponentListExample() {
   const [components] = useState<BuilderComponent[]>([]);
 
   return (
-    <div className="w-96 p-4 bg-zinc-50 dark:bg-[#0d1912] min-h-screen">
-      <h2 className="text-lg font-bold mb-4 text-zinc-900 dark:text-white">
+    <div className="w-96 p-4 bg-[#0d1912] min-h-screen">
+      <h2 className="text-lg font-bold mb-4 text-white">
         Empty Component List
       </h2>
       <ComponentList
@@ -202,8 +202,8 @@ export function ComponentListWithErrorsExample() {
   ]);
 
   return (
-    <div className="w-96 p-4 bg-zinc-50 dark:bg-[#0d1912] min-h-screen">
-      <h2 className="text-lg font-bold mb-4 text-zinc-900 dark:text-white">
+    <div className="w-96 p-4 bg-[#0d1912] min-h-screen">
+      <h2 className="text-lg font-bold mb-4 text-white">
         Components with Validation Errors
       </h2>
       <ComponentList
@@ -274,8 +274,8 @@ export function ComponentListWithHiddenExample() {
   ]);
 
   return (
-    <div className="w-96 p-4 bg-zinc-50 dark:bg-[#0d1912] min-h-screen">
-      <h2 className="text-lg font-bold mb-4 text-zinc-900 dark:text-white">
+    <div className="w-96 p-4 bg-[#0d1912] min-h-screen">
+      <h2 className="text-lg font-bold mb-4 text-white">
         Components with Visibility Toggle
       </h2>
       <ComponentList
@@ -387,8 +387,8 @@ export function AllComponentTypesExample() {
   ]);
 
   return (
-    <div className="w-96 p-4 bg-zinc-50 dark:bg-[#0d1912] min-h-screen">
-      <h2 className="text-lg font-bold mb-4 text-zinc-900 dark:text-white">
+    <div className="w-96 p-4 bg-[#0d1912] min-h-screen">
+      <h2 className="text-lg font-bold mb-4 text-white">
         All Component Types
       </h2>
       <ComponentList
@@ -473,9 +473,9 @@ export function ComponentListIntegrationTest() {
   };
 
   return (
-    <div className="flex gap-4 p-4 bg-zinc-50 dark:bg-[#0d1912] min-h-screen">
+    <div className="flex gap-4 p-4 bg-[#0d1912] min-h-screen">
       <div className="w-96">
-        <h2 className="text-lg font-bold mb-4 text-zinc-900 dark:text-white">
+        <h2 className="text-lg font-bold mb-4 text-white">
           Component List
         </h2>
         <ComponentList
@@ -487,16 +487,16 @@ export function ComponentListIntegrationTest() {
         />
       </div>
       <div className="flex-1">
-        <h2 className="text-lg font-bold mb-4 text-zinc-900 dark:text-white">
+        <h2 className="text-lg font-bold mb-4 text-white">
           Action Log
         </h2>
-        <div className="bg-white dark:bg-[#193322] rounded-lg border border-zinc-200 dark:border-white/10 p-4">
+        <div className="bg-[#193322] rounded-lg border border-white/10 p-4">
           <div className="space-y-1 text-xs font-mono">
             {log.length === 0 ? (
-              <p className="text-zinc-500 dark:text-zinc-400">No actions yet</p>
+              <p className="text-zinc-400">No actions yet</p>
             ) : (
               log.map((entry, index) => (
-                <div key={index} className="text-zinc-700 dark:text-zinc-300">
+                <div key={index} className="text-zinc-300">
                   {entry}
                 </div>
               ))

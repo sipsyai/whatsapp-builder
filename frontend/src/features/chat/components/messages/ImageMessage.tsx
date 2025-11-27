@@ -34,7 +34,7 @@ export function ImageMessage({ content }: ImageMessageProps) {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center w-64 h-64 bg-gray-200 dark:bg-gray-700 rounded-lg">
+            <div className="flex items-center justify-center w-64 h-64 bg-gray-700 rounded-lg">
                 <span className="material-symbols-outlined animate-spin text-gray-500">
                     progress_activity
                 </span>
@@ -56,7 +56,7 @@ export function ImageMessage({ content }: ImageMessageProps) {
                     )}
                 </>
             ) : (
-                <div className="flex items-center justify-center w-64 h-64 bg-gray-200 dark:bg-gray-700 rounded-lg">
+                <div className="flex items-center justify-center w-64 h-64 bg-gray-700 rounded-lg">
                     <span className="text-sm text-gray-500">Failed to load image</span>
                 </div>
             )}

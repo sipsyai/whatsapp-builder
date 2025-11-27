@@ -11,77 +11,77 @@ const getStatusConfig = (status: SessionStatus) => {
     case 'running':
       return {
         label: 'Running',
-        bgClass: 'bg-green-100 dark:bg-green-900/30',
-        textClass: 'text-green-800 dark:text-green-400',
+        bgClass: 'bg-green-900/30',
+        textClass: 'text-green-400',
         borderClass: 'border-green-500',
         dotClass: 'bg-green-500',
-        headerClass: 'bg-gradient-to-br from-green-50 via-green-100/50 to-transparent dark:from-green-900/20 dark:via-green-800/10',
+        headerClass: 'bg-gradient-to-br from-green-900/20 via-green-800/10 to-transparent',
         iconClass: 'text-green-500/30',
         animate: true,
       };
     case 'waiting_input':
       return {
         label: 'Waiting Input',
-        bgClass: 'bg-yellow-100 dark:bg-yellow-900/30',
-        textClass: 'text-yellow-800 dark:text-yellow-400',
+        bgClass: 'bg-yellow-900/30',
+        textClass: 'text-yellow-400',
         borderClass: 'border-yellow-500',
         dotClass: 'bg-yellow-500',
-        headerClass: 'bg-gradient-to-br from-yellow-50 via-yellow-100/50 to-transparent dark:from-yellow-900/20 dark:via-yellow-800/10',
+        headerClass: 'bg-gradient-to-br from-yellow-900/20 via-yellow-800/10 to-transparent',
         iconClass: 'text-yellow-500/30',
         animate: false,
       };
     case 'waiting_flow':
       return {
         label: 'Waiting Flow',
-        bgClass: 'bg-blue-100 dark:bg-blue-900/30',
-        textClass: 'text-blue-800 dark:text-blue-400',
+        bgClass: 'bg-blue-900/30',
+        textClass: 'text-blue-400',
         borderClass: 'border-blue-500',
         dotClass: 'bg-blue-500',
-        headerClass: 'bg-gradient-to-br from-blue-50 via-blue-100/50 to-transparent dark:from-blue-900/20 dark:via-blue-800/10',
+        headerClass: 'bg-gradient-to-br from-blue-900/20 via-blue-800/10 to-transparent',
         iconClass: 'text-blue-500/30',
         animate: false,
       };
     case 'completed':
       return {
         label: 'Completed',
-        bgClass: 'bg-gray-100 dark:bg-gray-900/30',
-        textClass: 'text-gray-800 dark:text-gray-400',
+        bgClass: 'bg-gray-900/30',
+        textClass: 'text-gray-400',
         borderClass: 'border-gray-500',
         dotClass: 'bg-gray-500',
-        headerClass: 'bg-gradient-to-br from-gray-50 via-gray-100/50 to-transparent dark:from-gray-900/20 dark:via-gray-800/10',
+        headerClass: 'bg-gradient-to-br from-gray-900/20 via-gray-800/10 to-transparent',
         iconClass: 'text-gray-500/30',
         animate: false,
       };
     case 'expired':
       return {
         label: 'Expired',
-        bgClass: 'bg-red-100 dark:bg-red-900/30',
-        textClass: 'text-red-800 dark:text-red-400',
+        bgClass: 'bg-red-900/30',
+        textClass: 'text-red-400',
         borderClass: 'border-red-500',
         dotClass: 'bg-red-500',
-        headerClass: 'bg-gradient-to-br from-red-50 via-red-100/50 to-transparent dark:from-red-900/20 dark:via-red-800/10',
+        headerClass: 'bg-gradient-to-br from-red-900/20 via-red-800/10 to-transparent',
         iconClass: 'text-red-500/30',
         animate: false,
       };
     case 'stopped':
       return {
         label: 'Stopped',
-        bgClass: 'bg-orange-100 dark:bg-orange-900/30',
-        textClass: 'text-orange-800 dark:text-orange-400',
+        bgClass: 'bg-orange-900/30',
+        textClass: 'text-orange-400',
         borderClass: 'border-orange-500',
         dotClass: 'bg-orange-500',
-        headerClass: 'bg-gradient-to-br from-orange-50 via-orange-100/50 to-transparent dark:from-orange-900/20 dark:via-orange-800/10',
+        headerClass: 'bg-gradient-to-br from-orange-900/20 via-orange-800/10 to-transparent',
         iconClass: 'text-orange-500/30',
         animate: false,
       };
     default:
       return {
         label: 'Unknown',
-        bgClass: 'bg-gray-100 dark:bg-gray-900/30',
-        textClass: 'text-gray-800 dark:text-gray-400',
+        bgClass: 'bg-gray-900/30',
+        textClass: 'text-gray-400',
         borderClass: 'border-gray-500',
         dotClass: 'bg-gray-500',
-        headerClass: 'bg-gradient-to-br from-gray-50 via-gray-100/50 to-transparent dark:from-gray-900/20 dark:via-gray-800/10',
+        headerClass: 'bg-gradient-to-br from-gray-900/20 via-gray-800/10 to-transparent',
         iconClass: 'text-gray-500/30',
         animate: false,
       };
@@ -108,10 +108,10 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session, onClick }) =>
   return (
     <div
       onClick={onClick}
-      className={`bg-white dark:bg-surface-dark rounded-2xl border overflow-hidden hover:shadow-2xl transition-all duration-300 group hover:scale-105 cursor-pointer ${
+      className={`bg-surface rounded-2xl border overflow-hidden hover:shadow-2xl transition-all duration-300 group hover:scale-105 cursor-pointer ${
         session.isActive
-          ? `border-l-4 ${statusConfig.borderClass} border-zinc-200 dark:border-zinc-800`
-          : 'border-zinc-200 dark:border-zinc-800 opacity-75'
+          ? `border-l-4 ${statusConfig.borderClass} border-zinc-800`
+          : 'border-zinc-800 opacity-75'
       }`}
     >
       {/* Header with gradient */}
@@ -134,7 +134,7 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session, onClick }) =>
 
         {/* Duration - Top Right */}
         <div className="absolute top-3 right-3">
-          <span className="px-3 py-1 bg-white/80 dark:bg-zinc-800/80 backdrop-blur-sm text-zinc-700 dark:text-zinc-300 rounded-full text-xs font-medium flex items-center gap-1">
+          <span className="px-3 py-1 bg-zinc-800/80 backdrop-blur-sm text-zinc-300 rounded-full text-xs font-medium flex items-center gap-1">
             <span className="material-symbols-outlined text-sm">schedule</span>
             {formatDuration(session.startedAt, session.completedAt)}
           </span>
@@ -145,18 +145,18 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session, onClick }) =>
       <div className="p-6">
         {/* Customer Info */}
         <div className="mb-3">
-          <h3 className="text-lg font-bold text-zinc-900 dark:text-white mb-1 truncate">
+          <h3 className="text-lg font-bold text-white mb-1 truncate">
             {session.customerName || 'Unknown Customer'}
           </h3>
-          <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
+          <div className="flex items-center gap-2 text-sm text-zinc-400">
             <span className="material-symbols-outlined text-base">phone</span>
             <span className="font-mono">{session.customerPhone}</span>
           </div>
         </div>
 
         {/* Chatbot Name */}
-        <div className="mb-3 pb-3 border-b border-zinc-100 dark:border-zinc-800">
-          <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
+        <div className="mb-3 pb-3 border-b border-zinc-800">
+          <div className="flex items-center gap-2 text-sm text-zinc-400">
             <span className="material-symbols-outlined text-base text-primary">smart_toy</span>
             <span className="font-medium">{session.chatbotName}</span>
           </div>
@@ -164,10 +164,10 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session, onClick }) =>
 
         {/* Current Node */}
         <div className="mb-4">
-          <div className="text-xs text-zinc-500 dark:text-zinc-400 mb-1">Current Node</div>
+          <div className="text-xs text-zinc-400 mb-1">Current Node</div>
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-base text-blue-500">account_tree</span>
-            <span className="text-sm font-medium text-zinc-900 dark:text-white truncate">
+            <span className="text-sm font-medium text-white truncate">
               {session.currentNodeLabel || session.currentNodeId || 'N/A'}
             </span>
           </div>
@@ -175,20 +175,20 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session, onClick }) =>
 
         {/* Stats Badges */}
         <div className="flex items-center gap-3 mb-4">
-          <div className="flex items-center gap-1 px-3 py-1 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-            <span className="material-symbols-outlined text-sm text-blue-600 dark:text-blue-400">account_tree</span>
-            <span className="text-xs font-bold text-blue-900 dark:text-blue-100">{session.nodeCount}</span>
-            <span className="text-xs text-blue-700 dark:text-blue-300">nodes</span>
+          <div className="flex items-center gap-1 px-3 py-1 bg-blue-900/20 rounded-lg">
+            <span className="material-symbols-outlined text-sm text-blue-400">account_tree</span>
+            <span className="text-xs font-bold text-blue-100">{session.nodeCount}</span>
+            <span className="text-xs text-blue-300">nodes</span>
           </div>
-          <div className="flex items-center gap-1 px-3 py-1 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-            <span className="material-symbols-outlined text-sm text-purple-600 dark:text-purple-400">chat_bubble</span>
-            <span className="text-xs font-bold text-purple-900 dark:text-purple-100">{session.messageCount}</span>
-            <span className="text-xs text-purple-700 dark:text-purple-300">msgs</span>
+          <div className="flex items-center gap-1 px-3 py-1 bg-purple-900/20 rounded-lg">
+            <span className="material-symbols-outlined text-sm text-purple-400">chat_bubble</span>
+            <span className="text-xs font-bold text-purple-100">{session.messageCount}</span>
+            <span className="text-xs text-purple-300">msgs</span>
           </div>
         </div>
 
         {/* Timestamps */}
-        <div className="space-y-1 text-xs text-zinc-500 dark:text-zinc-400">
+        <div className="space-y-1 text-xs text-zinc-400">
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-1">
               <span className="material-symbols-outlined text-xs">schedule</span>

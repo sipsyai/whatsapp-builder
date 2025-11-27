@@ -16,6 +16,12 @@
 
 This document outlines production deployment considerations for WhatsApp Builder. The architecture is designed to be deployed on cloud platforms (AWS, GCP, Azure) or self-hosted infrastructure.
 
+**Current Production Deployment**: https://whatsapp.sipsy.ai
+- **Docker-based**: Single container deployment (Frontend + Backend)
+- **Cloudflare Tunnel**: Secure HTTPS without port forwarding
+- **PostgreSQL**: Persistent database with health checks
+- **Dark Mode UI**: Optimized interface for messaging environments
+
 ### Deployment Goals
 1. **High Availability**: 99.9% uptime for message delivery
 2. **Scalability**: Handle growing user base and message volume

@@ -34,19 +34,19 @@ export const VariablesPanel = ({ variables }: VariablesPanelProps) => {
   return (
     <div className="flex flex-col gap-4 h-full">
       {/* Variables Section */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+      <div className="bg-bg-gray-800 rounded-lg shadow-sm border border-gray-700">
         <button
           onClick={() => setIsVariablesExpanded(!isVariablesExpanded)}
-          className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
+          className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
         >
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-blue-600 dark:text-blue-400">
+            <span className="material-symbols-outlined text-blue-600">
               database
             </span>
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+            <h3 className="font-semibold text-gray-900">
               Variables
             </h3>
-            <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">
+            <span className="text-xs text-gray-500 bg-bg-gray-700 px-2 py-0.5 rounded-full">
               {Object.keys(variables).length}
             </span>
           </div>
@@ -56,22 +56,22 @@ export const VariablesPanel = ({ variables }: VariablesPanelProps) => {
         </button>
 
         {isVariablesExpanded && (
-          <div className="border-t border-gray-200 dark:border-gray-700">
+          <div className="border-t border-gray-700">
             {Object.keys(variables).length === 0 ? (
-              <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
+              <div className="p-4 text-center text-sm text-gray-500">
                 No variables set
               </div>
             ) : (
-              <div className="divide-y divide-gray-100 dark:divide-gray-700 max-h-[400px] overflow-y-auto">
+              <div className="divide-y divide-gray-700 max-h-[400px] overflow-y-auto">
                 {Object.entries(variables).map(([key, value]) => (
-                  <div key={key} className="p-3 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors">
+                  <div key={key} className="p-3 hover:bg-gray-50 transition-colors">
                     <div className="flex items-start justify-between gap-2 mb-1">
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300 font-mono">
+                      <span className="text-sm font-medium text-gray-700 font-mono">
                         {key}
                       </span>
                       <button
                         onClick={() => copyToClipboard(key, value)}
-                        className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors flex-shrink-0"
+                        className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
                         title="Copy value"
                       >
                         <span className="material-symbols-outlined text-[18px]">
@@ -81,11 +81,11 @@ export const VariablesPanel = ({ variables }: VariablesPanelProps) => {
                     </div>
                     <div className={`text-sm ${isComplexValue(value) ? 'font-mono' : ''}`}>
                       {isComplexValue(value) ? (
-                        <pre className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 p-2 rounded overflow-x-auto">
+                        <pre className="text-xs text-gray-600 bg-gray-900 p-2 rounded overflow-x-auto">
                           {formatValue(value)}
                         </pre>
                       ) : (
-                        <span className="text-gray-900 dark:text-gray-100">
+                        <span className="text-gray-900">
                           {formatValue(value)}
                         </span>
                       )}

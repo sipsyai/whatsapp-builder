@@ -253,23 +253,23 @@ export const FlowTester: React.FC<FlowTesterProps> = ({ nodes, edges }) => {
   const isWaitingForResponse = currentNode?.type === 'question';
 
   return (
-    <div className="flex flex-col h-full bg-background-light dark:bg-background-dark">
+    <div className="flex flex-col h-full bg-background">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-zinc-200 dark:border-[#23482f] px-6 py-4">
+      <div className="flex items-center justify-between border-b border-[#23482f] px-6 py-4">
         <div className="flex items-center gap-3">
           <div className="size-8 bg-primary/10 rounded-lg flex items-center justify-center">
             <span className="material-symbols-outlined text-primary text-xl">science</span>
           </div>
           <div>
-            <h3 className="text-lg font-bold text-zinc-900 dark:text-white">Test Mode</h3>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">Simulate flow execution</p>
+            <h3 className="text-lg font-bold text-white">Test Mode</h3>
+            <p className="text-xs text-zinc-400">Simulate flow execution</p>
           </div>
         </div>
         <div className="flex gap-2">
           {messages.length > 0 && (
             <button
               onClick={resetTest}
-              className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg flex items-center gap-2 text-sm font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              className="px-4 py-2 bg-gray-700 text-white rounded-lg flex items-center gap-2 text-sm font-medium hover:bg-gray-600 transition-colors"
             >
               <span className="material-symbols-outlined text-sm">refresh</span>
               Reset
@@ -293,10 +293,10 @@ export const FlowTester: React.FC<FlowTesterProps> = ({ nodes, edges }) => {
           <div className="flex-1 overflow-y-auto p-6 space-y-4">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center">
-                <div className="size-16 bg-zinc-100 dark:bg-[#23482f] rounded-full flex items-center justify-center mb-4">
+                <div className="size-16 bg-[#23482f] rounded-full flex items-center justify-center mb-4">
                   <span className="material-symbols-outlined text-3xl text-zinc-400">chat_bubble_outline</span>
                 </div>
-                <p className="text-zinc-600 dark:text-zinc-400 text-sm">
+                <p className="text-zinc-400 text-sm">
                   Click "Start Test" to begin simulating your flow
                 </p>
               </div>
@@ -309,13 +309,13 @@ export const FlowTester: React.FC<FlowTesterProps> = ({ nodes, edges }) => {
                   <div
                     className={`max-w-[70%] rounded-2xl px-4 py-3 ${
                       msg.role === 'bot'
-                        ? 'bg-zinc-100 dark:bg-[#23482f] text-zinc-900 dark:text-white'
+                        ? 'bg-[#23482f] text-white'
                         : 'bg-primary text-[#112217]'
                     }`}
                   >
                     <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
                     <p className={`text-[10px] mt-1 ${
-                      msg.role === 'bot' ? 'text-zinc-500 dark:text-zinc-400' : 'text-[#112217]/70'
+                      msg.role === 'bot' ? 'text-zinc-400' : 'text-[#112217]/70'
                     }`}>
                       {msg.timestamp.toLocaleTimeString()}
                     </p>
@@ -327,10 +327,10 @@ export const FlowTester: React.FC<FlowTesterProps> = ({ nodes, edges }) => {
 
           {/* Response Area */}
           {isWaitingForResponse && currentData && (
-            <div className="border-t border-zinc-200 dark:border-[#23482f] p-6 bg-white dark:bg-[#0a160e]">
+            <div className="border-t border-[#23482f] p-6 bg-[#0a160e]">
               {currentData.questionType === 'buttons' && currentData.buttons && (
                 <div className="space-y-2">
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-3">Select an option:</p>
+                  <p className="text-xs text-zinc-400 mb-3">Select an option:</p>
                   <div className="grid grid-cols-2 gap-2">
                     {currentData.buttons.map((btn, index) => {
                       const btnText = typeof btn === 'string' ? btn : btn.title;
@@ -338,7 +338,7 @@ export const FlowTester: React.FC<FlowTesterProps> = ({ nodes, edges }) => {
                         <button
                           key={`btn-${index}`}
                           onClick={() => handleUserResponse(btnText, `btn-${index}`)}
-                          className="px-4 py-3 bg-zinc-100 dark:bg-[#23482f] hover:bg-primary hover:text-[#112217] dark:hover:bg-primary text-zinc-900 dark:text-white rounded-lg text-sm font-medium transition-colors border border-zinc-200 dark:border-transparent"
+                          className="px-4 py-3 bg-[#23482f] hover:bg-primary hover:text-[#112217] text-white rounded-lg text-sm font-medium transition-colors border border-transparent"
                         >
                           {btnText}
                         </button>
@@ -348,7 +348,7 @@ export const FlowTester: React.FC<FlowTesterProps> = ({ nodes, edges }) => {
                   {/* Default option */}
                   <button
                     onClick={() => handleUserResponse('(No selection)', 'default')}
-                    className="w-full mt-2 px-4 py-2 bg-zinc-50 dark:bg-[#1a3523] hover:bg-zinc-100 dark:hover:bg-[#23482f] text-zinc-600 dark:text-zinc-400 rounded-lg text-xs font-medium transition-colors border border-dashed border-zinc-300 dark:border-zinc-600"
+                    className="w-full mt-2 px-4 py-2 bg-[#1a3523] hover:bg-[#23482f] text-zinc-400 rounded-lg text-xs font-medium transition-colors border border-dashed border-zinc-600"
                   >
                     Skip / Default Path
                   </button>
@@ -357,7 +357,7 @@ export const FlowTester: React.FC<FlowTesterProps> = ({ nodes, edges }) => {
 
               {currentData.questionType === 'list' && currentData.listSections && (
                 <div className="space-y-2">
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-3">Select from list:</p>
+                  <p className="text-xs text-zinc-400 mb-3">Select from list:</p>
                   <select
                     onChange={(e) => {
                       if (e.target.value) {
@@ -366,7 +366,7 @@ export const FlowTester: React.FC<FlowTesterProps> = ({ nodes, edges }) => {
                         e.target.value = '';
                       }
                     }}
-                    className="w-full px-4 py-3 bg-white dark:bg-[#23482f] border border-zinc-200 dark:border-transparent rounded-lg text-sm text-zinc-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className="w-full px-4 py-3 bg-[#23482f] border border-transparent rounded-lg text-sm text-white focus:ring-2 focus:ring-primary focus:border-transparent"
                     defaultValue=""
                   >
                     <option value="" disabled>Choose an option...</option>
@@ -382,7 +382,7 @@ export const FlowTester: React.FC<FlowTesterProps> = ({ nodes, edges }) => {
                   </select>
                   <button
                     onClick={() => handleUserResponse('(No selection)', 'default')}
-                    className="w-full mt-2 px-4 py-2 bg-zinc-50 dark:bg-[#1a3523] hover:bg-zinc-100 dark:hover:bg-[#23482f] text-zinc-600 dark:text-zinc-400 rounded-lg text-xs font-medium transition-colors border border-dashed border-zinc-300 dark:border-zinc-600"
+                    className="w-full mt-2 px-4 py-2 bg-[#1a3523] hover:bg-[#23482f] text-zinc-400 rounded-lg text-xs font-medium transition-colors border border-dashed border-zinc-600"
                   >
                     Skip / Default Path
                   </button>
@@ -396,7 +396,7 @@ export const FlowTester: React.FC<FlowTesterProps> = ({ nodes, edges }) => {
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     placeholder="Type your answer..."
-                    className="flex-1 px-4 py-3 bg-white dark:bg-[#23482f] border border-zinc-200 dark:border-transparent rounded-lg text-sm text-zinc-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className="flex-1 px-4 py-3 bg-[#23482f] border border-transparent rounded-lg text-sm text-white focus:ring-2 focus:ring-primary focus:border-transparent"
                     onKeyPress={(e) => {
                       if (e.key === 'Enter' && inputText.trim()) {
                         handleUserResponse(inputText);
@@ -423,8 +423,8 @@ export const FlowTester: React.FC<FlowTesterProps> = ({ nodes, edges }) => {
           )}
 
           {!isWaitingForResponse && isActive && (
-            <div className="border-t border-zinc-200 dark:border-[#23482f] p-4 bg-zinc-50 dark:bg-[#0a160e]">
-              <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
+            <div className="border-t border-[#23482f] p-4 bg-[#0a160e]">
+              <div className="flex items-center gap-2 text-zinc-400">
                 <div className="size-2 bg-primary rounded-full animate-pulse"></div>
                 <p className="text-xs">Processing...</p>
               </div>
@@ -434,15 +434,15 @@ export const FlowTester: React.FC<FlowTesterProps> = ({ nodes, edges }) => {
 
         {/* Variables Panel */}
         {Object.keys(variables).length > 0 && (
-          <div className="w-80 border-l border-zinc-200 dark:border-[#23482f] bg-white dark:bg-[#0a160e] flex flex-col">
+          <div className="w-80 border-l border-[#23482f] bg-[#0a160e] flex flex-col">
             <div
-              className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-[#23482f] cursor-pointer hover:bg-zinc-50 dark:hover:bg-[#112217] transition-colors"
+              className="flex items-center justify-between px-4 py-3 border-b border-[#23482f] cursor-pointer hover:bg-[#112217] transition-colors"
               onClick={() => setShowVariables(!showVariables)}
             >
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-primary text-sm">code</span>
-                <h4 className="text-sm font-bold text-zinc-900 dark:text-white">Variables</h4>
-                <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                <h4 className="text-sm font-bold text-white">Variables</h4>
+                <span className="text-xs text-zinc-400">
                   ({Object.keys(variables).length})
                 </span>
               </div>
@@ -456,15 +456,15 @@ export const FlowTester: React.FC<FlowTesterProps> = ({ nodes, edges }) => {
                   {Object.entries(variables).map(([key, value]) => (
                     <div
                       key={key}
-                      className="bg-zinc-50 dark:bg-[#23482f] rounded-lg p-3 border border-zinc-200 dark:border-transparent"
+                      className="bg-[#23482f] rounded-lg p-3 border border-transparent"
                     >
                       <div className="flex items-center gap-2 mb-1">
                         <span className="material-symbols-outlined text-primary text-xs">variable</span>
-                        <p className="text-xs font-mono font-bold text-zinc-900 dark:text-white">
+                        <p className="text-xs font-mono font-bold text-white">
                           {key}
                         </p>
                       </div>
-                      <p className="text-sm text-zinc-600 dark:text-zinc-300 ml-5 break-words">
+                      <p className="text-sm text-zinc-300 ml-5 break-words">
                         {String(value)}
                       </p>
                     </div>

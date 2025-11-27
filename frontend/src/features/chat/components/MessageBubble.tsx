@@ -111,12 +111,12 @@ export const MessageBubble = ({ message, businessUserId }: MessageBubbleProps) =
         <div className={`flex ${isMe ? "justify-end" : "justify-start"} mb-1`}>
             <div
                 className={`max-w-[65%] rounded-lg px-2 py-1.5 relative shadow-sm ${isMe
-                    ? "bg-[#d9fdd3] dark:bg-[#005c4b] text-gray-900 dark:text-gray-100 rounded-tr-none"
-                    : "bg-white dark:bg-[#202c33] text-gray-900 dark:text-gray-100 rounded-tl-none"
+                    ? "bg-[#005c4b] text-gray-100 rounded-tr-none"
+                    : "bg-[#202c33] text-gray-100 rounded-tl-none"
                     }`}
             >
                 {renderContent()}
-                <div className={`text-[10px] text-gray-500 dark:text-gray-400 text-right mt-1 flex items-center justify-end gap-1`}>
+                <div className={`text-[10px] text-gray-400 text-right mt-1 flex items-center justify-end gap-1`}>
                     <span>{timestamp}</span>
                     {isMe && (
                         <span className={`material-symbols-outlined text-[14px] ${status === 'read' ? 'text-[#53bdeb]' : 'text-gray-500'}`}>

@@ -3,10 +3,8 @@
 @theme {
   --color-primary: #13ec5b;
   --color-primary-blue: #4A90E2;
-  --color-background-light: #f6f8f6;
-  --color-background-dark: #102216;
-  --color-surface-dark: #112217;
-  --color-surface-light: #FFFFFF;
+  --color-background: #102216;
+  --color-surface: #112217;
 
   --font-family-display: "Manrope", sans-serif;
   --font-family-inter: "Inter", sans-serif;
@@ -48,7 +46,7 @@
   border-color: #13ec5b;
 }
 
-.dark .react-flow__edge-path {
+.react-flow__edge-path {
   stroke: #555;
   stroke-width: 2;
 }

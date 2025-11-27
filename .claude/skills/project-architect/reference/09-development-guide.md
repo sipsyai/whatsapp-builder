@@ -1,5 +1,9 @@
 # Development Guide - WhatsApp Builder
 
+**Production Instance**: https://whatsapp.sipsy.ai
+
+This guide covers local development setup. For production deployment, see [Deployment Architecture](10-deployment-architecture.md).
+
 ## Prerequisites
 
 - **Node.js**: 18.x or higher

@@ -1,6 +1,5 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  darkMode: "class",
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
@@ -10,10 +9,8 @@ export default {
       colors: {
         primary: "#13ec5b", // Main Brand Green
         "primary-blue": "#4A90E2", // Node Config Blue
-        "background-light": "#f6f8f6",
-        "background-dark": "#102216",
-        "surface-dark": "#112217",
-        "surface-light": "#FFFFFF",
+        background: "#102216",
+        surface: "#112217",
       },
       fontFamily: {
         display: ["Manrope", "sans-serif"],

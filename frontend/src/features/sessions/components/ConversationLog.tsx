@@ -132,14 +132,14 @@ export const ConversationLog = ({ messages, isActive }: ConversationLogProps) =>
               )}
               {displayData && Object.keys(displayData).length > 0 && (
                 <details className="text-xs" open>
-                  <summary className="cursor-pointer font-medium text-blue-600 dark:text-blue-400 hover:underline">
+                  <summary className="cursor-pointer font-medium text-blue-600 hover:underline">
                     View form data ({Object.keys(displayData).length} fields)
                   </summary>
-                  <div className="mt-2 space-y-1.5 bg-gray-50 dark:bg-gray-900 p-2 rounded">
+                  <div className="mt-2 space-y-1.5 bg-gray-900 p-2 rounded">
                     {Object.entries(displayData).map(([key, value]) => (
                       <div key={key} className="flex justify-between gap-2">
-                        <span className="text-gray-500 dark:text-gray-400 font-medium">{key}:</span>
-                        <span className="text-gray-900 dark:text-gray-100 text-right">
+                        <span className="text-gray-500 font-medium">{key}:</span>
+                        <span className="text-gray-900 text-right">
                           {typeof value === 'object' ? JSON.stringify(value) : String(value)}
                         </span>
                       </div>
@@ -166,7 +166,7 @@ export const ConversationLog = ({ messages, isActive }: ConversationLogProps) =>
                 {content.action.buttons.map((btn: any, idx: number) => (
                   <div
                     key={idx}
-                    className="bg-white/10 dark:bg-black/10 px-3 py-1.5 rounded text-xs text-center"
+                    className="bg-black/10 px-3 py-1.5 rounded text-xs text-center"
                   >
                     {btn.reply?.title || btn.title || 'Button'}
                   </div>
@@ -174,7 +174,7 @@ export const ConversationLog = ({ messages, isActive }: ConversationLogProps) =>
               </div>
             )}
             {content?.action?.sections && (
-              <div className="bg-white/10 dark:bg-black/10 px-3 py-1.5 rounded text-xs text-center">
+              <div className="bg-black/10 px-3 py-1.5 rounded text-xs text-center">
                 {content.action.button || 'View List'}
               </div>
             )}
@@ -189,7 +189,7 @@ export const ConversationLog = ({ messages, isActive }: ConversationLogProps) =>
               <p className="text-sm font-medium">Form submitted</p>
             </div>
             {content?.data && (
-              <pre className="text-xs opacity-75 bg-black/10 dark:bg-white/10 p-2 rounded mt-1 overflow-x-auto">
+              <pre className="text-xs opacity-75 bg-white/10 p-2 rounded mt-1 overflow-x-auto">
                 {JSON.stringify(content.data, null, 2)}
               </pre>
             )}
@@ -254,17 +254,17 @@ export const ConversationLog = ({ messages, isActive }: ConversationLogProps) =>
   const messageGroups = groupMessagesByDate();
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900">
+    <div className="flex flex-col h-full bg-gray-900">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3">
+      <div className="bg-bg-gray-800 border-b border-gray-700 px-4 py-3">
         <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+          <h2 className="font-semibold text-gray-900 flex items-center gap-2">
             <span className="material-symbols-outlined">chat</span>
             Conversation Log
           </h2>
           <div className="flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${isActive ? 'bg-green-500' : 'bg-gray-400'}`} />
-            <span className="text-xs text-gray-500 dark:text-gray-400">
+            <span className="text-xs text-gray-500">
               {isActive ? 'Active' : 'Ended'}
             </span>
           </div>
@@ -274,7 +274,7 @@ export const ConversationLog = ({ messages, isActive }: ConversationLogProps) =>
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400">
+          <div className="flex flex-col items-center justify-center h-full text-gray-500">
             <span className="material-symbols-outlined text-4xl mb-2">chat_bubble_outline</span>
             <p className="text-sm">No messages yet</p>
           </div>
@@ -284,8 +284,8 @@ export const ConversationLog = ({ messages, isActive }: ConversationLogProps) =>
               <div key={date}>
                 {/* Date separator */}
                 <div className="flex items-center justify-center mb-4">
-                  <div className="bg-white dark:bg-gray-800 px-3 py-1 rounded-full shadow-sm">
-                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  <div className="bg-bg-gray-800 px-3 py-1 rounded-full shadow-sm">
+                    <span className="text-xs font-medium text-gray-600">
                       {date}
                     </span>
                   </div>
@@ -306,13 +306,13 @@ export const ConversationLog = ({ messages, isActive }: ConversationLogProps) =>
                         <div
                           className={`max-w-[75%] rounded-lg px-3 py-2 shadow-sm ${
                             isFromBot
-                              ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-tl-none'
-                              : 'bg-green-500 dark:bg-green-600 text-white rounded-tr-none'
+                              ? 'bg-bg-gray-800 text-gray-900 rounded-tl-none'
+                              : 'bg-green-600 text-white rounded-tr-none'
                           }`}
                         >
                           {/* Sender name for bot messages */}
                           {isFromBot && message.senderName && (
-                            <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-1">
+                            <p className="text-xs font-semibold text-blue-600 mb-1">
                               {message.senderName}
                             </p>
                           )}
@@ -322,7 +322,7 @@ export const ConversationLog = ({ messages, isActive }: ConversationLogProps) =>
 
                           {/* Timestamp and status */}
                           <div className="flex items-center justify-end gap-1 mt-1">
-                            <span className={`text-[10px] ${isFromBot ? 'text-gray-500 dark:text-gray-400' : 'text-white/80'}`}>
+                            <span className={`text-[10px] ${isFromBot ? 'text-gray-500' : 'text-white/80'}`}>
                               {formatTime(message.timestamp)}
                             </span>
                             {!isFromBot && message.status && (

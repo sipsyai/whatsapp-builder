@@ -71,7 +71,7 @@ export const PreviewDropdown: React.FC<PreviewDropdownProps> = ({
   return (
     <div className="mb-4">
       {/* Label */}
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+      <label className="block text-sm font-medium text-gray-300 mb-2">
         {component.label}
         {isRequired && <span className="text-red-500 ml-1">*</span>}
       </label>
@@ -85,8 +85,8 @@ export const PreviewDropdown: React.FC<PreviewDropdownProps> = ({
         className={`w-full px-3 py-2 border rounded-lg transition-colors focus:outline-none focus:ring-2 ${
           errorMessage
             ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-            : 'border-gray-300 dark:border-gray-600 focus:ring-green-500 focus:border-green-500'
-        } bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
+            : 'border-gray-600 focus:ring-green-500 focus:border-green-500'
+        } bg-gray-800 text-white ${
           !isEnabled ? 'opacity-50 cursor-not-allowed' : ''
         }`}
       >
@@ -142,14 +142,14 @@ export const PreviewRadioButtonsGroup: React.FC<PreviewRadioButtonsGroupProps> =
   return (
     <div className="mb-4">
       {/* Label */}
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+      <label className="block text-sm font-medium text-gray-300 mb-2">
         {component.label}
         {isRequired && <span className="text-red-500 ml-1">*</span>}
       </label>
 
       {/* Description */}
       {component.description && (
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{component.description}</p>
+        <p className="text-xs text-gray-400 mb-3">{component.description}</p>
       )}
 
       {/* Radio Options */}
@@ -163,8 +163,8 @@ export const PreviewRadioButtonsGroup: React.FC<PreviewRadioButtonsGroupProps> =
               key={item.id}
               className={`flex items-start p-3 border rounded-lg transition-all cursor-pointer ${
                 isSelected
-                  ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                  : 'border-gray-300 dark:border-gray-600 hover:border-green-300'
+                  ? 'border-green-500 bg-green-900/20'
+                  : 'border-gray-600 hover:border-green-300'
               } ${!isItemEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
               onClick={() => isItemEnabled && handleChange(item.id)}
             >
@@ -178,9 +178,9 @@ export const PreviewRadioButtonsGroup: React.FC<PreviewRadioButtonsGroupProps> =
                 className="mt-1 w-4 h-4 text-green-500 focus:ring-green-500 border-gray-300"
               />
               <div className="ml-3 flex-1">
-                <p className="text-sm font-medium text-gray-900 dark:text-white">{item.title}</p>
+                <p className="text-sm font-medium text-white">{item.title}</p>
                 {item.description && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{item.description}</p>
+                  <p className="text-xs text-gray-400 mt-1">{item.description}</p>
                 )}
               </div>
             </label>
@@ -236,14 +236,14 @@ export const PreviewCheckboxGroup: React.FC<PreviewCheckboxGroupProps> = ({
   return (
     <div className="mb-4">
       {/* Label */}
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+      <label className="block text-sm font-medium text-gray-300 mb-2">
         {component.label}
         {isRequired && <span className="text-red-500 ml-1">*</span>}
       </label>
 
       {/* Description */}
       {component.description && (
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{component.description}</p>
+        <p className="text-xs text-gray-400 mb-3">{component.description}</p>
       )}
 
       {/* Checkbox Options */}
@@ -257,8 +257,8 @@ export const PreviewCheckboxGroup: React.FC<PreviewCheckboxGroupProps> = ({
               key={item.id}
               className={`flex items-start p-3 border rounded-lg transition-all cursor-pointer ${
                 isSelected
-                  ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                  : 'border-gray-300 dark:border-gray-600 hover:border-green-300'
+                  ? 'border-green-500 bg-green-900/20'
+                  : 'border-gray-600 hover:border-green-300'
               } ${!isItemEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
               onClick={() => isItemEnabled && handleChange(item.id, !isSelected)}
             >
@@ -272,9 +272,9 @@ export const PreviewCheckboxGroup: React.FC<PreviewCheckboxGroupProps> = ({
                 className="mt-1 w-4 h-4 text-green-500 focus:ring-green-500 border-gray-300 rounded"
               />
               <div className="ml-3 flex-1">
-                <p className="text-sm font-medium text-gray-900 dark:text-white">{item.title}</p>
+                <p className="text-sm font-medium text-white">{item.title}</p>
                 {item.description && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{item.description}</p>
+                  <p className="text-xs text-gray-400 mt-1">{item.description}</p>
                 )}
               </div>
             </label>
@@ -330,14 +330,14 @@ export const PreviewChipsSelector: React.FC<PreviewChipsSelectorProps> = ({
   return (
     <div className="mb-4">
       {/* Label */}
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+      <label className="block text-sm font-medium text-gray-300 mb-2">
         {component.label}
         {isRequired && <span className="text-red-500 ml-1">*</span>}
       </label>
 
       {/* Description */}
       {component.description && (
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{component.description}</p>
+        <p className="text-xs text-gray-400 mb-3">{component.description}</p>
       )}
 
       {/* Chips */}
@@ -355,7 +355,7 @@ export const PreviewChipsSelector: React.FC<PreviewChipsSelectorProps> = ({
               className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                 isSelected
                   ? 'bg-green-500 text-white hover:bg-green-600'
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
               } ${!isItemEnabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
             >
               {item.title}

@@ -100,10 +100,10 @@ export function FlowPreview({
 
   if (!currentScreen) {
     return (
-      <div className="flex items-center justify-center h-full bg-zinc-100 dark:bg-zinc-900">
+      <div className="flex items-center justify-center h-full bg-zinc-900">
         <div className="text-center space-y-4">
           <div className="text-4xl">⚠️</div>
-          <div className="text-zinc-600 dark:text-zinc-400">
+          <div className="text-zinc-400">
             <p className="font-medium">Screen not found</p>
             <p className="text-sm">The selected screen does not exist.</p>
           </div>
@@ -113,20 +113,20 @@ export function FlowPreview({
   }
 
   return (
-    <div className="flex flex-col h-full bg-zinc-100 dark:bg-zinc-900">
+    <div className="flex flex-col h-full bg-zinc-900">
       {/* Preview Controls */}
-      <div className="flex-shrink-0 bg-white dark:bg-[#112217] border-b border-zinc-200 dark:border-white/10">
+      <div className="flex-shrink-0 bg-[#112217] border-b border-white/10">
         <div className="flex items-center justify-between px-6 py-3">
           {/* Left: Screen Info */}
           <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-zinc-500 dark:text-zinc-400">
+            <span className="material-symbols-outlined text-zinc-400">
               phonelink
             </span>
             <div>
-              <div className="text-sm font-medium text-zinc-900 dark:text-white">
+              <div className="text-sm font-medium text-white">
                 Flow Preview
               </div>
-              <div className="text-xs text-zinc-500 dark:text-zinc-400">
+              <div className="text-xs text-zinc-400">
                 {currentScreen.title || currentScreen.id}
               </div>
             </div>
@@ -135,14 +135,14 @@ export function FlowPreview({
           {/* Right: Actions */}
           <div className="flex items-center gap-2">
             {/* Navigation History */}
-            <div className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400">
+            <div className="flex items-center gap-1 text-xs text-zinc-400">
               <span className="material-symbols-outlined text-sm">layers</span>
               <span>
                 {navigationHistory.length} screen{navigationHistory.length !== 1 ? 's' : ''}
               </span>
             </div>
 
-            <div className="w-px h-6 bg-zinc-200 dark:bg-zinc-700 mx-2" />
+            <div className="w-px h-6 bg-zinc-700 mx-2" />
 
             {/* Back Button */}
             <button
@@ -150,8 +150,8 @@ export function FlowPreview({
               disabled={navigationHistory.length <= 1}
               className="
                 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium
-                text-zinc-700 dark:text-zinc-300
-                hover:bg-zinc-100 dark:hover:bg-white/5
+                text-zinc-300
+                hover:bg-white/5
                 disabled:opacity-50 disabled:cursor-not-allowed
                 transition-colors
               "
@@ -166,8 +166,8 @@ export function FlowPreview({
               onClick={handleReset}
               className="
                 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium
-                text-zinc-700 dark:text-zinc-300
-                hover:bg-zinc-100 dark:hover:bg-white/5
+                text-zinc-300
+                hover:bg-white/5
                 transition-colors
               "
               title="Reset preview to first screen"
@@ -194,33 +194,33 @@ export function FlowPreview({
 
       {/* Debug Panel (optional, for development) */}
       {process.env.NODE_ENV === 'development' && (
-        <div className="flex-shrink-0 border-t border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-[#0d1912]">
+        <div className="flex-shrink-0 border-t border-white/10 bg-[#0d1912]">
           <details className="group">
-            <summary className="px-6 py-2 cursor-pointer text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white">
+            <summary className="px-6 py-2 cursor-pointer text-xs font-medium text-zinc-400 hover:text-white">
               Debug Info
             </summary>
             <div className="px-6 pb-3 space-y-2">
               <div>
-                <div className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
+                <div className="text-xs font-semibold text-zinc-300 mb-1">
                   Current Screen:
                 </div>
-                <div className="text-xs font-mono text-zinc-600 dark:text-zinc-400">
+                <div className="text-xs font-mono text-zinc-400">
                   {currentScreen.id}
                 </div>
               </div>
               <div>
-                <div className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
+                <div className="text-xs font-semibold text-zinc-300 mb-1">
                   Navigation History:
                 </div>
-                <div className="text-xs font-mono text-zinc-600 dark:text-zinc-400">
+                <div className="text-xs font-mono text-zinc-400">
                   {navigationHistory.join(' → ')}
                 </div>
               </div>
               <div>
-                <div className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
+                <div className="text-xs font-semibold text-zinc-300 mb-1">
                   Form Data:
                 </div>
-                <pre className="text-xs font-mono text-zinc-600 dark:text-zinc-400 bg-white dark:bg-[#112217] p-2 rounded border border-zinc-200 dark:border-zinc-700 overflow-auto max-h-40">
+                <pre className="text-xs font-mono text-zinc-400 bg-[#112217] p-2 rounded border border-zinc-700 overflow-auto max-h-40">
                   {JSON.stringify(formData, null, 2)}
                 </pre>
               </div>
