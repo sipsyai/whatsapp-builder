@@ -178,6 +178,7 @@ See [WEBHOOK_QUICKSTART.md](./WEBHOOK_QUICKSTART.md#-sorun-giderme) for common i
 - PostgreSQL 14+
 - Socket.IO 4.8.1
 - Axios 1.13.2
+- Terminus (Health Checks)
 
 ### Frontend
 - React 19.2.0
@@ -187,6 +188,87 @@ See [WEBHOOK_QUICKSTART.md](./WEBHOOK_QUICKSTART.md#-sorun-giderme) for common i
 - Socket.IO Client 4.8.1
 - Google Generative AI 1.30.0
 - Vite 7.2.5
+- Tailwind CSS v4
+
+## 🐳 Production Deployment with Docker
+
+### Quick Production Setup
+
+```bash
+# 1. Create production environment file
+cp .env.production.example .env
+
+# 2. Edit .env with your production values
+nano .env
+
+# 3. Build and start all services
+docker compose -f docker-compose.prod.yml up -d --build
+
+# 4. Run database migrations
+docker compose exec backend npm run migration:run
+
+# 5. (Optional) Start with Cloudflare Tunnel
+docker compose -f docker-compose.prod.yml --profile tunnel up -d
+```
+
+### What's Included
+
+The production setup includes:
+- **Single Docker Image**: Frontend + Backend in one container
+- **PostgreSQL Database**: Persistent data storage with health checks
+- **Cloudflare Tunnel**: Optional secure HTTPS tunnel (no port forwarding needed)
+- **Health Checks**: `/health`, `/health/liveness`, `/health/readiness`
+- **Production Optimized**: Multi-stage build, non-root user, minimal image size
+
+### Production URL
+
+Live demo: https://whatsapp.sipsy.ai
+
+### Environment Variables
+
+Required production environment variables (see `.env.production.example`):
+
+```bash
+# Database
+DB_PASSWORD=your_secure_password
+
+# WhatsApp API
+WHATSAPP_ACCESS_TOKEN=your_token
+PHONE_NUMBER_ID=your_phone_id
+WABA_ID=your_waba_id
+WHATSAPP_APP_SECRET=your_app_secret
+WEBHOOK_VERIFY_TOKEN=your_verify_token
+
+# URLs
+FRONTEND_URL=https://your-domain.com
+```
+
+### Health Check Endpoints
+
+- **GET /health** - Full health check (database, memory)
+- **GET /health/liveness** - Liveness probe (basic uptime)
+- **GET /health/readiness** - Readiness probe (dependencies ready)
+
+### Docker Commands
+
+```bash
+# View logs
+docker compose logs -f backend
+
+# Stop all services
+docker compose -f docker-compose.prod.yml down
+
+# Restart backend only
+docker compose restart backend
+
+# Access database
+docker compose exec postgres psql -U postgres -d whatsapp_builder
+
+# Backup database
+docker compose exec postgres pg_dump -U postgres whatsapp_builder > backup.sql
+```
+
+See [docs/PRODUCTION_DEPLOYMENT.md](./docs/PRODUCTION_DEPLOYMENT.md) for detailed production setup guide.
 
 ## 🔗 Resources
 
@@ -196,3 +278,4 @@ See [WEBHOOK_QUICKSTART.md](./WEBHOOK_QUICKSTART.md#-sorun-giderme) for common i
 - [NestJS Documentation](https://nestjs.com)
 - [Dagre Documentation](https://github.com/dagrejs/dagre/wiki)
 - [Google Gemini API](https://ai.google.dev/)
+- [Tailwind CSS v4](https://tailwindcss.com/docs)

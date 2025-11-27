@@ -1,0 +1,64 @@
+# Dependencies
+node_modules
+**/node_modules
+
+# Build outputs (we build inside Docker)
+dist
+**/dist
+build
+**/build
+
+# Environment files (secrets)
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!.env.production.example
+!**/.env.example
+!**/.env.production.example
+
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Test & Coverage
+coverage
+**/coverage
+.nyc_output
+
+# Temporary files
+tmp
+temp
+*.tmp
+
+# Docker files (not needed inside container)
+docker-compose*.yml
+Dockerfile*
+
+# Documentation
+docs
+*.md
+!README.md
+
+# Scripts (development only)
+scripts
+
+# Misc
+.claude
+.dockerignore

@@ -1,0 +1,113 @@
+# =====================================================
+# WhatsApp Builder - Production Docker Compose
+# =====================================================
+# Usage:
+#   1. Copy .env.production.example to .env
+#   2. Fill in your production values
+#   3. Run: docker compose -f docker-compose.prod.yml up -d --build
+#   4. Run migrations: docker compose exec backend npm run migration:run
+# =====================================================
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: whatsapp-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      POSTGRES_DB: ${DB_NAME:-whatsapp_builder}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - whatsapp-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_NAME:-whatsapp_builder}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Backend Application (NestJS + Frontend Static Files)
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: whatsapp-backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # Application
+      NODE_ENV: production
+      PORT: 3000
+
+      # Database
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      DB_NAME: ${DB_NAME:-whatsapp_builder}
+      DB_SYNCHRONIZE: "false"
+      DB_LOGGING: "false"
+
+      # WhatsApp API
+      WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:?WHATSAPP_ACCESS_TOKEN is required}
+      PHONE_NUMBER_ID: ${PHONE_NUMBER_ID:?PHONE_NUMBER_ID is required}
+      WABA_ID: ${WABA_ID:?WABA_ID is required}
+      WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:?WHATSAPP_APP_SECRET is required}
+      WEBHOOK_VERIFY_TOKEN: ${WEBHOOK_VERIFY_TOKEN:?WEBHOOK_VERIFY_TOKEN is required}
+      API_VERSION: ${API_VERSION:-v24.0}
+      WHATSAPP_API_VERSION: ${WHATSAPP_API_VERSION:-v24.0}
+      BASE_URL: https://graph.facebook.com/${API_VERSION:-v24.0}
+      WHATSAPP_BASE_URL: https://graph.facebook.com
+
+      # URLs (Cloudflare Tunnel domain)
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      FLOW_ENDPOINT_URL: ${FLOW_ENDPOINT_URL}
+      WEBHOOK_URL: ${WEBHOOK_URL}
+
+      # Optional
+      ADMIN_PHONE_NUMBERS: ${ADMIN_PHONE_NUMBERS:-}
+      WHATSAPP_FLOW_PRIVATE_KEY: ${WHATSAPP_FLOW_PRIVATE_KEY:-}
+      STRAPI_BASE_URL: ${STRAPI_BASE_URL:-}
+      STRAPI_API_TOKEN: ${STRAPI_API_TOKEN:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - whatsapp-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Cloudflare Tunnel (opsiyonel - tunnel token eklenince aktifleşir)
+  # Başlatmak için: docker compose -f docker-compose.prod.yml --profile tunnel up -d
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: whatsapp-tunnel
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - whatsapp-network
+    profiles:
+      - tunnel
+
+networks:
+  whatsapp-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    # Mevcut veritabanı volume'unu kullan (verileri koru)
+    external: true
+    name: 22ff0dcebe87a29ec3b1c93fccb835e6a7273b6f48218b51533a3a0bc1117165

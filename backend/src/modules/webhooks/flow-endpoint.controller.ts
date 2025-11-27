@@ -54,13 +54,7 @@ export class FlowEndpointController {
         }).toString();
 
         this.logger.log('Using Flow private key from environment variable');
-
-        console.log('\n=================================');
-        console.log('WhatsApp Flow Endpoint Public Key:');
-        console.log('=================================');
-        console.log(this.flowPublicKey);
-        console.log('=================================\n');
-        console.log('This public key should be uploaded to Meta WhatsApp Flow configuration.\n');
+        this.logger.debug('Flow public key loaded successfully');
       } catch (error) {
         this.logger.error('Failed to extract public key from private key:', error.message);
         throw new Error('Invalid WHATSAPP_FLOW_PRIVATE_KEY in environment');
@@ -71,13 +65,9 @@ export class FlowEndpointController {
       this.flowPrivateKey = keys.privateKey;
       this.flowPublicKey = keys.publicKey;
 
-      console.log('\n=================================');
-      console.log('WhatsApp Flow Endpoint Public Key:');
-      console.log('=================================');
-      console.log(this.flowPublicKey);
-      console.log('=================================\n');
-      console.log('Copy this public key to Meta WhatsApp Flow configuration.');
-      console.log('For production, set WHATSAPP_FLOW_PRIVATE_KEY in .env\n');
+      this.logger.warn('No WHATSAPP_FLOW_PRIVATE_KEY found - generated temporary keys for development');
+      this.logger.warn('For production, set WHATSAPP_FLOW_PRIVATE_KEY in environment');
+      this.logger.debug('Generated public key for Flow endpoint');
     }
   }
 

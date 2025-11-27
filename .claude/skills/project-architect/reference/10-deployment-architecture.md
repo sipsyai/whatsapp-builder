@@ -114,32 +114,54 @@ server {
 ```
 
 #### 2. Backend Servers
-**Technology**: NestJS on Node.js 18+
+**Technology**: NestJS on Node.js 20+
 
 **Deployment Options**:
 - **Docker Containers**: AWS ECS, GCP Cloud Run, Azure Container Instances
 - **Kubernetes**: AWS EKS, GCP GKE, Azure AKS
 - **VM Instances**: AWS EC2, GCP Compute Engine, Azure VMs
-- **Serverless**: AWS Lambda + API Gateway (requires adaptation)
+- **Cloudflare Tunnel**: Secure HTTPS without port forwarding
 
-**Docker Image**:
+**Production Docker Image** (Multi-stage: Frontend + Backend):
 ```dockerfile
-# Dockerfile
-FROM node:18-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY . .
+# Stage 1: Build Frontend
+FROM node:20-alpine AS frontend-builder
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ ./
 RUN npm run build
 
-FROM node:18-alpine
+# Stage 2: Build Backend
+FROM node:20-alpine AS backend-builder
+WORKDIR /app/backend
+COPY backend/package*.json ./
+RUN npm ci
+COPY backend/ ./
+RUN npm run build
+
+# Stage 3: Production
+FROM node:20-alpine AS production
+ENV NODE_ENV=production
 WORKDIR /app
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY package*.json ./
+RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001
+COPY backend/package*.json ./
+RUN npm ci --only=production
+COPY --from=backend-builder /app/backend/dist ./dist
+COPY --from=frontend-builder /app/frontend/dist ./public
+RUN chown -R nestjs:nodejs /app
+USER nestjs
 EXPOSE 3000
-CMD ["node", "dist/main.js"]
+HEALTHCHECK CMD wget --spider http://localhost:3000/health || exit 1
+CMD ["node", "dist/src/main.js"]
 ```
+
+**Features**:
+- Single container serves both frontend and backend
+- Non-root user for security
+- Health check endpoint
+- Production optimized (~200MB image)
+- Frontend served via NestJS `ServeStaticModule`
 
 #### 3. Database (PostgreSQL)
 **Configuration**:
@@ -222,51 +244,227 @@ io.adapter(createAdapter(pubClient, subClient));
 
 ## Deployment Strategies
 
-### 1. Docker Compose (Development/Staging)
-**File**: `docker-compose.yml`
+### 1. Docker Compose (Production)
+
+WhatsApp Builder now uses a **single Docker image** that serves both frontend and backend, optimized for production deployment.
+
+**Architecture**:
+- Multi-stage Docker build (Frontend → Backend → Production)
+- NestJS `ServeStaticModule` serves frontend static files
+- PostgreSQL container with persistent volume
+- Optional Cloudflare Tunnel for secure HTTPS
+
+**File**: `docker-compose.prod.yml`
 
 ```yaml
-version: '3.8'
-
 services:
+  # PostgreSQL Database
   postgres:
-    image: postgres:14-alpine
+    image: postgres:15-alpine
+    container_name: whatsapp-db
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: whatsapp_builder
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      POSTGRES_DB: ${DB_NAME:-whatsapp_builder}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    networks:
+      - whatsapp-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  # Backend + Frontend (Single Container)
   backend:
-    build: ./backend
-    environment:
-      NODE_ENV: production
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USERNAME: postgres
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_NAME: whatsapp_builder
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: whatsapp-backend
+    restart: unless-stopped
     ports:
       - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: postgres
+      WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN}
+      # ... other env vars
     depends_on:
-      - postgres
-    restart: unless-stopped
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
-  frontend:
-    build: ./frontend
-    ports:
-      - "80:80"
-    depends_on:
-      - backend
+  # Cloudflare Tunnel (Optional)
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+    profiles:
+      - tunnel
+
+networks:
+  whatsapp-network:
 
 volumes:
   postgres_data:
 ```
 
-### 2. Kubernetes (Production)
+**Deployment Steps**:
+```bash
+# 1. Create environment file
+cp .env.production.example .env
+nano .env
+
+# 2. Build and start
+docker compose -f docker-compose.prod.yml up -d --build
+
+# 3. Run migrations
+docker compose exec backend npm run migration:run
+
+# 4. (Optional) Start with Cloudflare Tunnel
+docker compose -f docker-compose.prod.yml --profile tunnel up -d
+```
+
+**Multi-Stage Dockerfile**:
+```dockerfile
+# Stage 1: Build Frontend
+FROM node:20-alpine AS frontend-builder
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
+
+# Stage 2: Build Backend
+FROM node:20-alpine AS backend-builder
+WORKDIR /app/backend
+COPY backend/package*.json ./
+RUN npm ci
+COPY backend/ ./
+RUN npm run build
+
+# Stage 3: Production
+FROM node:20-alpine AS production
+ENV NODE_ENV=production
+WORKDIR /app
+
+# Non-root user
+RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001
+
+# Install production dependencies
+COPY backend/package*.json ./
+RUN npm ci --only=production
+
+# Copy built artifacts
+COPY --from=backend-builder /app/backend/dist ./dist
+COPY --from=frontend-builder /app/frontend/dist ./public
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s \
+  CMD wget --spider http://localhost:3000/health || exit 1
+
+USER nestjs
+EXPOSE 3000
+CMD ["node", "dist/src/main.js"]
+```
+
+### 2. Health Check Endpoints
+
+WhatsApp Builder includes comprehensive health check endpoints powered by `@nestjs/terminus`:
+
+**File**: `backend/src/modules/health/health.controller.ts`
+
+```typescript
+@Controller('health')
+export class HealthController {
+  @Get()
+  @HealthCheck()
+  check() {
+    return this.health.check([
+      () => this.db.pingCheck('database'),
+      () => this.memory.checkHeap('memory_heap', 300 * 1024 * 1024),
+    ]);
+  }
+
+  @Get('liveness')
+  liveness() {
+    return {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  @Get('readiness')
+  @HealthCheck()
+  readiness() {
+    return this.health.check([
+      () => this.db.pingCheck('database'),
+    ]);
+  }
+}
+```
+
+**Endpoints**:
+- `GET /health` - Full health check (database connection, memory usage)
+- `GET /health/liveness` - Simple liveness probe (container is running)
+- `GET /health/readiness` - Readiness probe (dependencies are ready)
+
+**Usage in Docker**:
+```dockerfile
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+  CMD wget --spider http://localhost:3000/health || exit 1
+```
+
+**Usage in Kubernetes**:
+```yaml
+livenessProbe:
+  httpGet:
+    path: /health/liveness
+    port: 3000
+  initialDelaySeconds: 30
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /health/readiness
+    port: 3000
+  initialDelaySeconds: 10
+  periodSeconds: 5
+```
+
+### 3. Cloudflare Tunnel Integration
+
+Production deployment uses Cloudflare Tunnel for secure HTTPS access without port forwarding:
+
+**Benefits**:
+- No public IP or port forwarding needed
+- Automatic HTTPS with Cloudflare SSL
+- DDoS protection by default
+- Easy domain management
+
+**Setup**:
+```bash
+# 1. Create tunnel in Cloudflare Dashboard
+# 2. Copy tunnel token
+# 3. Add to .env
+CLOUDFLARE_TUNNEL_TOKEN=your_token_here
+
+# 4. Start with tunnel profile
+docker compose -f docker-compose.prod.yml --profile tunnel up -d
+```
+
+**Production URL**: https://whatsapp.sipsy.ai
+
+### 4. Kubernetes (Production)
 **Deployment Manifest**:
 
 ```yaml

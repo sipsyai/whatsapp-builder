@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from './config/config.module';
@@ -13,12 +15,21 @@ import { ConversationsModule } from './modules/conversations/conversations.modul
 import { MessagesModule } from './modules/messages/messages.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { WebSocketModule } from './modules/websocket/websocket.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
     ConfigModule,
     DatabaseModule,
     ScheduleModule.forRoot(),
+    // Serve frontend static files in production
+    // In Docker: __dirname = /app/dist/src, so we go up twice to get /app
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', '..', 'public'),
+      serveStaticOptions: {
+        index: ['index.html'],
+      },
+    }),
     WhatsAppModule,
     ChatBotsModule,
     FlowsModule,
@@ -28,6 +39,7 @@ import { WebSocketModule } from './modules/websocket/websocket.module';
     MessagesModule,
     WebSocketModule,
     WebhooksModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

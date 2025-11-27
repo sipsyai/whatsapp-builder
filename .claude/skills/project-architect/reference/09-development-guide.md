@@ -50,6 +50,7 @@ DB_USERNAME=postgres
 DB_PASSWORD=your_password
 DB_NAME=whatsapp_builder
 DB_LOGGING=true
+DB_SYNCHRONIZE=false
 
 # Application
 PORT=3000
@@ -57,10 +58,16 @@ NODE_ENV=development
 FRONTEND_URL=http://localhost:5173
 
 # WhatsApp API (get from Meta Developer Portal)
-WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id
+PHONE_NUMBER_ID=your_phone_number_id
+WABA_ID=your_waba_id
 WHATSAPP_ACCESS_TOKEN=your_access_token
-WHATSAPP_WEBHOOK_VERIFY_TOKEN=your_custom_verify_token
+WEBHOOK_VERIFY_TOKEN=your_custom_verify_token
 WHATSAPP_APP_SECRET=your_app_secret
+API_VERSION=v24.0
+WHATSAPP_API_VERSION=v24.0
+
+# Optional (for WhatsApp Flows encryption)
+WHATSAPP_FLOW_PRIVATE_KEY=your_private_key
 ```
 
 **Frontend** (`.env` in `/frontend` directory):
@@ -77,16 +84,21 @@ VITE_API_KEY=your_gemini_api_key
 
 | Variable | Required | Default | Description | Usage |
 |----------|----------|---------|-------------|-------|
-| `VITE_API_URL` | Yes | `http://localhost:3000` | Base URL for backend REST API | Used in `/frontend/src/api/client.ts` for Axios base URL. All HTTP requests (chatbots, conversations, messages) use this URL. |
-| `VITE_WS_URL` | Yes | `http://localhost:3000` | Base URL for WebSocket connection | Used in `/frontend/src/api/socket.ts` for Socket.IO connection. Real-time message updates use this URL. |
-| `VITE_API_KEY` | No | - | Google Gemini API key for AI flow generation | Used in `/frontend/src/features/builder/components/BuilderPage.tsx` (line 221). Required only if using "AI Build" feature. Get from [Google AI Studio](https://makersuite.google.com/app/apikey). |
+| `VITE_API_URL` | No* | `http://localhost:3000` | Base URL for backend REST API | Used in `/frontend/src/api/client.ts`. In production, uses relative URLs automatically. |
+| `VITE_WS_URL` | No* | `http://localhost:3000` | Base URL for WebSocket connection | Used in `/frontend/src/api/socket.ts`. In production, uses `window.location.origin` automatically. |
+| `VITE_API_KEY` | No | - | Google Gemini API key for AI flow generation | Used in `/frontend/src/features/builder/components/BuilderPage.tsx`. Required only if using "AI Build" feature. Get from [Google AI Studio](https://makersuite.google.com/app/apikey). |
+
+**Production Note**: Frontend automatically detects production environment and uses relative URLs, so `VITE_API_URL` and `VITE_WS_URL` are only needed for development or custom deployments.
 
 **Environment Variable Usage in Code**:
 
 1. **VITE_API_URL** - REST API Client:
 ```typescript
 // File: frontend/src/api/client.ts
-const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const isDevelopment = import.meta.env.MODE === 'development';
+const baseURL = isDevelopment
+  ? import.meta.env.VITE_API_URL || 'http://localhost:3000'
+  : ''; // Relative URL in production
 
 export const client = axios.create({
   baseURL,
@@ -99,7 +111,10 @@ export const client = axios.create({
 2. **VITE_WS_URL** - WebSocket Connection:
 ```typescript
 // File: frontend/src/api/socket.ts
-const URL = import.meta.env.VITE_WS_URL || 'http://localhost:3000';
+const isDevelopment = import.meta.env.MODE === 'development';
+const URL = isDevelopment
+  ? import.meta.env.VITE_WS_URL || 'http://localhost:3000'
+  : window.location.origin;
 
 export const socket = io(`${URL}/messages`, {
   autoConnect: false,
@@ -123,15 +138,16 @@ const ai = new GoogleGenAI({ apiKey });
 
 **Production Configuration**:
 ```bash
-# Production example
-VITE_API_URL=https://api.yourdomain.com
-VITE_WS_URL=https://api.yourdomain.com
+# Production - URLs are auto-detected, only set if using custom setup
+# VITE_API_URL=https://api.yourdomain.com (optional)
+# VITE_WS_URL=https://api.yourdomain.com (optional)
 VITE_API_KEY=your_production_gemini_key
 ```
 
 **Important Notes**:
 - All Vite environment variables must start with `VITE_` prefix to be exposed to client
 - Variables are embedded at build time (not runtime)
+- Production deployments use relative URLs automatically (frontend and backend in same container)
 - Sensitive keys (like VITE_API_KEY) are exposed to browser - consider server-side proxy for production
 - Create `.env.local` for local overrides (gitignored by default)
 
