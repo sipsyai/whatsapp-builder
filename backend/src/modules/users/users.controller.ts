@@ -1,9 +1,11 @@
-import { Controller, Get, Post, Put, Delete, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Put, Patch, Delete, Body, Param } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserResponseDto } from './dto/user-response.dto';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { CurrentUserData } from '../auth/decorators/current-user.decorator';
 
 @ApiTags('Users')
 @Controller('api/users')
@@ -46,8 +48,8 @@ export class UsersController {
 
   @Put(':id')
   @ApiOperation({
-    summary: 'Update user',
-    description: 'Updates an existing user with the provided information',
+    summary: 'Update user (full update)',
+    description: 'Updates an existing user with the provided information (PUT - full update)',
   })
   @ApiParam({ name: 'id', description: 'User UUID', type: 'string' })
   @ApiBody({ type: UpdateUserDto })
@@ -55,6 +57,21 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'User not found' })
   @ApiResponse({ status: 400, description: 'Invalid input data' })
   update(@Param('id') id: string, @Body() updateData: UpdateUserDto) {
+    return this.usersService.update(id, updateData);
+  }
+
+  @Patch(':id')
+  @ApiOperation({
+    summary: 'Partially update user',
+    description: 'Updates specific fields of an existing user (PATCH - partial update)',
+  })
+  @ApiParam({ name: 'id', description: 'User UUID', type: 'string' })
+  @ApiBody({ type: UpdateUserDto })
+  @ApiResponse({ status: 200, description: 'User updated successfully', type: UserResponseDto })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 400, description: 'Invalid input data or email already exists' })
+  @ApiResponse({ status: 409, description: 'Phone number or email already exists' })
+  partialUpdate(@Param('id') id: string, @Body() updateData: UpdateUserDto) {
     return this.usersService.update(id, updateData);
   }
 
@@ -66,7 +83,8 @@ export class UsersController {
   @ApiParam({ name: 'id', description: 'User UUID', type: 'string' })
   @ApiResponse({ status: 200, description: 'User deleted successfully' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  delete(@Param('id') id: string) {
-    return this.usersService.delete(id);
+  @ApiResponse({ status: 403, description: 'Cannot delete your own account' })
+  delete(@Param('id') id: string, @CurrentUser() currentUser: CurrentUserData) {
+    return this.usersService.delete(id, currentUser.userId);
   }
 }

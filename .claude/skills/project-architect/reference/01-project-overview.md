@@ -120,7 +120,16 @@
 ### 6. User & Conversation Management
 **Location**: `/backend/src/modules/users/`, `/backend/src/modules/conversations/`
 
+**User Management**:
+- **Full CRUD Operations**: Create, Read, Update, Delete users via API and UI
+- **Self-Deletion Prevention**: Multi-layer security (frontend + backend) prevents users from deleting their own account
+- **Form Validation**: Client and server-side validation (name required, email format)
+- **Email Uniqueness**: Database and service-level validation prevents duplicate emails
 - **User Registry**: Automatic user creation from WhatsApp contacts
+- **Admin Interface**: User management page with avatar display, edit/delete actions
+- **JWT Integration**: Uses @CurrentUser() decorator for authorization
+
+**Conversation Management**:
 - **Conversation Threading**: Group messages by conversation with participant tracking
 - **Message History**: Complete audit trail of all messages
 - **Multi-participant Support**: Ready for group conversations (M2M relationships)
@@ -307,7 +316,8 @@ Backend (message received) → MessagesGateway.emitMessageReceived()
 6. **WhatsAppModule** - WhatsApp API integration
 7. **FlowsModule** - WhatsApp Flows lifecycle management
 8. **MediaModule** - Media upload and retrieval
-9. **UsersModule** - User management
+9. **UsersModule** - User CRUD with security (self-deletion prevention, email uniqueness)
+10. **AuthModule** - JWT authentication and authorization
 
 #### Frontend Features
 1. **Builder** - Flow builder interface
@@ -316,7 +326,8 @@ Backend (message received) → MessagesGateway.emitMessageReceived()
 4. **Flows** - WhatsApp Flows management UI
 5. **Conversations** - Conversation list
 6. **Nodes** - Custom ReactFlow node components (including WhatsAppFlowNode)
-7. **Users** - User management interface
+7. **Users** - User management interface with CRUD operations, form validation, and self-deletion prevention
+8. **Sessions** - Session tracking with search, export, and deletion features
 
 ### Database Schema
 - **Tables**: 8 core tables (users, chatbots, conversations, messages, conversation_contexts, whatsapp_config, whatsapp_flows, conversation_participants)

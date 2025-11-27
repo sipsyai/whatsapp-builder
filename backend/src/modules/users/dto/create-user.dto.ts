@@ -1,17 +1,28 @@
-import { IsString, IsNotEmpty, IsOptional, MaxLength, Matches } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, MaxLength, Matches, IsEmail } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateUserDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Phone number in E.164 format',
     example: '+905321234567',
     maxLength: 20,
   })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   @MaxLength(20)
   @Matches(/^\+?[1-9]\d{1,14}$/, { message: 'Phone number must be in E.164 format' })
-  phoneNumber: string;
+  phoneNumber?: string;
+
+  @ApiPropertyOptional({
+    description: 'User email address',
+    example: 'john@example.com',
+    maxLength: 255,
+  })
+  @IsOptional()
+  @IsString()
+  @IsEmail({}, { message: 'Email must be a valid email address' })
+  @MaxLength(255)
+  email?: string;
 
   @ApiProperty({
     description: 'User display name',

@@ -198,9 +198,22 @@ Implementation Guidance
    - Integration: WhatsApp API, WebSocket
 
 4. **users** - User management
-   - Controller: UsersController
+   - Controller: UsersController (GET, POST, PUT, PATCH, DELETE /api/users)
    - Service: UsersService
-   - Pattern: Simple CRUD
+   - DTOs: CreateUserDto, UpdateUserDto, UserResponseDto
+   - Features:
+     - Full CRUD operations with Swagger documentation
+     - Self-deletion prevention (multi-layer: frontend + backend)
+     - Form validation (name required, email format with regex)
+     - Email uniqueness validation (409 Conflict on duplicates)
+     - Phone number uniqueness validation
+     - Partial updates via PATCH endpoint
+   - Security:
+     - Users cannot delete their own account (403 Forbidden)
+     - Frontend disables delete button for current user
+     - Backend validates currentUserId !== targetUserId
+     - JWT-based authentication with @CurrentUser() decorator
+   - Pattern: Enhanced CRUD with multi-layer security and validation
 
 5. **webhooks** - WhatsApp webhook handling
    - Controller: WebhooksController
@@ -261,7 +274,38 @@ Implementation Guidance
    - VariablesPanel: Session context variables display
    - Features: URL deep linking, CSV/JSON export, date filtering
 
-6. **users**, **settings**, **conversations**, **landing** - Supporting features
+6. **users** - User management interface
+   - UsersPage.tsx: User list with table view
+   - api.ts: User API service (getUsers, createUser, updateUser, deleteUser)
+   - Features:
+     - Create new users via modal form
+     - Edit existing users with pre-filled modal
+     - Delete users with confirmation dialog
+     - Real-time form validation with error messages
+   - Form Validation:
+     - Name: Required field (client-side)
+     - Email: Required + format validation using regex
+     - Error messages clear when user types
+     - Submit button disabled when validation fails
+   - Security:
+     - Self-deletion prevention (multi-layer protection)
+     - Disabled delete button for current user
+     - Frontend JavaScript check prevents self-deletion
+     - Tooltip explains why delete is disabled
+     - useAuth() hook provides current user context
+   - UI Components:
+     - User avatar circles (shows first letter of name/email)
+     - Action buttons (edit/delete) with hover effects
+     - Modal forms with backdrop blur
+     - Red border on invalid form fields
+     - Inline error messages
+   - Visual Design:
+     - Dark mode optimized
+     - WhatsApp-inspired color scheme
+     - Responsive table layout
+     - Smooth transitions and hover states
+
+7. **settings**, **conversations**, **landing** - Supporting features
 
 **Shared Code** (`frontend/src/`):
 - **api/** - API clients and services
@@ -647,6 +691,10 @@ For detailed documentation, see:
 10. [10-deployment-architecture.md](reference/10-deployment-architecture.md) - Production setup
 11. [11-flow-builder-feature.md](reference/11-flow-builder-feature.md) - WhatsApp Flow Builder
 12. [12-session-tracking-feature.md](reference/12-session-tracking-feature.md) - Session tracking with search, export, deletion
+13. [13-rest-api-node-feature.md](reference/13-rest-api-node-feature.md) - REST API node integration
+14. [14-chatbot-builder-auto-layout.md](reference/14-chatbot-builder-auto-layout.md) - Auto layout system
+15. [15-authentication-security.md](reference/15-authentication-security.md) - JWT authentication and security
+16. [16-users-management-feature.md](reference/16-users-management-feature.md) - User management with security features
 
 ## Summary
 
@@ -664,6 +712,7 @@ This skill provides comprehensive knowledge of the WhatsApp Builder project arch
 - ✅ Authentication (JWT) - Implemented with login page and token-based access
 - ✅ API documentation (Swagger) - Available at /api/docs
 - ✅ Session management features - Search, export, deletion, deep linking
+- ✅ User management - CRUD operations with security features and form validation
 
 **Areas for Future Enhancement**:
 - Rate limiting

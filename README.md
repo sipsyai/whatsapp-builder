@@ -56,6 +56,23 @@ A powerful WhatsApp chatbot builder with visual flow designer and conversation m
 - Session control (stop active sessions)
 - **Completed Today/Yesterday Counter** for session statistics
 
+### User Management
+- **User CRUD Operations** (Create, Read, Update, Delete)
+- **Self-Deletion Prevention** - Multi-layer protection (frontend + backend)
+  - Disabled delete button for current user with tooltip
+  - Frontend validation prevents self-deletion attempts
+  - Backend returns 403 Forbidden if self-deletion is attempted via API
+- **Form Validation** - Client and server-side validation
+  - Name: Required field validation
+  - Email: Required + format validation using regex
+  - Real-time error clearing on user input
+- **Email Uniqueness Validation** - Prevents duplicate email addresses
+  - Checked during user creation and updates
+  - Returns 409 Conflict with clear error message
+- **Edit Modal** - Pre-filled form for updating user details
+- **User List Display** - Avatar circles, name, email, creation date
+- **API Documentation** - Complete Swagger documentation for all endpoints
+
 ### Real-time Communication
 - Socket.IO integration for live updates
 - Message delivery status tracking

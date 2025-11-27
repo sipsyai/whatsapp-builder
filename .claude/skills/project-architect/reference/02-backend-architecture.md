@@ -215,8 +215,61 @@ Disconnect → Remove from tracking → Broadcast user:offline
 ---
 
 ### 7. MediaModule & UsersModule
+
 **MediaModule**: Media file uploads to WhatsApp API (`MediaService.uploadMedia()`)
-**UsersModule**: Basic user CRUD
+
+**UsersModule**
+**Path**: `/backend/src/modules/users/`
+
+**Entity**: User
+
+**Service**:
+- `UsersService`: Enhanced CRUD with security and validation
+  - `findAll()`: Get all users ordered by creation date (DESC)
+  - `findOne(id)`: Get user by ID (throws NotFoundException)
+  - `findByPhoneNumber(phoneNumber)`: Lookup by phone
+  - `findByEmail(email)`: Lookup by email
+  - `create(userData)`: Create user with uniqueness checks (phone + email)
+  - `update(id, updateData)`: Update user with uniqueness validation
+  - `delete(id, currentUserId)`: Delete user with self-deletion prevention
+
+**Controller**:
+- `UsersController`: 6 endpoints (all with Swagger documentation)
+  - `GET /api/users` - Get all users
+  - `GET /api/users/:id` - Get user by ID
+  - `POST /api/users` - Create new user
+  - `PUT /api/users/:id` - Full update (all fields)
+  - `PATCH /api/users/:id` - Partial update (selected fields)
+  - `DELETE /api/users/:id` - Delete user (with self-deletion check)
+
+**DTOs**:
+- `CreateUserDto`: phoneNumber (E.164, required), name (required), avatar (optional)
+- `UpdateUserDto`: All fields optional (phoneNumber, name, email, avatar)
+  - Email validation: `@IsEmail()` with format check
+  - Phone validation: E.164 format regex
+- `UserResponseDto`: API response format
+
+**Security Features**:
+1. **Self-Deletion Prevention** (403 Forbidden)
+   - Backend: `if (id === currentUserId) throw ForbiddenException()`
+   - Uses `@CurrentUser()` decorator to get JWT user info
+2. **Email Uniqueness Validation**
+   - Checked on create and update operations
+   - Returns 409 Conflict if duplicate found
+3. **Phone Number Uniqueness**
+   - Enforced at database level (unique constraint)
+   - Service layer validation with 409 Conflict response
+
+**Error Responses**:
+- 400: Invalid input (validation errors)
+- 403: Self-deletion attempt
+- 404: User not found
+- 409: Duplicate phone number or email
+
+**File Locations**:
+- Controller: `users.controller.ts`
+- Service: `users.service.ts`
+- DTOs: `dto/create-user.dto.ts`, `dto/update-user.dto.ts`, `dto/user-response.dto.ts`
 
 ---
 

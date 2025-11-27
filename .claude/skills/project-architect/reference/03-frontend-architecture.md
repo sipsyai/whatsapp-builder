@@ -393,6 +393,95 @@ client.interceptors.response.use(
 
 **Status**: Under development
 
+### 7. User Management
+**Path**: `/frontend/src/features/users/`
+
+**Components**:
+- `UsersPage.tsx`: Main user management interface with table view
+- `api.ts`: User API service functions
+
+**Features**:
+- **Full CRUD Operations**:
+  - Create new users via modal form
+  - Edit existing users with pre-filled modal
+  - Delete users with confirmation dialog
+  - View all users in sortable table
+- **Form Validation**:
+  - Client-side validation (name required, email format)
+  - Real-time error messages with red border on invalid fields
+  - Error clearing as user types
+  - Submit button disabled when validation fails
+- **Security**:
+  - Self-deletion prevention (multi-layer)
+  - Delete button disabled for current user
+  - Frontend JavaScript check prevents API calls
+  - Tooltip explains why delete is disabled
+  - Backend validation returns 403 Forbidden
+- **UI/UX**:
+  - User avatar circles (first letter of name/email)
+  - Edit/delete action buttons with hover effects
+  - Modal forms with backdrop blur effect
+  - Inline error messages below form fields
+  - Loading states and error handling
+  - Dark mode optimized with WhatsApp color scheme
+
+**State Management**:
+```typescript
+- users: User[]                    // List of all users
+- loading: boolean                 // Loading state
+- error: string | null            // Error message
+- showModal: boolean              // Create user modal visibility
+- showEditModal: boolean          // Edit user modal visibility
+- editingUser: User | null        // User being edited
+- validationErrors: {             // Form validation errors
+    name?: string,
+    email?: string
+  }
+```
+
+**API Service Functions**:
+- `getUsers()`: Fetch all users (GET /api/users)
+- `createUser(data)`: Create user (POST /api/users)
+- `updateUser(id, data)`: Update user (PATCH /api/users/:id)
+- `deleteUser(id)`: Delete user (DELETE /api/users/:id)
+
+**Validation Logic**:
+```typescript
+// Name validation
+if (!name.trim()) {
+  errors.name = 'Name is required';
+}
+
+// Email validation
+if (!email.trim()) {
+  errors.email = 'Email is required';
+} else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  errors.email = 'Please enter a valid email address';
+}
+```
+
+**Security Implementation**:
+```typescript
+// Self-deletion check
+const handleDelete = async (id: string) => {
+  if (currentUser && currentUser.id === id) {
+    alert('You cannot delete your own account');
+    return;
+  }
+  // ... deletion logic
+};
+
+// Disabled delete button
+<button
+  disabled={currentUser?.id === user.id}
+  onClick={() => handleDelete(user.id)}
+>
+```
+
+**File Paths**:
+- Main page: `features/users/components/UsersPage.tsx`
+- API service: `features/users/api.ts`
+
 ---
 
 ## State Management

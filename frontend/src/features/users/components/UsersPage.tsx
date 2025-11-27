@@ -1,13 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { getUsers, createUser, deleteUser, type User } from '../api';
+import { getUsers, createUser, deleteUser, updateUser, type User } from '../api';
+import { useAuth } from '../../../contexts/AuthContext';
 
 export const UsersPage: React.FC = () => {
+    const { user: currentUser } = useAuth();
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showModal, setShowModal] = useState(false);
     const [newUserEmail, setNewUserEmail] = useState('');
     const [newUserName, setNewUserName] = useState('');
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editingUser, setEditingUser] = useState<User | null>(null);
+    const [editName, setEditName] = useState('');
+    const [editEmail, setEditEmail] = useState('');
+    const [validationErrors, setValidationErrors] = useState<{
+        name?: string;
+        email?: string;
+    }>({});
 
     useEffect(() => {
         loadUsers();
@@ -27,21 +37,113 @@ export const UsersPage: React.FC = () => {
         }
     };
 
+    const validateForm = (): boolean => {
+        const errors: { name?: string; email?: string } = {};
+
+        // Validate name - required
+        if (!newUserName.trim()) {
+            errors.name = 'Name is required';
+        }
+
+        // Validate email - required and format
+        if (!newUserEmail.trim()) {
+            errors.email = 'Email is required';
+        } else {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(newUserEmail)) {
+                errors.email = 'Please enter a valid email address';
+            }
+        }
+
+        setValidationErrors(errors);
+        return Object.keys(errors).length === 0;
+    };
+
+    const validateEditForm = (): boolean => {
+        const errors: { name?: string; email?: string } = {};
+
+        // Validate name - required
+        if (!editName.trim()) {
+            errors.name = 'Name is required';
+        }
+
+        // Validate email - required and format
+        if (!editEmail.trim()) {
+            errors.email = 'Email is required';
+        } else {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(editEmail)) {
+                errors.email = 'Please enter a valid email address';
+            }
+        }
+
+        setValidationErrors(errors);
+        return Object.keys(errors).length === 0;
+    };
+
     const handleCreateUser = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Validate form before submission
+        if (!validateForm()) {
+            return;
+        }
+
         try {
             const newUser = await createUser({ email: newUserEmail, name: newUserName });
             setUsers([...users, newUser]);
             setShowModal(false);
             setNewUserEmail('');
             setNewUserName('');
+            setValidationErrors({});
         } catch (err) {
             console.error('Failed to create user:', err);
             alert('Failed to create user');
         }
     };
 
+    const handleOpenEdit = (user: User) => {
+        setEditingUser(user);
+        setEditName(user.name || '');
+        setEditEmail(user.email || '');
+        setValidationErrors({});
+        setShowEditModal(true);
+    };
+
+    const handleEditUser = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!editingUser) return;
+
+        // Validate form before submission
+        if (!validateEditForm()) {
+            return;
+        }
+
+        try {
+            const updatedUser = await updateUser(editingUser.id, {
+                email: editEmail,
+                name: editName
+            });
+            setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
+            setShowEditModal(false);
+            setEditingUser(null);
+            setEditName('');
+            setEditEmail('');
+            setValidationErrors({});
+        } catch (err) {
+            console.error('Failed to update user:', err);
+            alert('Failed to update user');
+        }
+    };
+
     const handleDelete = async (id: string) => {
+        // Prevent self-deletion
+        if (currentUser && currentUser.id === id) {
+            alert('You cannot delete your own account');
+            return;
+        }
+
         if (!window.confirm('Are you sure you want to delete this user?')) return;
 
         try {
@@ -110,13 +212,27 @@ export const UsersPage: React.FC = () => {
                                         {new Date(user.createdAt).toLocaleDateString()}
                                     </td>
                                     <td className="px-6 py-4 text-right">
-                                        <button
-                                            onClick={() => handleDelete(user.id)}
-                                            className="p-2 text-zinc-400 hover:text-red-600 hover:bg-red-900/20 rounded-lg transition-colors"
-                                            title="Delete User"
-                                        >
-                                            <span className="material-symbols-outlined">delete</span>
-                                        </button>
+                                        <div className="flex items-center justify-end gap-2">
+                                            <button
+                                                onClick={() => handleOpenEdit(user)}
+                                                className="p-2 rounded-lg text-zinc-400 hover:text-primary hover:bg-primary/10 transition-colors"
+                                                title="Edit User"
+                                            >
+                                                <span className="material-symbols-outlined">edit</span>
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(user.id)}
+                                                disabled={currentUser?.id === user.id}
+                                                className={`p-2 rounded-lg transition-colors ${
+                                                    currentUser?.id === user.id
+                                                        ? 'text-zinc-600 cursor-not-allowed opacity-50'
+                                                        : 'text-zinc-400 hover:text-red-600 hover:bg-red-900/20'
+                                                }`}
+                                                title={currentUser?.id === user.id ? "Cannot delete your own account" : "Delete User"}
+                                            >
+                                                <span className="material-symbols-outlined">delete</span>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
@@ -144,36 +260,144 @@ export const UsersPage: React.FC = () => {
                                     <input
                                         type="text"
                                         value={newUserName}
-                                        onChange={(e) => setNewUserName(e.target.value)}
-                                        className="w-full px-3 py-2 rounded-lg border border-zinc-700 bg-zinc-900 text-white focus:ring-2 focus:ring-primary focus:border-transparent"
+                                        onChange={(e) => {
+                                            setNewUserName(e.target.value);
+                                            if (validationErrors.name) {
+                                                setValidationErrors({ ...validationErrors, name: undefined });
+                                            }
+                                        }}
+                                        className={`w-full px-3 py-2 rounded-lg border bg-zinc-900 text-white focus:ring-2 focus:ring-primary focus:border-transparent ${
+                                            validationErrors.name ? 'border-red-500' : 'border-zinc-700'
+                                        }`}
                                         placeholder="John Doe"
                                     />
+                                    {validationErrors.name && (
+                                        <p className="text-red-500 text-sm mt-1">{validationErrors.name}</p>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-zinc-300 mb-1">Email</label>
                                     <input
                                         type="email"
-                                        required
                                         value={newUserEmail}
-                                        onChange={(e) => setNewUserEmail(e.target.value)}
-                                        className="w-full px-3 py-2 rounded-lg border border-zinc-700 bg-zinc-900 text-white focus:ring-2 focus:ring-primary focus:border-transparent"
+                                        onChange={(e) => {
+                                            setNewUserEmail(e.target.value);
+                                            if (validationErrors.email) {
+                                                setValidationErrors({ ...validationErrors, email: undefined });
+                                            }
+                                        }}
+                                        className={`w-full px-3 py-2 rounded-lg border bg-zinc-900 text-white focus:ring-2 focus:ring-primary focus:border-transparent ${
+                                            validationErrors.email ? 'border-red-500' : 'border-zinc-700'
+                                        }`}
                                         placeholder="john@example.com"
                                     />
+                                    {validationErrors.email && (
+                                        <p className="text-red-500 text-sm mt-1">{validationErrors.email}</p>
+                                    )}
                                 </div>
                             </div>
                             <div className="flex justify-end gap-3 mt-6">
                                 <button
                                     type="button"
-                                    onClick={() => setShowModal(false)}
+                                    onClick={() => {
+                                        setShowModal(false);
+                                        setNewUserEmail('');
+                                        setNewUserName('');
+                                        setValidationErrors({});
+                                    }}
                                     className="px-4 py-2 text-zinc-300 hover:bg-zinc-800 rounded-lg font-medium"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-4 py-2 bg-primary text-[#112217] rounded-lg font-bold hover:bg-primary/90"
+                                    disabled={!newUserName.trim() || !newUserEmail.trim()}
+                                    className={`px-4 py-2 rounded-lg font-bold transition-colors ${
+                                        !newUserName.trim() || !newUserEmail.trim()
+                                            ? 'bg-zinc-700 text-zinc-500 cursor-not-allowed'
+                                            : 'bg-primary text-[#112217] hover:bg-primary/90'
+                                    }`}
                                 >
                                     Create User
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit User Modal */}
+            {showEditModal && editingUser && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+                    <div className="w-full max-w-md bg-surface-dark rounded-xl border border-zinc-800 shadow-2xl p-6">
+                        <h2 className="text-xl font-bold text-white mb-4">Edit User</h2>
+                        <form onSubmit={handleEditUser}>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-zinc-300 mb-1">Name</label>
+                                    <input
+                                        type="text"
+                                        value={editName}
+                                        onChange={(e) => {
+                                            setEditName(e.target.value);
+                                            if (validationErrors.name) {
+                                                setValidationErrors({ ...validationErrors, name: undefined });
+                                            }
+                                        }}
+                                        className={`w-full px-3 py-2 rounded-lg border bg-zinc-900 text-white focus:ring-2 focus:ring-primary focus:border-transparent ${
+                                            validationErrors.name ? 'border-red-500' : 'border-zinc-700'
+                                        }`}
+                                        placeholder="John Doe"
+                                    />
+                                    {validationErrors.name && (
+                                        <p className="text-red-500 text-sm mt-1">{validationErrors.name}</p>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-zinc-300 mb-1">Email</label>
+                                    <input
+                                        type="email"
+                                        value={editEmail}
+                                        onChange={(e) => {
+                                            setEditEmail(e.target.value);
+                                            if (validationErrors.email) {
+                                                setValidationErrors({ ...validationErrors, email: undefined });
+                                            }
+                                        }}
+                                        className={`w-full px-3 py-2 rounded-lg border bg-zinc-900 text-white focus:ring-2 focus:ring-primary focus:border-transparent ${
+                                            validationErrors.email ? 'border-red-500' : 'border-zinc-700'
+                                        }`}
+                                        placeholder="john@example.com"
+                                    />
+                                    {validationErrors.email && (
+                                        <p className="text-red-500 text-sm mt-1">{validationErrors.email}</p>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="flex justify-end gap-3 mt-6">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowEditModal(false);
+                                        setEditingUser(null);
+                                        setEditName('');
+                                        setEditEmail('');
+                                        setValidationErrors({});
+                                    }}
+                                    className="px-4 py-2 text-zinc-300 hover:bg-zinc-800 rounded-lg font-medium"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={!editName.trim() || !editEmail.trim()}
+                                    className={`px-4 py-2 rounded-lg font-bold transition-colors ${
+                                        !editName.trim() || !editEmail.trim()
+                                            ? 'bg-zinc-700 text-zinc-500 cursor-not-allowed'
+                                            : 'bg-primary text-[#112217] hover:bg-primary/90'
+                                    }`}
+                                >
+                                    Save Changes
                                 </button>
                             </div>
                         </form>
