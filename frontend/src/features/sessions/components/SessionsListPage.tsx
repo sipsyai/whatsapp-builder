@@ -167,8 +167,14 @@ export const SessionsListPage: React.FC<SessionsListPageProps> = ({ onViewSessio
       s.messageCount,
     ]);
 
+    // Escape CSV cell: wrap in quotes and escape internal quotes by doubling them
+    const escapeCSV = (value: unknown): string => {
+      const str = String(value ?? '');
+      return `"${str.replace(/"/g, '""')}"`;
+    };
+
     const csvContent = [headers, ...rows]
-      .map(row => row.map(cell => `"${cell}"`).join(','))
+      .map(row => row.map(escapeCSV).join(','))
       .join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
