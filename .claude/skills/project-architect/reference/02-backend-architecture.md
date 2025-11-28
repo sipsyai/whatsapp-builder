@@ -54,7 +54,7 @@ backend/src/
 - `AppointmentService`, `MockCalendarService`: Domain logic
 
 **Controllers**:
-- `ChatBotsController`: 13 endpoints (CRUD, stats, toggle, restore, test-rest-api)
+- `ChatBotsController`: 15 endpoints (CRUD, stats, toggle, restore, test-rest-api, export, import)
 - `ChatBotWebhookController`: Legacy Flow webhook endpoints
 
 **Key DTOs**:
@@ -62,6 +62,8 @@ backend/src/
 - `ChatBotNodeDto`, `ChatBotEdgeDto`, `NodeDataDto`
 - `SessionDto`, `SessionDetailDto`, `MessageDto`
 - `TestRestApiDto`: API configuration testing
+- `ExportChatbotQueryDto`, `ExportedChatbotData`: Chatbot export with embedded flows
+- `ImportChatbotBodyDto`, `ImportChatbotResponseDto`: Chatbot import with validation
 
 **Node Types & Data Fields**:
 - **MESSAGE**: content
@@ -78,10 +80,19 @@ startChatBot() → processStartNode() → processMessageNode() → processQuesti
 User responds → processUserResponse() → save to variables → executeCurrentNode() [resume]
 ```
 
+**Key Features**:
+- Import/Export: Backup, share, and migrate chatbots with embedded WhatsApp Flows
+  - Export format: JSON with version control (v1.0)
+  - Import validation: Structure check, duplicate name handling, flow dependency resolution
+  - See: [Chatbot Import/Export Feature](19-chatbot-import-export.md)
+
 **File Locations**:
 - Controller: `chatbots.controller.ts`
-- Services: `services/chatbot-execution.service.ts`, `services/rest-api-executor.service.ts`, `services/session-history.service.ts`
+- Service: `chatbots.service.ts` (export/import methods)
+- Execution: `services/chatbot-execution.service.ts`, `services/rest-api-executor.service.ts`
+- Session: `services/session-history.service.ts`
 - DTOs: `dto/create-chatbot.dto.ts`, `dto/session.dto.ts`, `dto/test-rest-api.dto.ts`
+- Import/Export: `dto/export-chatbot.dto.ts`, `dto/import-chatbot.dto.ts`
 
 ---
 
@@ -425,7 +436,9 @@ providers: [
 ```
 /api
 ├── /auth                2 endpoints (login, me) - JWT authentication
-├── /chatbots            13 endpoints (CRUD, stats, toggle, restore, stop, test-rest-api)
+├── /chatbots            15 endpoints (CRUD, stats, toggle, restore, stop, test-rest-api, export, import)
+│   ├── GET /:id/export     Export chatbot as JSON with embedded flows
+│   └── POST /import        Import chatbot from JSON file (multipart/form-data)
 ├── /flows               8 endpoints (CRUD, sync, publish, preview)
 ├── /conversations       4 endpoints (list, get, messages, send)
 ├── /users               4 endpoints

@@ -562,11 +562,18 @@ export const ChatBotsService = {
   delete: (id) => apiClient.delete(`/api/chatbots/${id}`),
   updateStatus: (id, status) => apiClient.patch(`/api/chatbots/${id}/status`, { status }),
   testRestApi: (config) => apiClient.post('/api/chatbots/test-rest-api', config),
+  exportChatbot: (id, includeFlows) => apiClient.get(`/api/chatbots/${id}/export`, {
+    params: { includeFlows },
+    responseType: 'blob'
+  }),
+  importChatbot: (file, options) => apiClient.post('/api/chatbots/import', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
 };
 ```
 
 ### Available Services
-- `chatbots.service.ts`: ChatBot CRUD
+- `chatbots.service.ts`: ChatBot CRUD, import/export
 - `flows.service.ts`: WhatsApp Flows CRUD, publish, sync
 - `conversations.service.ts`: Conversations & messages
 - `users.service.ts`: User management

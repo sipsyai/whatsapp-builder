@@ -7,3 +7,5 @@ export * from './node-data.dto';
 export * from './node-position.dto';
 export * from './list-section.dto';
 export * from './session.dto';
+export * from './export-chatbot.dto';
+export * from './import-chatbot.dto';

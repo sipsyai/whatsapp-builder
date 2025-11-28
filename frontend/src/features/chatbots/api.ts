@@ -88,3 +88,31 @@ export const toggleActiveChatBot = async (id: string) => {
     const response = await client.patch<ChatBot>(`/api/chatbots/${id}/toggle-active`);
     return response.data;
 };
+
+// Export chatbot as JSON
+export const exportChatbot = async (id: string, includeFlows: boolean = true): Promise<Blob> => {
+    const response = await client.get(`/api/chatbots/${id}/export`, {
+        params: { includeFlows, includeMetadata: true },
+        responseType: 'blob',
+    });
+    return response.data;
+};
+
+// Import chatbot from JSON file
+export const importChatbot = async (file: File, options?: { name?: string; setActive?: boolean }): Promise<{
+    success: boolean;
+    message: string;
+    chatbotId?: string;
+    chatbotName?: string;
+    warnings?: string[];
+}> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (options?.name) formData.append('name', options.name);
+    if (options?.setActive) formData.append('setActive', 'true');
+
+    const response = await client.post('/api/chatbots/import', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+};

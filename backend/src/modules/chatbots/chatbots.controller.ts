@@ -12,6 +12,11 @@ import {
   HttpCode,
   ValidationPipe,
   UsePipes,
+  Res,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
+  PayloadTooLargeException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -19,7 +24,10 @@ import {
   ApiResponse,
   ApiParam,
   ApiBody,
+  ApiConsumes,
 } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import type { Response } from 'express';
 import { ChatBotsService } from './chatbots.service';
 import { ChatBotExecutionService } from './services/chatbot-execution.service';
 import { ContextCleanupService } from './services/context-cleanup.service';
@@ -28,6 +36,8 @@ import { CreateChatBotDto } from './dto/create-chatbot.dto';
 import { UpdateChatBotDto } from './dto/update-chatbot.dto';
 import { QueryChatBotsDto } from './dto/query-chatbots.dto';
 import { TestRestApiDto } from './dto/test-rest-api.dto';
+import { ExportChatbotQueryDto, ExportChatbotResponseDto } from './dto/export-chatbot.dto';
+import { ImportChatbotBodyDto, ImportChatbotResponseDto } from './dto/import-chatbot.dto';
 
 @ApiTags('Chatbots')
 @Controller('api/chatbots')
@@ -48,6 +58,63 @@ export class ChatBotsController {
   @ApiResponse({ status: 400, description: 'Invalid input data' })
   async create(@Body() createChatBotDto: CreateChatBotDto) {
     return this.chatbotsService.create(createChatBotDto);
+  }
+
+  @Post('import')
+  @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Import chatbot', description: 'Imports a chatbot from a JSON file' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    description: 'Chatbot JSON file and import options',
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'JSON file containing chatbot configuration (max 5MB)',
+        },
+        name: {
+          type: 'string',
+          description: 'Optional: Override chatbot name',
+        },
+        createAsNew: {
+          type: 'boolean',
+          description: 'Create as new chatbot (generates new ID)',
+        },
+      },
+      required: ['file'],
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Chatbot imported successfully',
+    type: ImportChatbotResponseDto
+  })
+  @ApiResponse({ status: 400, description: 'Invalid file or data' })
+  @ApiResponse({ status: 413, description: 'File too large (max 5MB)' })
+  async importChatbot(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() bodyDto: ImportChatbotBodyDto,
+  ) {
+    // Validate file exists
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    // Validate file type
+    if (file.mimetype !== 'application/json') {
+      throw new BadRequestException('File must be a JSON file');
+    }
+
+    // Validate file size (5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+    if (file.size > maxSize) {
+      throw new PayloadTooLargeException('File size exceeds 5MB limit');
+    }
+
+    return this.chatbotsService.importChatbot(file.buffer, bodyDto);
   }
 
   @Get()
@@ -73,6 +140,35 @@ export class ChatBotsController {
   @ApiResponse({ status: 404, description: 'Chatbot not found' })
   async getChatBotStats(@Param('id') id: string) {
     return this.chatbotsService.getChatBotStats(id);
+  }
+
+  @Get(':id/export')
+  @ApiOperation({ summary: 'Export chatbot', description: 'Exports a chatbot configuration as JSON file' })
+  @ApiParam({ name: 'id', description: 'Chatbot UUID', type: 'string' })
+  @ApiResponse({
+    status: 200,
+    description: 'Chatbot exported successfully',
+    type: ExportChatbotResponseDto
+  })
+  @ApiResponse({ status: 404, description: 'Chatbot not found' })
+  async exportChatbot(
+    @Param('id') id: string,
+    @Query() queryDto: ExportChatbotQueryDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.chatbotsService.exportChatbot(id, queryDto);
+
+    // Generate filename from chatbot name
+    const filename = `chatbot-${result.chatbot.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.json`;
+
+    // Set headers for file download
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${filename}"`,
+    );
+
+    return result;
   }
 
   @Put(':id')

@@ -712,6 +712,8 @@ For detailed documentation, see:
 15. [15-authentication-security.md](reference/15-authentication-security.md) - JWT authentication and security
 16. [16-users-management-feature.md](reference/16-users-management-feature.md) - User management with security features
 17. [17-whatsapp-settings-enhancement.md](reference/17-whatsapp-settings-enhancement.md) - WhatsApp settings UI enhancement
+18. [18-data-sources-feature.md](reference/18-data-sources-feature.md) - Data Sources for WhatsApp Flow dynamic data
+19. [19-chatbot-import-export.md](reference/19-chatbot-import-export.md) - Chatbot import/export with embedded flows
 
 ## Summary
 

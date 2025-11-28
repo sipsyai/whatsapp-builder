@@ -117,6 +117,23 @@
 - **ChatBot Integration**: Use Flows as nodes within conversation flows
 - **Preview & Testing**: Test Flows before publishing to production
 
+### 5.1. Chatbot Import/Export - **NEW**
+**Location**: `/backend/src/modules/chatbots/`, `/frontend/src/features/chatbots/`
+
+- **Export Features**:
+  - Export chatbots as JSON files with version control (v1.0)
+  - Optional embedding of referenced WhatsApp Flows
+  - Include/exclude metadata
+  - Auto-generated filenames with timestamps
+- **Import Features**:
+  - Upload JSON files via multipart/form-data (max 5MB)
+  - Automatic duplicate name handling with suffix generation
+  - WhatsApp Flow dependency resolution
+  - Structure validation and version checking
+  - Warning system for missing dependencies
+- **Use Cases**: Backup, migration between environments, template sharing, version control
+- **See**: [Chatbot Import/Export Feature](19-chatbot-import-export.md)
+
 ### 6. User & Conversation Management
 **Location**: `/backend/src/modules/users/`, `/backend/src/modules/conversations/`
 

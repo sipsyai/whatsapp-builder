@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { getChatBots, softDeleteChatBot, toggleActiveChatBot, type ChatBot, ChatBotStatus } from '../api';
+import React, { useEffect, useState, useRef } from 'react';
+import { getChatBots, softDeleteChatBot, toggleActiveChatBot, exportChatbot, importChatbot, type ChatBot, ChatBotStatus } from '../api';
 
 interface ChatBotsListPageProps {
     onNavigate: (path: string) => void;
@@ -20,6 +20,8 @@ export const ChatBotsListPage: React.FC<ChatBotsListPageProps> = ({ onNavigate, 
     const [filter, setFilter] = useState<FilterType>('active');
     const [togglingChatBotId, setTogglingChatBotId] = useState<string | null>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+    const [importing, setImporting] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         loadChatBots();
@@ -102,6 +104,54 @@ export const ChatBotsListPage: React.FC<ChatBotsListPageProps> = ({ onNavigate, 
         onNavigate('/builder');
     };
 
+    const handleExport = async (chatbot: ChatBot) => {
+        try {
+            const blob = await exportChatbot(chatbot.id);
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${chatbot.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            setToast({ message: 'Chatbot exported successfully', type: 'success' });
+        } catch (error) {
+            setToast({ message: 'Failed to export chatbot', type: 'error' });
+        }
+    };
+
+    const handleImportClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.name.endsWith('.json')) {
+            setToast({ message: 'Please select a JSON file', type: 'error' });
+            return;
+        }
+
+        setImporting(true);
+        try {
+            const result = await importChatbot(file);
+            if (result.success) {
+                setToast({
+                    message: `Chatbot "${result.chatbotName}" imported successfully`,
+                    type: 'success'
+                });
+                loadChatBots(); // Refresh list
+            } else {
+                setToast({ message: result.message, type: 'error' });
+            }
+        } catch (error: any) {
+            setToast({ message: error.response?.data?.message || 'Failed to import chatbot', type: 'error' });
+        } finally {
+            setImporting(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex items-center justify-center h-full bg-background">
@@ -137,13 +187,32 @@ export const ChatBotsListPage: React.FC<ChatBotsListPageProps> = ({ onNavigate, 
                             <h1 className="text-4xl font-bold text-white mb-2">My Chatbots</h1>
                             <p className="text-zinc-400">Manage and organize your chatbots</p>
                         </div>
-                        <button
-                            onClick={() => onNavigate('/builder')}
-                            className="px-6 py-3 bg-primary text-[#112217] rounded-xl font-bold flex items-center gap-2 hover:bg-primary/90 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
-                        >
-                            <span className="material-symbols-outlined">add_circle</span>
-                            Create New ChatBot
-                        </button>
+                        <div className="flex gap-3">
+                            {/* Hidden file input */}
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleFileChange}
+                                accept=".json"
+                                className="hidden"
+                            />
+                            {/* Import button */}
+                            <button
+                                onClick={handleImportClick}
+                                disabled={importing}
+                                className="px-6 py-3 bg-surface border border-zinc-700 text-white rounded-xl font-medium hover:bg-zinc-800 transition-colors flex items-center gap-2 disabled:opacity-50"
+                            >
+                                <span className="material-symbols-outlined">upload</span>
+                                {importing ? 'Importing...' : 'Import'}
+                            </button>
+                            <button
+                                onClick={() => onNavigate('/builder')}
+                                className="px-6 py-3 bg-primary text-[#112217] rounded-xl font-bold flex items-center gap-2 hover:bg-primary/90 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                            >
+                                <span className="material-symbols-outlined">add_circle</span>
+                                Create New ChatBot
+                            </button>
+                        </div>
                     </div>
 
                     {/* Search Bar and Filter */}
@@ -300,6 +369,13 @@ export const ChatBotsListPage: React.FC<ChatBotsListPageProps> = ({ onNavigate, 
                                                 title="Load & Edit"
                                             >
                                                 <span className="material-symbols-outlined text-xl">edit</span>
+                                            </button>
+                                            <button
+                                                onClick={() => handleExport(chatbot)}
+                                                className="p-2 bg-zinc-800 text-green-600 hover:bg-green-900/20 rounded-lg transition-colors shadow-lg"
+                                                title="Export as JSON"
+                                            >
+                                                <span className="material-symbols-outlined text-xl">download</span>
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(chatbot.id)}

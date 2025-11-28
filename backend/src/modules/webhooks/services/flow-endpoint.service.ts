@@ -93,10 +93,10 @@ export class FlowEndpointService {
     if (!dsConfig) {
       this.logger.error('No data source configuration available');
       return {
-        screen: 'BRAND_SCREEN',
+        screen: 'ERROR_SCREEN',
         data: {
-          brands: [],
-          ...initialData,
+          error_message: 'Data source configuration not found',
+          error_details: 'Unable to initialize flow without data source',
         },
       };
     }
