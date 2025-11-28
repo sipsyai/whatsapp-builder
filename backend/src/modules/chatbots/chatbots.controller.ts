@@ -158,14 +158,19 @@ export class ChatBotsController {
   ) {
     const result = await this.chatbotsService.exportChatbot(id, queryDto);
 
-    // Generate filename from chatbot name
-    const filename = `chatbot-${result.chatbot.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.json`;
+    // Generate filename from chatbot name (sanitize for header safety)
+    const safeName = result.chatbot.name
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+      .replace(/\s+/g, '-')          // Replace spaces with dashes
+      .substring(0, 50);             // Limit length
+    const filename = `chatbot-${safeName}-${Date.now()}.json`;
 
     // Set headers for file download
     res.setHeader('Content-Type', 'application/json');
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="${filename}"`,
+      `attachment; filename="${encodeURIComponent(filename)}"`,
     );
 
     return result;

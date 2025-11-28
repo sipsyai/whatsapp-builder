@@ -111,8 +111,7 @@ export const importChatbot = async (file: File, options?: { name?: string; setAc
     if (options?.name) formData.append('name', options.name);
     if (options?.setActive) formData.append('setActive', 'true');
 
-    const response = await client.post('/api/chatbots/import', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    // Don't set Content-Type header manually - axios will set it automatically with the correct boundary
+    const response = await client.post('/api/chatbots/import', formData);
     return response.data;
 };
