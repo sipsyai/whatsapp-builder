@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import type { BuilderScreen } from '../../../types/builder.types';
 import type { FlowJSONVersion, FlowJSON, FlowScreen, Component } from '../../../types/flow-json.types';
 
@@ -14,6 +14,16 @@ export const CopyJsonButton: React.FC<CopyJsonButtonProps> = ({
   onCopy,
 }) => {
   const [copied, setCopied] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   const generateFlowJSON = useCallback((): FlowJSON => {
     const flowScreens: FlowScreen[] = screens.map((screen) => ({
@@ -47,8 +57,13 @@ export const CopyJsonButton: React.FC<CopyJsonButtonProps> = ({
       setCopied(true);
       onCopy?.();
 
+      // Clear any existing timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+
       // Reset copied state after 2 seconds
-      setTimeout(() => {
+      timeoutRef.current = setTimeout(() => {
         setCopied(false);
       }, 2000);
     } catch (error) {

@@ -29,6 +29,8 @@ export const JSONEditor: React.FC<JSONEditorProps> = ({
 
   // Debounce timer ref
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Copy timeout ref
+  const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Screen to JSON conversion
   const screenToJSON = useCallback((screen: BuilderScreen): object => ({
@@ -117,11 +119,14 @@ export const JSONEditor: React.FC<JSONEditorProps> = ({
     }, 500);
   }, [screen, jsonToScreen, onUpdateScreen]);
 
-  // Cleanup debounce timer on unmount
+  // Cleanup timers on unmount
   useEffect(() => {
     return () => {
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
+      }
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
       }
     };
   }, []);
@@ -145,7 +150,14 @@ export const JSONEditor: React.FC<JSONEditorProps> = ({
     try {
       await navigator.clipboard.writeText(jsonValue);
       setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
+
+      // Clear any existing timeout
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+
+      // Reset copied state after 2 seconds
+      copyTimeoutRef.current = setTimeout(() => setIsCopied(false), 2000);
     } catch (error) {
       console.error('Failed to copy to clipboard:', error);
     }
