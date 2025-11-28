@@ -14,6 +14,7 @@ import type { ContentCategory } from '../types/playground.types';
  * 2. Media - Images and visual content
  * 3. Text Answer - Text input fields and date pickers
  * 4. Selection - Radio buttons, checkboxes, dropdowns, opt-in
+ * 5. Navigation - Footer buttons for form navigation
  */
 export const CONTENT_CATEGORIES: ContentCategory[] = [
   {
@@ -101,6 +102,18 @@ export const CONTENT_CATEGORIES: ContentCategory[] = [
         type: 'OptIn',
         label: 'Opt-in',
         icon: 'check_circle',
+      },
+    ],
+  },
+  {
+    id: 'navigation',
+    label: 'Navigation',
+    icon: 'touch_app',
+    items: [
+      {
+        type: 'Footer',
+        label: 'Button',
+        icon: 'smart_button',
       },
     ],
   },

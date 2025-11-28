@@ -18,4 +18,12 @@ export default defineConfig({
   optimizeDeps: {
     include: ['dagre'],
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+    },
+  },
 })

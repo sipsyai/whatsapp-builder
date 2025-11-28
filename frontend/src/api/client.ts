@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Production: relative URL (same domain), Development: localhost
-const baseURL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3000');
+// Use relative URL - Vite proxy handles /api in dev, production uses same domain
+const baseURL = import.meta.env.VITE_API_URL || '';
 
 export const client = axios.create({
     baseURL,
