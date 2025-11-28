@@ -139,6 +139,11 @@ User responds → processUserResponse() → save to variables → executeCurrent
   - Execute chatbot logic
   - **Flow response processing**: UUID-aware flow_token parsing (`{contextId}-{nodeId}`)
 - `FlowEndpointService`: Flow webhook actions (INIT, data_exchange, BACK, error_notification, ping)
+  - **Config-Driven Data Exchange** (NEW): Generic handler using `ComponentDataSourceConfigDto[]`
+  - Loads `dataSourceConfig` from Flow metadata
+  - Supports cascading dropdowns via `dependsOn` and `filterParam`
+  - Fetches data from DataSource and transforms to WhatsApp dropdown format
+  - Falls back to legacy hardcoded handler if no config found
 
 **Controllers**:
 - `WebhooksController`: GET /verify (Meta verification), POST (receive webhooks)
@@ -212,17 +217,51 @@ Disconnect → Remove from tracking → Broadcast user:offline
 
 **Service**: `FlowsService`
 - `create(dto)`: Create & publish to WhatsApp
+- `createFromPlayground(dto)`: **NEW** - Create flow from Playground JSON with auto-validation
+  - Validates playground JSON structure (version, screens)
+  - Normalizes JSON format
+  - Auto-generates flow name from first screen title/ID
+  - Saves with metadata: `{ source: 'playground', created_from_playground: true }`
+  - Optional auto-publish after creation
 - `findAll()`, `getActiveFlows()`: List flows
 - `update(id, dto)`: Update (resets to DRAFT)
 - `publish(id)`: Publish to WhatsApp (status → PUBLISHED)
 - `delete(id)`: Smart deletion (deprecate if PUBLISHED → delete from WhatsApp → delete local)
-- `syncFromMeta()`: **NEW** - Sync flows from Meta API (create/update based on whatsappFlowId)
+- `syncFromMeta()`: Sync flows from Meta API (create/update based on whatsappFlowId)
 
 **Flow Lifecycle**: DRAFT → PUBLISHED → DEPRECATED → DELETED
 
 **Controller**: `FlowsController`
-- GET /, GET /active, POST /, POST /sync
+- GET /, GET /active, POST /, POST /sync, **POST /from-playground**
 - GET /:id, PUT /:id, POST /:id/publish, GET /:id/preview, DELETE /:id
+
+**Key DTOs**:
+- `CreateFlowDto`: Standard flow creation
+- `CreateFlowFromPlaygroundDto`: **NEW** - Playground JSON with categories
+  - `playgroundJson: any` - Complete playground export
+  - `name?: string` - Optional (auto-generated)
+  - `categories: WhatsAppFlowCategory[]` - Required (min 1)
+  - `autoPublish?: boolean` - Optional (default: false)
+  - `dataSourceId?: string` - Optional flow-level DataSource
+  - `dataSourceConfig?: ComponentDataSourceConfigDto[]` - Component-level configs
+- `UpdateFlowDto`: Partial updates
+- `ComponentDataSourceConfigDto`: **NEW** - Per-component data source configuration
+  - `componentName: string` - Component name in Flow JSON
+  - `dataSourceId: string` - DataSource UUID
+  - `endpoint: string` - API endpoint path
+  - `dataKey: string` - Key to extract array from response
+  - `transformTo: TransformToDto` - Field mapping (idField, titleField, descriptionField)
+  - `dependsOn?: string` - For cascading dropdowns
+  - `filterParam?: string` - Filter parameter for cascading
+
+**WhatsApp Flow Categories**:
+- SIGN_UP, SIGN_IN, APPOINTMENT_BOOKING
+- LEAD_GENERATION, CONTACT_US, CUSTOMER_SUPPORT
+- SURVEY, OTHER
+
+**See**:
+- [Create with Playground Feature](./20-create-with-playground-feature.md) for detailed documentation
+- [Data Sources + WhatsApp Flows Integration](./21-data-sources-whatsapp-flows-integration.md) for cascading dropdowns
 
 ---
 

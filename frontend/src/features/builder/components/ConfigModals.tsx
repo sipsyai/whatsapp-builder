@@ -910,31 +910,36 @@ export const ConfigWhatsAppFlow = ({ data, onClose, onSave }: any) => {
                                 </label>
                             </div>
 
-                            {/* Data Source Selector (Optional) */}
-                            {flowMode === 'data_exchange' && (
-                                <div className="space-y-2 p-4 bg-blue-900/20 rounded-lg border border-blue-800">
-                                    <label className="block">
-                                        <span className="text-sm font-medium text-white">Data Source (Optional)</span>
-                                        <select
-                                            className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
-                                            value={selectedDataSourceId}
-                                            onChange={e => setSelectedDataSourceId(e.target.value)}
-                                            disabled={loadingDataSources}
-                                        >
-                                            <option value="">-- Select a Data Source --</option>
-                                            {dataSources.map(ds => (
-                                                <option key={ds.id} value={ds.id}>
-                                                    {ds.name} ({ds.type})
-                                                </option>
-                                            ))}
-                                        </select>
-                                        {loadingDataSources && <span className="text-xs text-zinc-500 mt-1 block">Loading data sources...</span>}
-                                        <span className="text-xs text-blue-300 mt-1 block">
-                                            Select a data source if this flow requires backend data
-                                        </span>
-                                    </label>
+                            {/* Data Source Configuration (Optional) */}
+                            <div className="space-y-4 p-4 bg-blue-900/20 rounded-lg border border-blue-800">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className="material-symbols-outlined text-blue-400">database</span>
+                                    <span className="text-sm font-bold text-white">Data Source Configuration (Optional)</span>
                                 </div>
-                            )}
+
+                                {/* Data Source Selector */}
+                                <label className="block">
+                                    <span className="text-sm font-medium text-white">Data Source</span>
+                                    <select
+                                        className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
+                                        value={selectedDataSourceId}
+                                        onChange={e => setSelectedDataSourceId(e.target.value)}
+                                        disabled={loadingDataSources}
+                                    >
+                                        <option value="">-- Select a Data Source --</option>
+                                        {dataSources.map(ds => (
+                                            <option key={ds.id} value={ds.id}>
+                                                {ds.name} ({ds.type})
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {loadingDataSources && <span className="text-xs text-zinc-500 mt-1 block">Loading data sources...</span>}
+                                </label>
+
+                                <p className="text-xs text-blue-300">
+                                    Configure a data source if this flow requires backend data for dynamic content
+                                </p>
+                            </div>
 
                             {/* Body Text */}
                             <label className="block">

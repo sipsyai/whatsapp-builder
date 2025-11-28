@@ -151,11 +151,12 @@ Create (DRAFT) → Publish (PUBLISHED) → Deprecate (DEPRECATED) → Delete
 **File**: `/backend/src/modules/flows/flows.service.ts`
 
 - `create(dto)`: Create Flow on WhatsApp
+- `createFromPlayground(dto)`: **NEW** - Create Flow from Playground JSON with auto-validation
 - `update(id, dto)`: Update Flow (resets to DRAFT)
 - `publish(id)`: Publish Flow (PUBLISHED status)
 - `delete(id)`: Smart deletion (deprecates if PUBLISHED first)
 - `getPreview(id)`: Get preview URL for testing
-- `syncFromMeta()`: **NEW** - Import flows from Meta API
+- `syncFromMeta()`: Import flows from Meta API
 
 ### WhatsAppFlowService (API Client)
 **File**: `/backend/src/modules/whatsapp/services/whatsapp-flow.service.ts`
@@ -168,8 +169,8 @@ Create (DRAFT) → Publish (PUBLISHED) → Deprecate (DEPRECATED) → Delete
 - `deleteFlow(flowId)`: DELETE from Meta
 - `getFlowDetails(flowId)`: GET flow metadata
 - `getPreviewUrl(flowId)`: GET preview URL
-- `fetchAllFlows()`: **NEW** - GET all flows with pagination
-- `getFlowJson(assetUrl)`: **NEW** - Download flow JSON from Meta CDN
+- `fetchAllFlows()`: GET all flows with pagination
+- `getFlowJson(assetUrl)`: Download flow JSON from Meta CDN
 
 ### Flow JSON Structure
 ```typescript
@@ -205,51 +206,99 @@ Create (DRAFT) → Publish (PUBLISHED) → Deprecate (DEPRECATED) → Delete
 
 ### DataSource Integration in Flows
 
-**Purpose**: WhatsApp Flows can fetch dynamic data from external APIs (Strapi, REST, GraphQL) during INIT action.
+**Purpose**: WhatsApp Flows can fetch dynamic data from external APIs (Strapi, REST, GraphQL) during INIT and data_exchange actions.
+
+**Two Approaches**:
+1. **Flow-Level DataSource** (Legacy): Single `dataSourceId` for entire flow
+2. **Component-Level Config** (NEW): Per-dropdown configuration via `ComponentDataSourceConfigDto[]`
+
+**Component-Level Configuration** (Recommended):
+
+```typescript
+// ComponentDataSourceConfigDto stored in flow.metadata.dataSourceConfig
+const dataSourceConfigs = [
+  {
+    componentName: 'selected_brand',
+    dataSourceId: 'uuid-of-datasource',
+    endpoint: '/api/brands',
+    dataKey: 'data',
+    transformTo: { idField: 'name', titleField: 'name' }
+  },
+  {
+    componentName: 'selected_product',
+    dataSourceId: 'uuid-of-datasource',
+    endpoint: '/api/products',
+    dataKey: 'data',
+    transformTo: { idField: 'documentId', titleField: 'name' },
+    dependsOn: 'selected_brand',  // Cascading dropdown
+    filterParam: 'filters[brand][name][$eq]'  // Strapi filter
+  }
+];
+```
+
+**Config-Driven Data Exchange Flow**:
+```
+1. INIT Action:
+   - Load dataSourceConfig from Flow.metadata
+   - Find configs without dependsOn (initial data)
+   - Fetch data using DataSourcesService
+   - Transform to dropdown format
+   - Return first screen with data
+
+2. data_exchange Action:
+   - Check submitted field names
+   - Find configs where dependsOn matches submitted field
+   - Fetch cascading data with filter
+   - Return next screen with new dropdown options
+```
 
 **Implementation** (FlowEndpointService):
 
 ```typescript
-// Extract dataSourceId from flow_token and flow configuration
-const flow = await this.flowRepo.findOne({
-  where: { whatsappFlowId: flowNode.data.whatsappFlowId },
-});
-const dataSourceId = flow.dataSourceId;
+// Config-driven approach
+private async fetchComponentData(
+  config: ComponentDataSourceConfigDto,
+  formData: Record<string, any>
+): Promise<{ id: string; title: string }[]> {
+  // Build filter params for cascading
+  const params = {};
+  if (config.dependsOn && config.filterParam && formData[config.dependsOn]) {
+    params[config.filterParam] = formData[config.dependsOn];
+  }
 
-// Get data source configuration
-const dsConfig = await this.getDataSourceConfig(dataSourceId);
+  // Fetch from DataSource
+  const response = await this.dataSourcesService.fetchData(
+    config.dataSourceId,
+    config.endpoint,
+    { params }
+  );
 
-// Fetch initial data for Flow screens
-const response = await fetch(`${dsConfig.baseUrl}/api/brands`, {
-  headers: {
-    'Authorization': `Bearer ${dsConfig.token}`,
-  },
-});
+  // Extract array using dataKey
+  const dataArray = this.extractDataArray(response, config.dataKey);
 
-const data = await response.json();
-
-// Transform to WhatsApp Flow dropdown format
-const brands = data.data.map(item => ({
-  id: item.name,
-  title: item.name,
-}));
-
-return {
-  screen: 'BRAND_SCREEN',
-  data: { brands }
-};
+  // Transform to dropdown format
+  return dataArray.map(item => ({
+    id: String(item[config.transformTo.idField]),
+    title: String(item[config.transformTo.titleField])
+  }));
+}
 ```
 
 **Fallback Mechanism**:
-1. Primary: Use DataSource from WhatsAppFlow.dataSourceId
-2. Fallback: Environment variables (STRAPI_BASE_URL, STRAPI_TOKEN)
-3. Graceful degradation: Empty data if neither available
+1. Primary: Component-level config from flow.metadata.dataSourceConfig
+2. Secondary: Flow-level DataSource from WhatsAppFlow.dataSourceId
+3. Fallback: Environment variables (STRAPI_BASE_URL, STRAPI_TOKEN)
+4. Graceful degradation: Empty data if none available
 
 **Benefits**:
 - No hardcoded credentials in code
-- UI-based configuration
+- UI-based configuration via Playground
+- Cascading dropdown support (brand -> product -> details)
+- Per-component data source selection
+- Reusable DataSources across multiple flows
 - Multiple environment support (dev, staging, prod)
-- Per-flow data source assignment
+
+**See**: [Data Sources + WhatsApp Flows Integration](./21-data-sources-whatsapp-flows-integration.md) for complete documentation
 
 ---
 
@@ -461,6 +510,49 @@ try {
 
 ---
 
+## Create with Playground Feature
+
+### Overview
+Users can create WhatsApp Flows directly from the Playground UI without uploading JSON files.
+
+### Endpoint
+**POST /api/flows/from-playground**
+
+**Request**:
+```typescript
+{
+  playgroundJson: any;                      // Complete playground export JSON
+  name?: string;                            // Optional - auto-generated if missing
+  description?: string;                     // Optional
+  categories: WhatsAppFlowCategory[];       // Required - at least 1 category
+  endpointUri?: string;                     // Optional
+  autoPublish?: boolean;                    // Optional - default: false
+}
+```
+
+**Process**:
+1. Validate playground JSON (version, screens)
+2. Normalize JSON structure
+3. Generate flow name (from DTO → first screen title → first screen ID → "Playground Flow")
+4. Create in WhatsApp API
+5. Save to database with metadata (`source: 'playground'`)
+6. Auto-publish if requested
+
+**Frontend Flow**:
+```
+FlowsPage → "Create with Playground" button
+  → FlowPlaygroundPage (mode: 'create')
+  → Design flow
+  → Click Save → SaveFlowModal
+  → Enter name + select categories
+  → POST /api/flows/from-playground
+  → Navigate back to FlowsPage
+```
+
+**See**: [Create with Playground Feature](./20-create-with-playground-feature.md) for detailed documentation
+
+---
+
 ## Summary
 
 ### Integration Points
@@ -468,6 +560,7 @@ try {
 2. **Receive Messages**: Webhooks → WebhookProcessorService → ChatBotExecutionService
 3. **Flows**: FlowsService ↔ WhatsAppFlowService ↔ Meta API
 4. **Flow Webhooks**: FlowEndpointController → FlowEndpointService (encrypted)
+5. **Playground Creation**: FlowsPage → FlowPlaygroundPage → POST /api/flows/from-playground
 
 ### Key Services
 - `WhatsAppApiService`: HTTP client wrapper

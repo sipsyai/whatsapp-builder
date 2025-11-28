@@ -26,6 +26,23 @@ export const WHATSAPP_FLOW_CATEGORY_LABELS: Record<WhatsAppFlowCategory, string>
   [WhatsAppFlowCategory.OTHER]: 'Other',
 };
 
+// Data Source Configuration Types
+export interface TransformTo {
+  idField: string;
+  titleField: string;
+  descriptionField?: string;
+}
+
+export interface ComponentDataSourceConfig {
+  componentName: string;
+  dataSourceId: string;
+  endpoint: string;
+  dataKey: string;
+  transformTo: TransformTo;
+  dependsOn?: string;
+  filterParam?: string;
+}
+
 // Types
 export type WhatsAppFlow = {
   id: string;
@@ -48,6 +65,8 @@ export type CreateFlowDto = {
   categories: WhatsAppFlowCategory[];
   flowJson: any;
   endpointUri?: string;
+  dataSourceId?: string;
+  dataSourceConfig?: ComponentDataSourceConfig[];
 };
 
 export type UpdateFlowDto = {
@@ -57,6 +76,32 @@ export type UpdateFlowDto = {
   flowJson?: any;
   endpointUri?: string;
   isActive?: boolean;
+  dataSourceId?: string;
+  dataSourceConfig?: ComponentDataSourceConfig[];
+};
+
+export type ValidateFlowDto = {
+  flowJson: any;
+  flowId?: string;
+  name?: string;
+};
+
+export type FlowValidationError = {
+  error: string;
+  error_type: string;
+  message: string;
+  line_start?: number;
+  line_end?: number;
+  column_start?: number;
+  column_end?: number;
+};
+
+export type FlowValidationResult = {
+  isValid: boolean;
+  errors: FlowValidationError[];
+  warnings?: string[];
+  flowId?: string;
+  whatsappFlowId?: string;
 };
 
 export type SyncResult = {
@@ -118,6 +163,12 @@ export const flowsApi = {
   // Sync flows from Meta/Facebook API
   async syncFromMeta(): Promise<SyncResult> {
     const response = await client.post('/api/flows/sync');
+    return response.data;
+  },
+
+  // Validate Flow JSON against Meta API
+  async validate(data: ValidateFlowDto): Promise<FlowValidationResult> {
+    const response = await client.post('/api/flows/validate', data);
     return response.data;
   },
 };

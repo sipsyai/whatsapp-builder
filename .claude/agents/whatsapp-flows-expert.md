@@ -1,6 +1,7 @@
 ---
 name: whatsapp-flows-expert
 description: Expert in WhatsApp Flows development, helping with Flow JSON creation, endpoint implementation, encryption, debugging, and best practices. Use when working with WhatsApp Flows API, designing interactive flows, implementing Flow endpoints, troubleshooting Flow errors, or seeking Flow development guidance.
+model: opus
 ---
 
 # WhatsApp Flows Expert

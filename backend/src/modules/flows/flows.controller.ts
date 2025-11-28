@@ -18,10 +18,11 @@ import {
   ApiQuery,
   ApiBody,
 } from '@nestjs/swagger';
-import { FlowsService, SyncResult } from './flows.service';
+import { FlowsService, SyncResult, FlowValidationResult } from './flows.service';
 import { CreateFlowDto } from './dto/create-flow.dto';
 import { UpdateFlowDto } from './dto/update-flow.dto';
 import { CreateFlowFromPlaygroundDto } from './dto/create-flow-from-playground.dto';
+import { ValidateFlowDto } from './dto/validate-flow.dto';
 import { WhatsAppFlow } from '../../entities/whatsapp-flow.entity';
 
 @ApiTags('Flows')
@@ -50,6 +51,19 @@ export class FlowsController {
   @ApiResponse({ status: 400, description: 'Invalid playground JSON format or validation failed' })
   async createFromPlayground(@Body() dto: CreateFlowFromPlaygroundDto): Promise<WhatsAppFlow> {
     return this.flowsService.createFromPlayground(dto);
+  }
+
+  @Post('validate')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Validate Flow JSON against Meta API',
+    description: 'Validates Flow JSON by creating/updating a draft flow in Meta and returning validation errors. Does not publish the flow.'
+  })
+  @ApiBody({ type: ValidateFlowDto })
+  @ApiResponse({ status: 200, description: 'Validation result returned' })
+  @ApiResponse({ status: 400, description: 'Invalid flow JSON structure' })
+  async validateFlow(@Body() dto: ValidateFlowDto): Promise<FlowValidationResult> {
+    return this.flowsService.validateFlowJson(dto);
   }
 
   @Post('sync')
@@ -133,5 +147,27 @@ export class FlowsController {
   @ApiResponse({ status: 404, description: 'Flow not found' })
   async delete(@Param('id') id: string): Promise<void> {
     return this.flowsService.delete(id);
+  }
+
+  @Get(':id/validation-errors')
+  @ApiOperation({ summary: 'Get flow validation errors from Meta API', description: 'Fetches validation errors for a flow from WhatsApp API' })
+  @ApiParam({ name: 'id', description: 'Flow UUID', type: 'string' })
+  @ApiResponse({ status: 200, description: 'Validation errors returned successfully' })
+  @ApiResponse({ status: 404, description: 'Flow not found' })
+  async getValidationErrors(@Param('id') id: string): Promise<any> {
+    return this.flowsService.getValidationErrors(id);
+  }
+
+  @Post(':id/fix-json')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Fix Flow JSON structure',
+    description: 'Automatically fixes routing_model/data_api_version consistency issues in Flow JSON'
+  })
+  @ApiParam({ name: 'id', description: 'Flow UUID', type: 'string' })
+  @ApiResponse({ status: 200, description: 'Flow JSON fixed and updated successfully' })
+  @ApiResponse({ status: 404, description: 'Flow not found' })
+  async fixFlowJson(@Param('id') id: string): Promise<WhatsAppFlow> {
+    return this.flowsService.fixFlowJson(id);
   }
 }

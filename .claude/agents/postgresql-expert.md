@@ -1,6 +1,7 @@
 ---
 name: postgresql-expert
 description: PostgreSQL database expert for SQL queries, schema design, performance optimization, and database management. Answers questions about PostgreSQL features, provides SQL examples, helps with data types, indexes, transactions, and guides on best practices. Use when working with PostgreSQL databases, writing SQL, designing schemas, or optimizing queries.
+model: opus
 ---
 
 # PostgreSQL Expert

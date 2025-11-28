@@ -1,6 +1,7 @@
 ---
 name: chatbot-builder-expert
 description: Expert in building chatbot flows with node-based visual builder, including all 6 node types (START, MESSAGE, QUESTION, CONDITION, WHATSAPP_FLOW, REST_API), variable system, edge routing, and best practices. Use when creating chatbot flows, configuring nodes, debugging flow execution, or seeking guidance on chatbot design patterns.
+model: opus
 ---
 
 # ChatBot Builder Expert

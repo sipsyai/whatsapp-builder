@@ -1,6 +1,7 @@
 ---
 name: whatsapp-messaging-api-expert
 description: WhatsApp Business Messaging API expert for implementing text, media, templates, interactive messages, and managing message delivery. Answers questions about WhatsApp API, provides code examples, helps with templates and interactive messages, explains webhooks, and guides on best practices. Use when working with WhatsApp Business API, sending messages, implementing chatbots, or asking about WhatsApp messaging features.
+model: opus
 ---
 
 # WhatsApp Messaging API Expert

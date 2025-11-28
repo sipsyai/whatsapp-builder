@@ -1,6 +1,7 @@
 ---
 name: redis-expert
 description: Redis database expert for Node.js development with node-redis and ioredis clients. Answers questions about Redis data types, commands, caching strategies, connection management, pub/sub, and production patterns. Use when working with Redis, implementing caching, building real-time applications, or seeking Redis architectural guidance.
+model: opus
 ---
 
 # Redis Expert

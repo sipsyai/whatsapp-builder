@@ -195,6 +195,10 @@ export const DEFAULT_COMPONENT_VALUES: Record<string, Record<string, unknown>> =
   // Navigation Components
   Footer: {
     label: 'Continue',
+    'on-click-action': {
+      name: 'complete',
+      payload: {},
+    },
   },
 };
 

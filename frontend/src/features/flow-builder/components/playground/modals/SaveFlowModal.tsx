@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { getActiveDataSources } from '../../../../data-sources/api';
+import type { DataSource } from '../../../../data-sources/api';
 
 // WhatsApp Flow Categories
 const FLOW_CATEGORIES = [
@@ -14,10 +16,16 @@ const FLOW_CATEGORIES = [
 
 export type FlowCategory = typeof FLOW_CATEGORIES[number];
 
+export interface SaveFlowModalData {
+  name: string;
+  categories: string[];
+  dataSourceId?: string;
+}
+
 export interface SaveFlowModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: { name: string; categories: string[] }) => void;
+  onSave: (data: SaveFlowModalData) => void;
   initialName?: string;
 }
 
@@ -32,6 +40,25 @@ export const SaveFlowModal = ({
     categories: [] as string[],
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [dataSources, setDataSources] = useState<DataSource[]>([]);
+  const [selectedDataSourceId, setSelectedDataSourceId] = useState<string>('');
+  const [loadingDataSources, setLoadingDataSources] = useState(false);
+
+  // Load data sources
+  useEffect(() => {
+    const loadDataSources = async () => {
+      setLoadingDataSources(true);
+      try {
+        const sources = await getActiveDataSources();
+        setDataSources(sources);
+      } catch (error) {
+        console.error('Failed to load data sources:', error);
+      } finally {
+        setLoadingDataSources(false);
+      }
+    };
+    loadDataSources();
+  }, []);
 
   // Reset form when modal opens with initialName
   useEffect(() => {
@@ -41,6 +68,7 @@ export const SaveFlowModal = ({
         categories: [],
       });
       setErrors({});
+      setSelectedDataSourceId('');
     }
   }, [isOpen, initialName]);
 
@@ -69,6 +97,7 @@ export const SaveFlowModal = ({
     onSave({
       name: formData.name.trim(),
       categories: formData.categories,
+      dataSourceId: selectedDataSourceId || undefined,
     });
   };
 
@@ -150,6 +179,29 @@ export const SaveFlowModal = ({
             )}
             <p className="mt-2 text-xs text-zinc-400">
               Select at least one category that describes your flow
+            </p>
+          </div>
+
+          {/* Default Data Source (Optional) */}
+          <div>
+            <label className="block text-sm font-medium text-zinc-300 mb-1">
+              Default Data Source <span className="text-zinc-500">(optional)</span>
+            </label>
+            <select
+              value={selectedDataSourceId}
+              onChange={(e) => setSelectedDataSourceId(e.target.value)}
+              className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary"
+              disabled={loadingDataSources}
+            >
+              <option value="">None</option>
+              {dataSources.map((ds) => (
+                <option key={ds.id} value={ds.id}>
+                  {ds.name} ({ds.type})
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-zinc-400">
+              Components can override this with their own data source
             </p>
           </div>
 

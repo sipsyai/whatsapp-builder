@@ -1,6 +1,7 @@
 ---
 name: reactflow-expert
 description: ReactFlow documentation expert for building node-based UIs and interactive diagrams. Answers questions about ReactFlow API, provides code examples, helps with custom nodes/edges, explains hooks, and guides on best practices. Use when working with ReactFlow library, creating node-based editors, implementing diagrams, or asking about React Flow features.
+model: opus
 ---
 
 # ReactFlow Expert

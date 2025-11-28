@@ -1,6 +1,8 @@
-import { IsString, IsArray, IsOptional, IsEnum, IsObject, IsBoolean } from 'class-validator';
+import { IsString, IsArray, IsOptional, IsEnum, IsObject, IsBoolean, IsUUID, ValidateNested } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import { WhatsAppFlowCategory } from '../../../entities/whatsapp-flow.entity';
+import { ComponentDataSourceConfigDto } from './component-data-source-config.dto';
 
 /**
  * DTO for creating a WhatsApp Flow from Playground JSON
@@ -73,4 +75,35 @@ export class CreateFlowFromPlaygroundDto {
   @IsOptional()
   @IsBoolean()
   autoPublish?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Default Data Source UUID for the flow',
+    example: '550e8400-e29b-41d4-a716-446655440000'
+  })
+  @IsOptional()
+  @IsUUID()
+  dataSourceId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Component-level data source configurations for dynamic dropdowns',
+    type: [ComponentDataSourceConfigDto],
+    example: [
+      {
+        componentName: 'selected_brand',
+        dataSourceId: '550e8400-e29b-41d4-a716-446655440000',
+        endpoint: '/api/brands',
+        dataKey: 'data',
+        transformTo: {
+          idField: 'id',
+          titleField: 'name',
+          descriptionField: 'description'
+        }
+      }
+    ]
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ComponentDataSourceConfigDto)
+  dataSourceConfig?: ComponentDataSourceConfigDto[];
 }

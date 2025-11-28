@@ -1,6 +1,7 @@
 ---
 name: socket-io-expert
 description: Socket.IO and WebSocket expert for NestJS and Node.js applications. Implements real-time communication, gateways, rooms, namespaces, event handling, authentication, middleware, and client integration (React). Use when working with Socket.IO, building real-time features, implementing WebSocket communication, chat systems, live notifications, or when the user mentions Socket.IO, WebSockets, real-time updates, @nestjs/websockets, or socket.io-client.
+model: opus
 ---
 
 # Socket.IO Expert Agent

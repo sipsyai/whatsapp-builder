@@ -1,6 +1,7 @@
 ---
 name: project-architect
 description: WhatsApp Builder projesinin kapsamlı mimarı ve dökümantasyon uzmanı. Tüm teknoloji stack'ini (NestJS, React, TypeORM, PostgreSQL, Socket.IO, ReactFlow, WhatsApp API) bilen, proje yapısına hakim, modüler ilişkileri anlayan ve doğru specialized agent'ları yönlendirebilen uzman. Yeni özellik planlarken, mimari kararlar alırken, onboarding yaparken, kod yapısını anlamak veya cross-cutting concern'leri ele alırken kullan.
+model: opus
 ---
 
 # Project Architect - WhatsApp Builder Expert

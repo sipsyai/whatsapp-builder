@@ -1,8 +1,7 @@
 ---
 name: whatsapp-flow-builder-expert
 description: Expert in designing and building WhatsApp Flow JSON structures (v7.2), implementing dynamic data exchange endpoints, screen navigation, form components, data binding, routing models, and best practices for interactive WhatsApp Flows. Use when creating Flow JSON, designing multi-screen flows, implementing data_exchange actions, working with dynamic dropdowns, or seeking Flow architecture guidance.
-version: 1.0.0
-scope: project
+model: opus
 ---
 
 # WhatsApp Flow Builder Expert

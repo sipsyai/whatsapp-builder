@@ -5,6 +5,8 @@ import { ScreensPanel } from './components/playground/ScreensPanel';
 import { ContentEditor } from './components/playground/ContentEditor';
 import { PreviewPanel } from './components/playground/PreviewPanel';
 import { SaveFlowModal } from './components/playground/modals';
+import { flowsApi } from '../flows/api';
+import type { FlowValidationResult } from '../flows/api';
 import type { BuilderScreen } from './types/builder.types';
 import type { FlowJSONVersion } from './types/flow-json.types';
 
@@ -95,6 +97,8 @@ export function FlowPlaygroundPage({
   const [isSaving, setIsSaving] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'screens' | 'editor' | 'preview'>('editor');
+  const [isValidating, setIsValidating] = useState(false);
+  const [validationResult, setValidationResult] = useState<FlowValidationResult | null>(null);
 
   // ========================================================================
   // Save Flow
@@ -172,6 +176,101 @@ export function FlowPlaygroundPage({
   }, [playground.flowName, playground.screens, playground.flowVersion]);
 
   // ========================================================================
+  // Validate Flow
+  // ========================================================================
+
+  const handleValidate = useCallback(async () => {
+    setIsValidating(true);
+    setValidationResult(null);
+
+    try {
+      // Build flow JSON for validation (same structure as save)
+      const screens = playground.screens.map(screen => {
+        const hasCompleteAction = screen.components.some((c: any) =>
+          c.type === 'Footer' &&
+          c.config?.['on-click-action']?.name === 'complete'
+        );
+        const isTerminal = hasCompleteAction || screen.terminal;
+
+        const screenObj: any = {
+          id: screen.id,
+          title: screen.title,
+          terminal: isTerminal,
+          data: screen.data || {},
+          layout: {
+            type: 'SingleColumnLayout',
+            children: screen.components.map((c: any) => ({
+              type: c.type,
+              ...c.config,
+            })),
+          },
+        };
+
+        if (isTerminal) {
+          screenObj.success = true;
+        }
+
+        if (screen.refresh_on_back !== undefined) {
+          screenObj.refresh_on_back = screen.refresh_on_back;
+        }
+
+        return screenObj;
+      });
+
+      const usesDataExchange = screens.some(screen =>
+        screen.layout.children.some((c: any) =>
+          c['on-click-action']?.name === 'data_exchange'
+        )
+      );
+
+      let flowJson: any;
+      if (usesDataExchange) {
+        const routing_model: Record<string, string[]> = {};
+        screens.forEach(screen => {
+          if (screen.terminal) {
+            routing_model[screen.id] = [];
+          } else {
+            routing_model[screen.id] = screens
+              .filter(s => s.id !== screen.id)
+              .map(s => s.id);
+          }
+        });
+        flowJson = {
+          version: playground.flowVersion,
+          data_api_version: '3.0',
+          routing_model,
+          screens,
+        };
+      } else {
+        flowJson = {
+          version: playground.flowVersion,
+          screens,
+        };
+      }
+
+      const result = await flowsApi.validate({
+        flowJson,
+        flowId: flowId,
+        name: playground.flowName || 'Validation Test',
+      });
+
+      setValidationResult(result);
+    } catch (error: any) {
+      console.error('Validation error:', error);
+      setValidationResult({
+        isValid: false,
+        errors: [{
+          error: 'VALIDATION_FAILED',
+          error_type: 'CLIENT_ERROR',
+          message: error.response?.data?.message || error.message || 'Validation failed',
+        }],
+      });
+    } finally {
+      setIsValidating(false);
+    }
+  }, [flowId, playground.flowName, playground.flowVersion, playground.screens]);
+
+  // ========================================================================
   // Render
   // ========================================================================
 
@@ -211,6 +310,27 @@ export function FlowPlaygroundPage({
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2">
+          {/* Validate */}
+          <button
+            onClick={handleValidate}
+            disabled={isValidating || playground.screens.length === 0}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              validationResult?.isValid
+                ? 'text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20'
+                : validationResult?.errors?.length
+                ? 'text-red-400 bg-red-500/10 hover:bg-red-500/20'
+                : 'text-zinc-300 hover:bg-white/5'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
+            title="Validate Flow JSON against Meta API"
+          >
+            <span className="material-symbols-outlined text-lg">
+              {isValidating ? 'sync' : validationResult?.isValid ? 'check_circle' : validationResult?.errors?.length ? 'error' : 'verified'}
+            </span>
+            <span className="hidden sm:inline">
+              {isValidating ? 'Validating...' : 'Validate'}
+            </span>
+          </button>
+
           {/* Export JSON */}
           <button
             onClick={handleExportJSON}
@@ -232,6 +352,57 @@ export function FlowPlaygroundPage({
           </button>
         </div>
       </header>
+
+      {/* Validation Results Banner */}
+      {validationResult && (
+        <div className={`flex-shrink-0 px-6 py-3 border-b border-zinc-700 ${
+          validationResult.isValid
+            ? 'bg-emerald-500/10'
+            : 'bg-red-500/10'
+        }`}>
+          <div className="flex items-start justify-between">
+            <div className="flex items-start gap-3">
+              <span className={`material-symbols-outlined text-xl mt-0.5 ${
+                validationResult.isValid ? 'text-emerald-400' : 'text-red-400'
+              }`}>
+                {validationResult.isValid ? 'check_circle' : 'error'}
+              </span>
+              <div>
+                <h3 className={`font-medium ${
+                  validationResult.isValid ? 'text-emerald-400' : 'text-red-400'
+                }`}>
+                  {validationResult.isValid
+                    ? 'Flow JSON is valid! Ready to publish.'
+                    : `${validationResult.errors.length} validation error${validationResult.errors.length !== 1 ? 's' : ''} found`
+                  }
+                </h3>
+                {!validationResult.isValid && (
+                  <ul className="mt-2 space-y-1">
+                    {validationResult.errors.map((err, idx) => (
+                      <li key={idx} className="text-sm text-zinc-300">
+                        <span className="text-red-400 font-mono">{err.error}</span>
+                        {err.line_start && (
+                          <span className="text-zinc-500 ml-2">
+                            (Line {err.line_start}{err.column_start ? `:${err.column_start}` : ''})
+                          </span>
+                        )}
+                        <span className="text-zinc-400 ml-2">{err.message}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={() => setValidationResult(null)}
+              className="text-zinc-400 hover:text-zinc-200 transition-colors"
+              aria-label="Dismiss"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Mobile Tabs (visible on <lg) */}
       <div className="lg:hidden flex border-b border-zinc-700 bg-[#112217]">

@@ -102,10 +102,23 @@ export const useFlowBuilder = (options: UseFlowBuilderOptions = {}): UseFlowBuil
   // ========================================================================
 
   /**
+   * Generate a random screen ID using only letters and underscores
+   * Meta requires screen IDs to contain only alphabets and underscores
+   */
+  const generateScreenId = (): string => {
+    const chars = 'abcdefghijklmnopqrstuvwxyz';
+    let result = 'screen_';
+    for (let i = 0; i < 8; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  };
+
+  /**
    * Add a new screen to the flow
    */
   const addScreen = useCallback((screen?: Partial<BuilderScreen>): BuilderScreen => {
-    const screenId = screen?.id || `screen_${Date.now()}`;
+    const screenId = screen?.id || generateScreenId();
     const newScreen: BuilderScreen = {
       ...createEmptyScreen(screenId),
       ...screen,
@@ -159,14 +172,14 @@ export const useFlowBuilder = (options: UseFlowBuilderOptions = {}): UseFlowBuil
       return null;
     }
 
-    const newScreenId = `${screenId}_copy_${Date.now()}`;
+    const newScreenId = generateScreenId();
     const duplicatedScreen: BuilderScreen = {
       ...screenToDuplicate,
       id: newScreenId,
       title: `${screenToDuplicate.title} (Copy)`,
       components: screenToDuplicate.components.map(component => ({
         ...component,
-        id: `${component.id}_copy_${Date.now()}`,
+        id: `comp_${Math.random().toString(36).substring(2, 10)}`,
       })),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

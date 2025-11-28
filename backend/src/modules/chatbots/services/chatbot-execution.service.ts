@@ -851,23 +851,55 @@ export class ChatBotExecutionService {
     // Get initial screen from node config
     let initialScreen = node.data?.flowInitialScreen;
 
-    // If flow has an active data source, fetch dynamic initial data
-    if (flow.dataSource && flow.dataSource.isActive) {
+    // Determine DataSource: Node-level takes priority over Flow entity
+    let dataSourceForFlow: DataSource | null = null;
+    let endpointForFlow: string | undefined;
+    let dataKeyForFlow: string | undefined;
+
+    if (node.data?.dataSourceId) {
+      // Node-level DataSource specified
+      try {
+        dataSourceForFlow = await this.dataSourcesService.findOne(node.data.dataSourceId);
+        endpointForFlow = node.data.dataSourceEndpoint;
+        dataKeyForFlow = node.data.dataSourceDataKey;
+        this.logger.log(
+          `Using node-level DataSource: ${dataSourceForFlow?.name || node.data.dataSourceId}`,
+        );
+      } catch (error) {
+        this.logger.warn(
+          `Node-level DataSource ${node.data.dataSourceId} not found: ${error.message}`,
+        );
+      }
+    }
+
+    // Fallback to Flow entity DataSource if node-level not specified or not found
+    if (!dataSourceForFlow && flow.dataSource && flow.dataSource.isActive) {
+      dataSourceForFlow = flow.dataSource;
       this.logger.log(
-        `Flow has active data source: ${flow.dataSource.name} - fetching initial data`,
+        `Using Flow entity DataSource (fallback): ${flow.dataSource.name}`,
+      );
+    }
+
+    // If we have an active DataSource, fetch dynamic initial data
+    if (dataSourceForFlow && dataSourceForFlow.isActive) {
+      this.logger.log(
+        `Fetching initial data from DataSource: ${dataSourceForFlow.name}`,
       );
 
       try {
         const dynamicData = await this.fetchFlowInitialData(
-          flow.dataSource,
-          flow.metadata?.dataSourceConfig,
+          dataSourceForFlow,
+          {
+            endpoint: endpointForFlow || flow.metadata?.dataSourceConfig?.endpoint,
+            dataKey: dataKeyForFlow || flow.metadata?.dataSourceConfig?.dataKey || 'brands',
+          },
         );
 
         this.logger.log(`Fetched ${dynamicData.length} items for Flow initial data`);
 
         // Merge dynamic data into initial data
-        // The key name can be configured in flow.metadata.dataSourceConfig.dataKey or default to 'brands'
-        const dataKey = flow.metadata?.dataSourceConfig?.dataKey || 'brands';
+        // Use node-level dataKey, then flow metadata dataKey, then default 'brands'
+        const dataKey = dataKeyForFlow || flow.metadata?.dataSourceConfig?.dataKey || 'brands';
         initialData = { ...initialData, [dataKey]: dynamicData };
 
         // Use initial screen from metadata if specified

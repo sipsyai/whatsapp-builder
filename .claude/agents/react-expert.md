@@ -1,6 +1,7 @@
 ---
 name: react-expert
 description: React development expert for building modern web applications with React 18+. Implements components, hooks (useState, useEffect, useCallback, useMemo, custom hooks), state management, TypeScript integration, performance optimization, forms, routing, and testing. Use when working with React, building SPAs, implementing hooks, optimizing performance, or when the user mentions React, components, hooks, JSX, or React patterns.
+model: opus
 ---
 
 # React Expert Agent

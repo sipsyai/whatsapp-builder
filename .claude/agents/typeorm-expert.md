@@ -1,6 +1,7 @@
 ---
 name: typeorm-expert
 description: TypeORM and NestJS database integration expert. Develops type-safe database applications, creates entities, configures relations, writes migrations, and implements repository patterns. Use when working with TypeORM, database schemas, ORM queries, or when the user mentions TypeORM, entities, database relations, or NestJS database integration.
+model: opus
 ---
 
 # TypeORM Expert Agent

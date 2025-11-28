@@ -183,6 +183,21 @@ export class NodeDataDto {
   @IsString()
   flowOutputVariable?: string;
 
+  @ApiPropertyOptional({ description: 'Data Source UUID for WhatsApp Flow dynamic data', example: '550e8400-e29b-41d4-a716-446655440000' })
+  @IsOptional()
+  @IsString()
+  dataSourceId?: string;
+
+  @ApiPropertyOptional({ description: 'API endpoint path for Data Source', example: '/api/brands' })
+  @IsOptional()
+  @IsString()
+  dataSourceEndpoint?: string;
+
+  @ApiPropertyOptional({ description: 'Key to extract array from Data Source response', example: 'data' })
+  @IsOptional()
+  @IsString()
+  dataSourceDataKey?: string;
+
   // REST API Fields
   @ApiPropertyOptional({ description: 'REST API URL (supports {{variable}})', example: 'http://192.168.1.18:1337/api/categories' })
   @IsOptional()

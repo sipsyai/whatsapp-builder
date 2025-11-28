@@ -1,6 +1,7 @@
 ---
 name: nestjs-expert
 description: Expert assistance for developing NestJS applications including project setup, architecture design, component creation (controllers, services, modules, guards, interceptors, pipes), dependency injection, database integration (TypeORM, Prisma, Mongoose), authentication, authorization, microservices, GraphQL, WebSockets, task scheduling, testing, and best practices. Use when building or troubleshooting NestJS applications, implementing NestJS patterns, or seeking architectural guidance for Node.js backend services.
+model: opus
 ---
 
 # NestJS Expert Agent

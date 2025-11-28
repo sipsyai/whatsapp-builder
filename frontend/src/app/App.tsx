@@ -248,14 +248,23 @@ const App = () => {
               } : undefined}
               onSave={async (flowData) => {
                 try {
-                  const flowJson = {
-                    version: flowData.version,
-                    screens: flowData.screens.map(screen => ({
+                  // Build screens with terminal detection
+                  const screens = flowData.screens.map(screen => {
+                    // Check if screen has a Footer with complete action
+                    const hasCompleteAction = screen.components.some((c: any) =>
+                      c.type === 'Footer' &&
+                      c.config?.['on-click-action']?.name === 'complete'
+                    );
+
+                    // Automatically set terminal: true if screen has complete action
+                    const isTerminal = hasCompleteAction || screen.terminal;
+
+                    // Build screen object
+                    const screenObj: any = {
                       id: screen.id,
                       title: screen.title,
-                      terminal: screen.terminal,
-                      refresh_on_back: screen.refresh_on_back,
-                      data: screen.data,
+                      terminal: isTerminal,
+                      data: screen.data || {},
                       layout: {
                         type: 'SingleColumnLayout',
                         children: screen.components.map((c: any) => ({
@@ -263,8 +272,57 @@ const App = () => {
                           ...c.config,
                         })),
                       },
-                    })),
-                  };
+                    };
+
+                    // Add success: true for terminal screens (required by Meta)
+                    if (isTerminal) {
+                      screenObj.success = true;
+                    }
+
+                    // Only add refresh_on_back if defined
+                    if (screen.refresh_on_back !== undefined) {
+                      screenObj.refresh_on_back = screen.refresh_on_back;
+                    }
+
+                    return screenObj;
+                  });
+
+                  // Check if flow uses data_exchange action (requires endpoint)
+                  const usesDataExchange = screens.some(screen =>
+                    screen.layout.children.some((c: any) =>
+                      c['on-click-action']?.name === 'data_exchange'
+                    )
+                  );
+
+                  // Build flowJson based on whether endpoint is used
+                  let flowJson: any;
+
+                  if (usesDataExchange) {
+                    // Flow uses endpoint - routing_model + data_api_version required
+                    const routing_model: Record<string, string[]> = {};
+                    screens.forEach(screen => {
+                      if (screen.terminal) {
+                        routing_model[screen.id] = [];
+                      } else {
+                        routing_model[screen.id] = screens
+                          .filter(s => s.id !== screen.id)
+                          .map(s => s.id);
+                      }
+                    });
+
+                    flowJson = {
+                      version: flowData.version,
+                      data_api_version: '3.0',
+                      routing_model,
+                      screens,
+                    };
+                  } else {
+                    // Simple flow without endpoint - only version and screens needed
+                    flowJson = {
+                      version: flowData.version,
+                      screens,
+                    };
+                  }
 
                   if (playgroundFlow === null) {
                     // CREATE NEW FLOW

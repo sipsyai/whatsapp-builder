@@ -67,6 +67,9 @@ export interface NodeData {
     flowHeaderText?: string;
     flowBodyText?: string;
     flowFooterText?: string;
+    dataSourceId?: string;
+    dataSourceEndpoint?: string;
+    dataSourceDataKey?: string;
 
     // REST API Fields
     apiUrl?: string;

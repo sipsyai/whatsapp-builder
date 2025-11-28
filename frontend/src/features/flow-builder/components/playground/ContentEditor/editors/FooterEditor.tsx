@@ -40,16 +40,19 @@ export const FooterEditor: React.FC<ComponentEditorProps> = ({
             type: 'screen',
             name: '',
           },
+          payload: {},
         };
         break;
       case 'complete':
         newAction = {
           name: 'complete',
+          payload: {},
         };
         break;
       case 'data_exchange':
         newAction = {
           name: 'data_exchange',
+          payload: {},
         };
         break;
       default:
@@ -59,6 +62,7 @@ export const FooterEditor: React.FC<ComponentEditorProps> = ({
             type: 'screen',
             name: '',
           },
+          payload: {},
         };
     }
 
@@ -83,6 +87,7 @@ export const FooterEditor: React.FC<ComponentEditorProps> = ({
               type: 'screen',
               name: e.target.value,
             },
+            payload: {},
           },
         },
       });

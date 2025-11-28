@@ -5,6 +5,7 @@ import { ConversationContext } from '../../../entities/conversation-context.enti
 import { WhatsAppFlow } from '../../../entities/whatsapp-flow.entity';
 import { ConfigService } from '@nestjs/config';
 import { DataSourcesService } from '../../data-sources/data-sources.service';
+import { ComponentDataSourceConfigDto } from '../../flows/dto/component-data-source-config.dto';
 
 /**
  * Flow Endpoint Service
@@ -38,6 +39,8 @@ export class FlowEndpointService {
     let nodeId: string | null = null;
     let initialData: any = {};
     let dataSourceId: string | null = null;
+    let whatsappFlowId: string | null = null;
+    let flowRecord: WhatsAppFlow | null = null;
 
     if (flow_token && flow_token.includes('-')) {
       const parts = flow_token.split('-');
@@ -65,11 +68,14 @@ export class FlowEndpointService {
                 (n: any) => n.id === nodeId,
               );
               if (flowNode?.data?.whatsappFlowId) {
-                // Load the flow to get dataSourceId
+                whatsappFlowId = flowNode.data.whatsappFlowId;
+                // Load the flow to get dataSourceId and dataSourceConfig
                 const flow = await this.flowRepo.findOne({
                   where: { whatsappFlowId: flowNode.data.whatsappFlowId },
+                  relations: ['dataSource'],
                 });
                 if (flow) {
+                  flowRecord = flow;
                   dataSourceId = flow.dataSourceId || null;
                   this.logger.debug(
                     `Flow loaded: ${flow.name}, dataSourceId: ${dataSourceId}`,
@@ -86,6 +92,52 @@ export class FlowEndpointService {
         }
       }
     }
+
+    // ============================================================================
+    // Config-Driven Data Fetching (New Generic Approach)
+    // ============================================================================
+    const dataSourceConfigs = (flowRecord?.metadata?.dataSourceConfig as ComponentDataSourceConfigDto[]) || [];
+
+    if (dataSourceConfigs.length > 0) {
+      this.logger.debug(`Found ${dataSourceConfigs.length} data source configs, using config-driven approach`);
+
+      try {
+        // Find configs for initial screen (no dependencies)
+        const initialConfigs = dataSourceConfigs.filter((c) => !c.dependsOn);
+
+        if (initialConfigs.length > 0) {
+          // Fetch data for each initial component config
+          const screenData: Record<string, any> = { ...initialData };
+
+          for (const config of initialConfigs) {
+            const componentData = await this.fetchComponentData(config, {});
+            screenData[config.componentName] = componentData;
+            this.logger.debug(
+              `Fetched ${componentData.length} items for component: ${config.componentName}`,
+            );
+          }
+
+          // Determine initial screen from flowJson or use first screen
+          let initialScreen = 'INIT_SCREEN';
+          if (flowRecord && flowRecord.flowJson?.screens?.length > 0) {
+            initialScreen = flowRecord.flowJson.screens[0].id;
+          }
+
+          return {
+            screen: initialScreen,
+            data: screenData,
+          };
+        }
+      } catch (error) {
+        this.logger.error(`Config-driven init failed: ${error.message}, falling back to legacy`);
+        // Fall through to legacy handler
+      }
+    }
+
+    // ============================================================================
+    // Legacy Hardcoded Handler (Fallback for backward compatibility)
+    // ============================================================================
+    this.logger.debug('Using legacy hardcoded handler');
 
     // Get data source configuration
     const dsConfig = await this.getDataSourceConfig(dataSourceId);
@@ -293,6 +345,7 @@ export class FlowEndpointService {
     let contextId: string | null = null;
     let nodeId: string | null = null;
     let dataSourceId: string | null = null;
+    let flowRecord: WhatsAppFlow | null = null;
 
     if (flow_token && flow_token.includes('-')) {
       const parts = flow_token.split('-');
@@ -314,11 +367,13 @@ export class FlowEndpointService {
           // Find the WhatsApp Flow node to get the flow ID
           const flowNode = context.chatbot.nodes?.find((n: any) => n.id === nodeId);
           if (flowNode?.data?.whatsappFlowId) {
-            // Load the flow to get dataSourceId
+            // Load the flow to get dataSourceId and dataSourceConfig
             const flow = await this.flowRepo.findOne({
               where: { whatsappFlowId: flowNode.data.whatsappFlowId },
+              relations: ['dataSource'],
             });
             if (flow) {
+              flowRecord = flow;
               dataSourceId = flow.dataSourceId || null;
               this.logger.debug(
                 `Flow loaded: ${flow.name}, dataSourceId: ${dataSourceId}`,
@@ -334,6 +389,125 @@ export class FlowEndpointService {
       }
     }
 
+    // ============================================================================
+    // Config-Driven Data Exchange (New Generic Approach)
+    // ============================================================================
+    const dataSourceConfigs = (flowRecord?.metadata?.dataSourceConfig as ComponentDataSourceConfigDto[]) || [];
+
+    if (dataSourceConfigs.length > 0) {
+      this.logger.debug(`Found ${dataSourceConfigs.length} data source configs, using config-driven approach`);
+
+      try {
+        // Check if any config depends on the submitted data
+        const submittedFields = Object.keys(data || {});
+        const screenData: Record<string, any> = { ...data };
+        let hasConfigMatch = false;
+
+        for (const fieldName of submittedFields) {
+          // Find configs that depend on this submitted field
+          const dependentConfigs = this.findDependentConfigs(dataSourceConfigs, fieldName);
+
+          if (dependentConfigs.length > 0) {
+            hasConfigMatch = true;
+            this.logger.debug(
+              `Found ${dependentConfigs.length} configs dependent on field: ${fieldName}`,
+            );
+
+            // Fetch data for each dependent config
+            for (const config of dependentConfigs) {
+              const componentData = await this.fetchComponentData(config, data);
+              screenData[config.componentName] = componentData;
+              this.logger.debug(
+                `Fetched ${componentData.length} items for component: ${config.componentName}`,
+              );
+            }
+          }
+        }
+
+        // If we processed any config-driven data, determine next screen and return
+        if (hasConfigMatch) {
+          // Determine next screen from flowJson
+          let nextScreen = this.findNextScreen(flowRecord, screen);
+
+          // If no next screen found, check if we should complete the flow
+          if (!nextScreen) {
+            // Save data to context if available
+            if (contextId && data) {
+              try {
+                await this.saveFlowDataToContext(contextId, data);
+              } catch (error) {
+                this.logger.error('Failed to save flow data:', error.message);
+              }
+            }
+
+            // Return success with extension_message_response
+            return {
+              screen: 'SUCCESS',
+              data: {
+                extension_message_response: {
+                  params: {
+                    flow_token,
+                    ...data,
+                  },
+                },
+              },
+            };
+          }
+
+          return {
+            screen: nextScreen,
+            data: screenData,
+          };
+        }
+
+        // No matching configs - check if this is a terminal screen (form submission without cascading)
+        // Save to context and complete flow
+        if (contextId && data) {
+          try {
+            await this.saveFlowDataToContext(contextId, data);
+          } catch (error) {
+            this.logger.error('Failed to save flow data:', error.message);
+          }
+        }
+
+        // Check if current screen is the last screen in flowJson
+        const isLastScreen = this.isLastScreen(flowRecord, screen);
+        if (isLastScreen) {
+          return {
+            screen: 'SUCCESS',
+            data: {
+              extension_message_response: {
+                params: {
+                  flow_token,
+                  ...data,
+                },
+              },
+            },
+          };
+        }
+
+        // Continue to next screen without additional data
+        const nextScreen = this.findNextScreen(flowRecord, screen);
+        if (nextScreen) {
+          return {
+            screen: nextScreen,
+            data: screenData,
+          };
+        }
+
+        // Fall through to legacy handler if no config match and no clear next screen
+        this.logger.debug('No config match found, falling back to legacy handler');
+      } catch (error) {
+        this.logger.error(`Config-driven data exchange failed: ${error.message}, falling back to legacy`);
+        // Fall through to legacy handler
+      }
+    }
+
+    // ============================================================================
+    // Legacy Hardcoded Handler (Fallback for backward compatibility)
+    // ============================================================================
+    this.logger.debug('Using legacy hardcoded handler');
+
     // Get data source configuration
     const dsConfig = await this.getDataSourceConfig(dataSourceId);
 
@@ -348,7 +522,7 @@ export class FlowEndpointService {
       };
     }
 
-    // Process based on current screen - Fiyat Guncelleme Flow
+    // Process based on current screen - Fiyat Guncelleme Flow (Legacy)
     switch (screen) {
       case 'BRAND_SCREEN':
         // User selected a brand, fetch products for that brand
@@ -567,6 +741,260 @@ export class FlowEndpointService {
   private isValidEmail(email: string): boolean {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
+  }
+
+  // ============================================================================
+  // Generic Config-Driven Data Exchange Methods
+  // ============================================================================
+
+  /**
+   * Load dataSourceConfig from Flow metadata
+   * @param flowId Internal flow ID (UUID)
+   * @returns Array of component data source configurations
+   */
+  private async getFlowDataSourceConfig(
+    flowId: string,
+  ): Promise<ComponentDataSourceConfigDto[]> {
+    try {
+      const flow = await this.flowRepo.findOne({
+        where: { id: flowId },
+        relations: ['dataSource'],
+      });
+      return (flow?.metadata?.dataSourceConfig as ComponentDataSourceConfigDto[]) || [];
+    } catch (error) {
+      this.logger.warn(`Failed to load flow data source config: ${error.message}`);
+      return [];
+    }
+  }
+
+  /**
+   * Load dataSourceConfig from Flow by whatsappFlowId
+   * @param whatsappFlowId WhatsApp Flow ID (from WhatsApp API)
+   * @returns Array of component data source configurations and the flow
+   */
+  private async getFlowDataSourceConfigByWhatsAppId(
+    whatsappFlowId: string,
+  ): Promise<{ configs: ComponentDataSourceConfigDto[]; flow: WhatsAppFlow | null }> {
+    try {
+      const flow = await this.flowRepo.findOne({
+        where: { whatsappFlowId },
+        relations: ['dataSource'],
+      });
+      const configs = (flow?.metadata?.dataSourceConfig as ComponentDataSourceConfigDto[]) || [];
+      return { configs, flow };
+    } catch (error) {
+      this.logger.warn(`Failed to load flow data source config by whatsappFlowId: ${error.message}`);
+      return { configs: [], flow: null };
+    }
+  }
+
+  /**
+   * Fetch data from data source and transform to dropdown format
+   * @param config Component data source configuration
+   * @param formData Form data for cascading filters
+   * @returns Transformed data array for dropdown component
+   */
+  private async fetchComponentData(
+    config: ComponentDataSourceConfigDto,
+    formData: Record<string, any> = {},
+  ): Promise<{ id: string; title: string; description?: string }[]> {
+    try {
+      // 1. Load DataSource
+      const dataSource = await this.dataSourcesService.findOne(config.dataSourceId);
+      if (!dataSource || !dataSource.isActive) {
+        this.logger.warn(`Data source ${config.dataSourceId} not found or inactive`);
+        return [];
+      }
+
+      // 2. Build filter parameters for cascading
+      const params: Record<string, any> = {};
+      if (config.dependsOn && config.filterParam && formData[config.dependsOn]) {
+        params[config.filterParam] = formData[config.dependsOn];
+        this.logger.debug(
+          `Cascading filter: ${config.filterParam}=${formData[config.dependsOn]}`,
+        );
+      }
+
+      // 3. Fetch data from data source
+      this.logger.debug(
+        `Fetching data for component ${config.componentName} from ${config.endpoint}`,
+      );
+      const response = await this.dataSourcesService.fetchData(
+        config.dataSourceId,
+        config.endpoint,
+        { params },
+      );
+
+      // 4. Extract array from response using dataKey
+      const dataArray = this.extractDataArray(response, config.dataKey);
+      this.logger.debug(
+        `Extracted ${dataArray.length} items from response using key: ${config.dataKey}`,
+      );
+
+      // 5. Transform to dropdown format
+      return dataArray.map((item: any) => {
+        const result: { id: string; title: string; description?: string } = {
+          id: String(item[config.transformTo.idField] || item.id || ''),
+          title: String(
+            item[config.transformTo.titleField] || item.name || item.title || '',
+          ),
+        };
+
+        if (config.transformTo.descriptionField && item[config.transformTo.descriptionField]) {
+          result.description = String(item[config.transformTo.descriptionField]);
+        }
+
+        return result;
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch component data for ${config.componentName}: ${error.message}`,
+      );
+      return [];
+    }
+  }
+
+  /**
+   * Extract data array from response using nested key
+   * @param response API response object
+   * @param dataKey Dot-notation key (e.g., "data" or "data.items")
+   * @returns Extracted array or empty array
+   */
+  private extractDataArray(response: any, dataKey: string): any[] {
+    if (!response || !dataKey) {
+      return [];
+    }
+
+    const keys = dataKey.split('.');
+    let result = response;
+
+    for (const key of keys) {
+      if (result === null || result === undefined) {
+        return [];
+      }
+      result = result[key];
+    }
+
+    return Array.isArray(result) ? result : [];
+  }
+
+  /**
+   * Find component configs for a specific screen
+   * @param configs All component configs
+   * @param screenName Target screen name (optional, for filtering)
+   * @param formData Current form data to check dependencies
+   * @returns Filtered configs that apply to the current context
+   */
+  private findApplicableConfigs(
+    configs: ComponentDataSourceConfigDto[],
+    formData: Record<string, any> = {},
+  ): ComponentDataSourceConfigDto[] {
+    return configs.filter((config) => {
+      // If config has dependsOn, check if the dependency value exists in formData
+      if (config.dependsOn) {
+        return formData[config.dependsOn] !== undefined;
+      }
+      // If no dependency, it's applicable for initial screen
+      return true;
+    });
+  }
+
+  /**
+   * Find configs that need data based on newly submitted form field
+   * @param configs All component configs
+   * @param submittedFieldName The field name that was just submitted
+   * @returns Configs that depend on the submitted field
+   */
+  private findDependentConfigs(
+    configs: ComponentDataSourceConfigDto[],
+    submittedFieldName: string,
+  ): ComponentDataSourceConfigDto[] {
+    return configs.filter((config) => config.dependsOn === submittedFieldName);
+  }
+
+  /**
+   * Find the next screen based on current screen from flowJson
+   * @param flow WhatsApp Flow record
+   * @param currentScreen Current screen ID
+   * @returns Next screen ID or null if not found
+   */
+  private findNextScreen(flow: WhatsAppFlow | null, currentScreen: string): string | null {
+    if (!flow?.flowJson?.screens) {
+      return null;
+    }
+
+    const screens = flow.flowJson.screens;
+    const currentIndex = screens.findIndex((s: any) => s.id === currentScreen);
+
+    if (currentIndex === -1 || currentIndex >= screens.length - 1) {
+      return null;
+    }
+
+    // Check if current screen has navigation action
+    const currentScreenData = screens[currentIndex];
+    if (currentScreenData?.layout?.children) {
+      // Look for Footer with on-click-action navigate
+      const footer = this.findComponentByType(currentScreenData.layout.children, 'Footer');
+      if (footer?.['on-click-action']?.name === 'navigate') {
+        return footer['on-click-action'].next?.name || null;
+      }
+      if (footer?.['on-click-action']?.name === 'data_exchange') {
+        // data_exchange can specify next screen in payload
+        return null; // Server determines next screen
+      }
+    }
+
+    // Default: return next screen in sequence
+    return screens[currentIndex + 1]?.id || null;
+  }
+
+  /**
+   * Check if current screen is the last screen in the flow
+   * @param flow WhatsApp Flow record
+   * @param currentScreen Current screen ID
+   * @returns True if this is the last screen
+   */
+  private isLastScreen(flow: WhatsAppFlow | null, currentScreen: string): boolean {
+    if (!flow?.flowJson?.screens) {
+      return true;
+    }
+
+    const screens = flow.flowJson.screens;
+    const currentIndex = screens.findIndex((s: any) => s.id === currentScreen);
+
+    // Check if current screen has terminal action (complete or data_exchange with complete)
+    if (currentIndex !== -1) {
+      const currentScreenData = screens[currentIndex];
+      if (currentScreenData?.layout?.children) {
+        const footer = this.findComponentByType(currentScreenData.layout.children, 'Footer');
+        if (footer?.['on-click-action']?.name === 'complete') {
+          return true;
+        }
+      }
+    }
+
+    return currentIndex === screens.length - 1;
+  }
+
+  /**
+   * Find a component by type in the layout tree (recursive)
+   * @param children Layout children array
+   * @param componentType Type of component to find
+   * @returns Found component or null
+   */
+  private findComponentByType(children: any[], componentType: string): any | null {
+    for (const child of children) {
+      if (child.type === componentType) {
+        return child;
+      }
+      if (child.children) {
+        const found = this.findComponentByType(child.children, componentType);
+        if (found) {
+          return found;
+        }
+      }
+    }
+    return null;
   }
 
   /**

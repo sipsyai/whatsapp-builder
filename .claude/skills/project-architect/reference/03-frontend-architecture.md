@@ -378,21 +378,61 @@ client.interceptors.response.use(
 
 **Features**:
 - Create, update, delete Flows
+- **Create with Playground**: Visual flow creation via Playground UI
 - Publish/deprecate lifecycle management
 - **Sync from Meta**: Import flows from Meta/Facebook API
 - Preview URL generation
 - Flow JSON editor
 
+**New Feature: Create with Playground**:
+- Button in FlowsPage header opens FlowPlaygroundPage in create mode
+- SaveFlowModal collects flow name + categories (min 1)
+- Creates flow via `POST /api/flows/from-playground`
+- Supports WhatsApp Flow Categories: SIGN_UP, SIGN_IN, APPOINTMENT_BOOKING, etc.
+
 **File Paths**:
 - List: `features/flows/FlowsPage.tsx`
 - Create: `features/flows/components/CreateFlowModal.tsx`
+- Save Modal: `features/flow-builder/components/playground/modals/SaveFlowModal.tsx`
 
 ### 6. Flow Builder (WhatsApp Flows)
 **Path**: `/frontend/src/features/flow-builder/`
 
 **Purpose**: Visual builder for WhatsApp Flows (separate from ChatBot builder)
 
-**Status**: Under development
+**Components**:
+- `FlowBuilderPage.tsx`: Full visual builder with canvas
+- `FlowPlaygroundPage.tsx`: Interactive playground UI for flow testing/creation
+
+**FlowPlaygroundPage Features**:
+- **Mode Support**: `'create'` for new flows, `'edit'` for existing flows
+- **Create Mode**: Opens SaveFlowModal to collect name + categories before saving
+- **Edit Mode**: Saves directly without modal (uses existing metadata)
+- Real-time WhatsApp preview with iPhone frame
+- 3-panel layout: Screens → Editor → Preview
+
+**State Management**:
+- `usePlaygroundState`: Manages screens, components, selection
+- `usePreviewSettings`: Preview configuration
+- `mode` prop determines save behavior
+
+**File Paths**:
+- Playground: `features/flow-builder/FlowPlaygroundPage.tsx`
+- Save Modal: `features/flow-builder/components/playground/modals/SaveFlowModal.tsx`
+- Hooks: `features/flow-builder/components/playground/hooks/`
+- DataSource Selector: `features/flow-builder/components/playground/ContentEditor/DataSourceSelector.tsx`
+- Dropdown Editor: `features/flow-builder/components/playground/ContentEditor/editors/DropdownEditor.tsx`
+
+**Data Source Integration in Playground**:
+- **DataSourceSelector Component** (NEW): Enables per-dropdown data source configuration
+  - Displays "Fill from Data Source" toggle
+  - Data Source selection dropdown
+  - Endpoint, dataKey, transform field configuration
+  - Cascading support via dependsOn + filterParam
+- **DropdownEditor Enhancement**: Integrates DataSourceSelector
+  - When enabled: Sets `data-source` to dynamic binding (`${data.componentName}`)
+  - Stores config in `__dataSourceConfig` for export
+  - When disabled: Manual static options
 
 ### 7. User Management
 **Path**: `/frontend/src/features/users/`
@@ -574,12 +614,51 @@ export const ChatBotsService = {
 
 ### Available Services
 - `chatbots.service.ts`: ChatBot CRUD, import/export
-- `flows.service.ts`: WhatsApp Flows CRUD, publish, sync
+- `flows.service.ts`: WhatsApp Flows CRUD, publish, sync, **createFromPlayground**
 - `conversations.service.ts`: Conversations & messages
 - `users.service.ts`: User management
 - `whatsapp-config.service.ts`: WhatsApp config
 
-**File Paths**: `/frontend/src/api/*.service.ts`
+**New API Methods**:
+```typescript
+// flows.service.ts
+flowsApi.createFromPlayground({
+  name: string,
+  categories: WhatsAppFlowCategory[],
+  playgroundJson: any,
+  description?: string,
+  endpointUri?: string,
+  autoPublish?: boolean,
+  dataSourceId?: string,
+  dataSourceConfig?: ComponentDataSourceConfig[]
+}): Promise<WhatsAppFlow>
+
+// flows.service.ts - Validate Flow JSON
+flowsApi.validate({
+  flowJson: any,
+  flowId?: string,
+  name?: string
+}): Promise<FlowValidationResult>
+```
+
+**Component Data Source Config Type** (NEW):
+```typescript
+interface ComponentDataSourceConfig {
+  componentName: string;    // Component name in Flow JSON
+  dataSourceId: string;     // DataSource UUID
+  endpoint: string;         // API endpoint path
+  dataKey: string;          // Key to extract array
+  transformTo: {
+    idField: string;        // Field for dropdown ID
+    titleField: string;     // Field for dropdown title
+    descriptionField?: string;
+  };
+  dependsOn?: string;       // For cascading (parent field name)
+  filterParam?: string;     // Filter parameter for cascading
+}
+```
+
+**File Paths**: `/frontend/src/api/*.service.ts` or `/frontend/src/features/*/api/`
 
 ---
 

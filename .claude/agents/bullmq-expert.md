@@ -1,6 +1,7 @@
 ---
 name: bullmq-expert
 description: BullMQ job queue expert for building robust background processing systems. Answers questions about BullMQ API, provides code examples, helps with queue/worker implementation, NestJS integration, rate limiting, scheduling, and guides on production best practices. Use when working with BullMQ library, implementing job queues, creating workers, scheduling tasks, or building async processing systems with Node.js/NestJS.
+model: opus
 ---
 
 # BullMQ Expert
