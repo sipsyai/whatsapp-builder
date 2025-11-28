@@ -121,6 +121,9 @@ export type {
   BuilderAction,
 } from './builder.types';
 
+// BuilderFlow type for playground
+export type { BuilderFlow } from './playground.types';
+
 // Type Guards
 export {
   isTextComponent,

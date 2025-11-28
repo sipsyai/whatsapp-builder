@@ -1,10 +1,11 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { WhatsAppFlow, WhatsAppFlowStatus, WhatsAppFlowCategory } from '../../entities/whatsapp-flow.entity';
 import { WhatsAppFlowService } from '../whatsapp/services/whatsapp-flow.service';
 import { CreateFlowDto } from './dto/create-flow.dto';
 import { UpdateFlowDto } from './dto/update-flow.dto';
+import { CreateFlowFromPlaygroundDto } from './dto/create-flow-from-playground.dto';
 import { MetaFlowItem } from '../whatsapp/interfaces/flow.interface';
 
 export interface SyncResult {
@@ -56,6 +57,137 @@ export class FlowsService {
     this.logger.log(`Flow created: ${flow.id} (WhatsApp ID: ${flow.whatsappFlowId})`);
 
     return flow;
+  }
+
+  /**
+   * Create a Flow from Playground JSON export
+   * This handles the specific format exported from WhatsApp Flow Playground
+   */
+  async createFromPlayground(dto: CreateFlowFromPlaygroundDto): Promise<WhatsAppFlow> {
+    this.logger.log(`Creating flow from playground JSON`);
+
+    // Validate playground JSON structure
+    if (!dto.playgroundJson || typeof dto.playgroundJson !== 'object') {
+      throw new BadRequestException('Invalid playground JSON format');
+    }
+
+    // Extract or validate required fields from playground JSON
+    const flowJson = this.validateAndNormalizePlaygroundJson(dto.playgroundJson);
+
+    // Generate flow name if not provided
+    const flowName = dto.name || this.generateFlowNameFromPlayground(flowJson) || 'Playground Flow';
+
+    this.logger.log(`Creating flow with name: ${flowName}`);
+
+    // Create Flow in WhatsApp API
+    const whatsappResponse = await this.whatsappFlowService.createFlow({
+      name: flowName,
+      categories: dto.categories,
+      flowJson: flowJson,
+      endpointUri: dto.endpointUri,
+    });
+
+    // Save to local database
+    const flow = this.flowRepo.create({
+      whatsappFlowId: whatsappResponse.id,
+      name: flowName,
+      description: dto.description || 'Created from WhatsApp Flow Playground',
+      status: WhatsAppFlowStatus.DRAFT,
+      categories: dto.categories,
+      flowJson: flowJson,
+      endpointUri: dto.endpointUri,
+      isActive: true,
+      metadata: {
+        source: 'playground',
+        created_from_playground: true,
+        playground_json_received: new Date().toISOString(),
+      },
+    });
+
+    await this.flowRepo.save(flow);
+
+    this.logger.log(`Flow created from playground: ${flow.id} (WhatsApp ID: ${flow.whatsappFlowId})`);
+
+    // Auto-publish if requested
+    if (dto.autoPublish) {
+      this.logger.log(`Auto-publishing flow: ${flow.id}`);
+      return this.publish(flow.id);
+    }
+
+    return flow;
+  }
+
+  /**
+   * Validate and normalize playground JSON to WhatsApp Flow JSON format
+   * Playground may export in slightly different format than API expects
+   */
+  private validateAndNormalizePlaygroundJson(playgroundJson: any): any {
+    // Check for required version field
+    if (!playgroundJson.version) {
+      throw new BadRequestException('Playground JSON missing required "version" field');
+    }
+
+    // Check for screens array
+    if (!playgroundJson.screens || !Array.isArray(playgroundJson.screens)) {
+      throw new BadRequestException('Playground JSON missing required "screens" array');
+    }
+
+    if (playgroundJson.screens.length === 0) {
+      throw new BadRequestException('Playground JSON must contain at least one screen');
+    }
+
+    // Normalize the JSON structure
+    const normalizedJson: any = {
+      version: playgroundJson.version,
+      screens: playgroundJson.screens,
+    };
+
+    // Include optional fields if present
+    if (playgroundJson.data_api_version) {
+      normalizedJson.data_api_version = playgroundJson.data_api_version;
+    }
+
+    if (playgroundJson.routing_model) {
+      normalizedJson.routing_model = playgroundJson.routing_model;
+    }
+
+    // Include any other fields that might be in playground export
+    const knownFields = ['version', 'screens', 'data_api_version', 'routing_model'];
+    for (const key in playgroundJson) {
+      if (!knownFields.includes(key) && playgroundJson[key] !== undefined) {
+        normalizedJson[key] = playgroundJson[key];
+      }
+    }
+
+    this.logger.log(`Normalized playground JSON with ${normalizedJson.screens.length} screens`);
+
+    return normalizedJson;
+  }
+
+  /**
+   * Generate a flow name from playground JSON
+   * Tries to extract from first screen title or uses default
+   */
+  private generateFlowNameFromPlayground(flowJson: any): string | null {
+    try {
+      // Try to get first screen's title
+      if (flowJson.screens && flowJson.screens.length > 0) {
+        const firstScreen = flowJson.screens[0];
+        if (firstScreen.title) {
+          return `${firstScreen.title} Flow`;
+        }
+        if (firstScreen.id) {
+          // Convert screen ID to readable name (e.g., "WELCOME_SCREEN" -> "Welcome Screen")
+          return firstScreen.id
+            .split('_')
+            .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+        }
+      }
+    } catch (error) {
+      this.logger.warn(`Could not extract name from playground JSON: ${error.message}`);
+    }
+    return null;
   }
 
   /**

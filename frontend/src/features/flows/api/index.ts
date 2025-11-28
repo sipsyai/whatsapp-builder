@@ -1,5 +1,31 @@
 import { client } from '../../../api/client';
 
+// WhatsApp Flow Category Type (matches backend)
+export const WhatsAppFlowCategory = {
+  SIGN_UP: 'SIGN_UP',
+  SIGN_IN: 'SIGN_IN',
+  APPOINTMENT_BOOKING: 'APPOINTMENT_BOOKING',
+  LEAD_GENERATION: 'LEAD_GENERATION',
+  CONTACT_US: 'CONTACT_US',
+  CUSTOMER_SUPPORT: 'CUSTOMER_SUPPORT',
+  SURVEY: 'SURVEY',
+  OTHER: 'OTHER',
+} as const;
+
+export type WhatsAppFlowCategory = typeof WhatsAppFlowCategory[keyof typeof WhatsAppFlowCategory];
+
+// WhatsApp Flow Category Labels (for UI display)
+export const WHATSAPP_FLOW_CATEGORY_LABELS: Record<WhatsAppFlowCategory, string> = {
+  [WhatsAppFlowCategory.SIGN_UP]: 'Sign Up',
+  [WhatsAppFlowCategory.SIGN_IN]: 'Sign In',
+  [WhatsAppFlowCategory.APPOINTMENT_BOOKING]: 'Appointment Booking',
+  [WhatsAppFlowCategory.LEAD_GENERATION]: 'Lead Generation',
+  [WhatsAppFlowCategory.CONTACT_US]: 'Contact Us',
+  [WhatsAppFlowCategory.CUSTOMER_SUPPORT]: 'Customer Support',
+  [WhatsAppFlowCategory.SURVEY]: 'Survey',
+  [WhatsAppFlowCategory.OTHER]: 'Other',
+};
+
 // Types
 export type WhatsAppFlow = {
   id: string;
@@ -7,7 +33,7 @@ export type WhatsAppFlow = {
   name: string;
   description?: string;
   status: 'DRAFT' | 'PUBLISHED' | 'DEPRECATED' | 'THROTTLED' | 'BLOCKED';
-  categories: string[];
+  categories: WhatsAppFlowCategory[];
   flowJson: any;
   endpointUri?: string;
   previewUrl?: string;
@@ -19,7 +45,7 @@ export type WhatsAppFlow = {
 export type CreateFlowDto = {
   name: string;
   description?: string;
-  categories: string[];
+  categories: WhatsAppFlowCategory[];
   flowJson: any;
   endpointUri?: string;
 };
@@ -27,7 +53,7 @@ export type CreateFlowDto = {
 export type UpdateFlowDto = {
   name?: string;
   description?: string;
-  categories?: string[];
+  categories?: WhatsAppFlowCategory[];
   flowJson?: any;
   endpointUri?: string;
   isActive?: boolean;

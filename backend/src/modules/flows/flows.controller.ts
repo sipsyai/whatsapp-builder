@@ -21,6 +21,7 @@ import {
 import { FlowsService, SyncResult } from './flows.service';
 import { CreateFlowDto } from './dto/create-flow.dto';
 import { UpdateFlowDto } from './dto/update-flow.dto';
+import { CreateFlowFromPlaygroundDto } from './dto/create-flow-from-playground.dto';
 import { WhatsAppFlow } from '../../entities/whatsapp-flow.entity';
 
 @ApiTags('Flows')
@@ -36,6 +37,19 @@ export class FlowsController {
   @ApiResponse({ status: 400, description: 'Invalid input data' })
   async create(@Body() dto: CreateFlowDto): Promise<WhatsAppFlow> {
     return this.flowsService.create(dto);
+  }
+
+  @Post('from-playground')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Create Flow from Playground JSON',
+    description: 'Creates a WhatsApp Flow from exported Playground JSON. Automatically validates and normalizes the JSON structure.'
+  })
+  @ApiBody({ type: CreateFlowFromPlaygroundDto })
+  @ApiResponse({ status: 201, description: 'Flow created successfully from playground JSON' })
+  @ApiResponse({ status: 400, description: 'Invalid playground JSON format or validation failed' })
+  async createFromPlayground(@Body() dto: CreateFlowFromPlaygroundDto): Promise<WhatsAppFlow> {
+    return this.flowsService.createFromPlayground(dto);
   }
 
   @Post('sync')

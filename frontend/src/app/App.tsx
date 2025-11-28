@@ -223,10 +223,11 @@ const App = () => {
               onBack={() => setView("flows")}
             />
           )}
-          {view === "playground" && playgroundFlow && (
+          {view === "playground" && (
             <FlowPlaygroundPage
-              flowId={playgroundFlow.id}
-              initialFlow={{
+              mode={playgroundFlow === null ? 'create' : 'edit'}
+              flowId={playgroundFlow?.id}
+              initialFlow={playgroundFlow ? {
                 name: playgroundFlow.name,
                 screens: playgroundFlow.flowJson.screens?.map((screen: any, index: number) => ({
                   id: screen.id || `screen-${index}`,
@@ -244,7 +245,7 @@ const App = () => {
                   updatedAt: new Date().toISOString(),
                 })) || [],
                 version: '7.2',
-              }}
+              } : undefined}
               onSave={async (flowData) => {
                 try {
                   const flowJson = {
@@ -257,17 +258,29 @@ const App = () => {
                       data: screen.data,
                       layout: {
                         type: 'SingleColumnLayout',
-                        children: screen.components.map(c => ({
+                        children: screen.components.map((c: any) => ({
                           type: c.type,
                           ...c.config,
                         })),
                       },
                     })),
                   };
-                  await flowsApi.update(playgroundFlow.id, {
-                    name: flowData.name,
-                    flowJson,
-                  });
+
+                  if (playgroundFlow === null) {
+                    // CREATE NEW FLOW
+                    await flowsApi.create({
+                      name: flowData.name,
+                      categories: (flowData.categories as any) || ['OTHER'],
+                      flowJson,
+                    });
+                  } else {
+                    // UPDATE EXISTING FLOW
+                    await flowsApi.update(playgroundFlow.id, {
+                      name: flowData.name,
+                      flowJson,
+                    });
+                  }
+
                   setView("flows");
                 } catch (error) {
                   console.error('Failed to save flow:', error);

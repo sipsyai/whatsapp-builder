@@ -4,6 +4,7 @@ import { usePreviewSettings } from './components/playground/hooks/usePreviewSett
 import { ScreensPanel } from './components/playground/ScreensPanel';
 import { ContentEditor } from './components/playground/ContentEditor';
 import { PreviewPanel } from './components/playground/PreviewPanel';
+import { SaveFlowModal } from './components/playground/modals';
 import type { BuilderScreen } from './types/builder.types';
 import type { FlowJSONVersion } from './types/flow-json.types';
 
@@ -27,10 +28,17 @@ export interface FlowPlaygroundPageProps {
   };
 
   /**
+   * Mode: 'create' for new flows, 'edit' for existing flows
+   * @default 'edit'
+   */
+  mode?: 'create' | 'edit';
+
+  /**
    * Callback when flow is saved
    */
   onSave?: (flowData: {
     name: string;
+    categories?: string[];
     screens: BuilderScreen[];
     version: FlowJSONVersion;
   }) => void;
@@ -63,6 +71,7 @@ export interface FlowPlaygroundPageProps {
 export function FlowPlaygroundPage({
   flowId,
   initialFlow,
+  mode = 'edit',
   onSave,
   onBack,
 }: FlowPlaygroundPageProps) {
@@ -84,18 +93,20 @@ export function FlowPlaygroundPage({
   // ========================================================================
 
   const [isSaving, setIsSaving] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'screens' | 'editor' | 'preview'>('editor');
 
   // ========================================================================
   // Save Flow
   // ========================================================================
 
-  const handleSave = useCallback(async () => {
+  const handleSave = useCallback(async (data?: { name: string; categories: string[] }) => {
     setIsSaving(true);
 
     try {
       const flowData = {
-        name: playground.flowName,
+        name: data?.name || playground.flowName,
+        categories: data?.categories,
         screens: playground.screens,
         version: playground.flowVersion,
       };
@@ -105,7 +116,7 @@ export function FlowPlaygroundPage({
       }
 
       // Show success feedback
-      alert(`Flow "${playground.flowName}" saved successfully!`);
+      alert(`Flow "${flowData.name}" saved successfully!`);
     } catch (error) {
       console.error('Save error:', error);
       alert('Failed to save flow. Please try again.');
@@ -113,6 +124,21 @@ export function FlowPlaygroundPage({
       setIsSaving(false);
     }
   }, [playground.flowName, playground.screens, playground.flowVersion, onSave]);
+
+  const handleSaveClick = useCallback(() => {
+    if (mode === 'create') {
+      // Create mode: Show modal to get name and categories
+      setShowSaveModal(true);
+    } else {
+      // Edit mode: Save directly
+      handleSave();
+    }
+  }, [mode, handleSave]);
+
+  const handleSaveModalSubmit = useCallback(async (data: { name: string; categories: string[] }) => {
+    setShowSaveModal(false);
+    await handleSave(data);
+  }, [handleSave]);
 
   // ========================================================================
   // Export JSON
@@ -197,7 +223,7 @@ export function FlowPlaygroundPage({
 
           {/* Save */}
           <button
-            onClick={handleSave}
+            onClick={handleSaveClick}
             disabled={isSaving}
             className="flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold bg-primary text-[#112217] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
           >
@@ -325,6 +351,14 @@ export function FlowPlaygroundPage({
           />
         </div>
       </div>
+
+      {/* Save Flow Modal (Create mode only) */}
+      <SaveFlowModal
+        isOpen={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
+        initialName={playground.flowName}
+        onSave={handleSaveModalSubmit}
+      />
     </div>
   );
 }

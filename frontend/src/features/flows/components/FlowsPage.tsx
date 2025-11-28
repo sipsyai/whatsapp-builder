@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { flowsApi, type WhatsAppFlow, type SyncResult } from '../api';
+import { flowsApi, type WhatsAppFlow, type SyncResult, WhatsAppFlowCategory, WHATSAPP_FLOW_CATEGORY_LABELS } from '../api';
 
 export interface FlowsPageProps {
   onEditInBuilder?: (flow: WhatsAppFlow) => void;
-  onOpenPlayground?: (flow: WhatsAppFlow) => void;
+  onOpenPlayground?: (flow: WhatsAppFlow | null) => void;
 }
 
 export const FlowsPage = ({ onEditInBuilder, onOpenPlayground }: FlowsPageProps) => {
@@ -119,6 +119,15 @@ export const FlowsPage = ({ onEditInBuilder, onOpenPlayground }: FlowsPageProps)
                   </>
                 )}
               </button>
+              {onOpenPlayground && (
+                <button
+                  onClick={() => onOpenPlayground(null)}
+                  className="px-6 py-3 bg-purple-600 text-white rounded-xl font-bold flex items-center gap-2 hover:bg-purple-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  <span className="material-symbols-outlined">science</span>
+                  Create with Playground
+                </button>
+              )}
               <button
                 onClick={() => setShowCreateModal(true)}
                 className="px-6 py-3 bg-primary text-[#112217] rounded-xl font-bold flex items-center gap-2 hover:bg-primary/90 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
@@ -275,7 +284,7 @@ export const FlowsPage = ({ onEditInBuilder, onOpenPlayground }: FlowsPageProps)
                         key={cat}
                         className="px-2 py-1 text-xs bg-blue-900/30 text-blue-400 rounded"
                       >
-                        {cat.replace(/_/g, ' ')}
+                        {WHATSAPP_FLOW_CATEGORY_LABELS[cat]}
                       </span>
                     ))}
                   </div>
@@ -317,17 +326,8 @@ export const FlowsPage = ({ onEditInBuilder, onOpenPlayground }: FlowsPageProps)
   );
 };
 
-// WhatsApp Flow Categories
-const FLOW_CATEGORIES = [
-  'SIGN_UP',
-  'SIGN_IN',
-  'APPOINTMENT_BOOKING',
-  'LEAD_GENERATION',
-  'CONTACT_US',
-  'CUSTOMER_SUPPORT',
-  'SURVEY',
-  'OTHER',
-] as const;
+// WhatsApp Flow Categories - Use enum values
+const FLOW_CATEGORIES = Object.values(WhatsAppFlowCategory);
 
 const EXAMPLE_FLOW_JSON = {
   version: '3.0',
@@ -401,7 +401,7 @@ const CreateFlowModal = ({
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    categories: [] as string[],
+    categories: [] as WhatsAppFlowCategory[],
     flowJson: JSON.stringify(EXAMPLE_FLOW_JSON, null, 2),
     endpointUri: '',
   });
@@ -463,7 +463,7 @@ const CreateFlowModal = ({
     }
   };
 
-  const handleCategoryToggle = (category: string) => {
+  const handleCategoryToggle = (category: WhatsAppFlowCategory) => {
     setFormData((prev) => ({
       ...prev,
       categories: prev.categories.includes(category)
@@ -540,7 +540,7 @@ const CreateFlowModal = ({
                     className="w-4 h-4 text-primary border-zinc-700 rounded focus:ring-primary"
                   />
                   <span className="text-sm text-zinc-300">
-                    {category.replace(/_/g, ' ')}
+                    {WHATSAPP_FLOW_CATEGORY_LABELS[category]}
                   </span>
                 </label>
               ))}
@@ -683,7 +683,7 @@ const FlowDetailsModal = ({
                   key={cat}
                   className="px-2 py-1 text-xs bg-blue-900/30 text-blue-400 rounded"
                 >
-                  {cat.replace(/_/g, ' ')}
+                  {WHATSAPP_FLOW_CATEGORY_LABELS[cat]}
                 </span>
               ))}
             </div>
