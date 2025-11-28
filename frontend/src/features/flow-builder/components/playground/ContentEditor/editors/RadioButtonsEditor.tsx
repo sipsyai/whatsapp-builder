@@ -74,10 +74,13 @@ export const RadioButtonsEditor: React.FC<ComponentEditorProps> = ({
       title: newOptionTitle,
     };
 
+    // Read current data-source directly from config to avoid stale closure
+    const currentDataSource = Array.isArray(config['data-source']) ? config['data-source'] : [];
+
     onChange({
       config: {
         ...component.config,
-        'data-source': [...dataSource, newOption],
+        'data-source': [...currentDataSource, newOption],
       },
     });
 
@@ -85,7 +88,9 @@ export const RadioButtonsEditor: React.FC<ComponentEditorProps> = ({
   };
 
   const handleUpdateOption = (index: number, title: string) => {
-    const updatedDataSource = [...dataSource];
+    // Read current data-source directly from config to avoid stale closure
+    const currentDataSource = Array.isArray(config['data-source']) ? config['data-source'] : [];
+    const updatedDataSource = [...currentDataSource];
     updatedDataSource[index] = {
       ...updatedDataSource[index],
       title,
@@ -100,7 +105,9 @@ export const RadioButtonsEditor: React.FC<ComponentEditorProps> = ({
   };
 
   const handleRemoveOption = (index: number) => {
-    const updatedDataSource = dataSource.filter((_, i) => i !== index);
+    // Read current data-source directly from config to avoid stale closure
+    const currentDataSource = Array.isArray(config['data-source']) ? config['data-source'] : [];
+    const updatedDataSource = currentDataSource.filter((_, i) => i !== index);
 
     onChange({
       config: {
@@ -241,7 +248,7 @@ export const RadioButtonsEditor: React.FC<ComponentEditorProps> = ({
               type="text"
               value={newOptionTitle}
               onChange={(e) => setNewOptionTitle(e.target.value)}
-              onKeyPress={(e) => {
+              onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
                   handleAddOption();
