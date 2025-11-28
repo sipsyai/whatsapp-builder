@@ -1,0 +1,204 @@
+{
+  "name": "Strapi Stok & Fiyat Yönetim Sistemi",
+  "description": "Ürün stoklarını ve fiyatlarını WhatsApp Flow ile yöneten chatbot menü sistemi",
+  "isActive": false,
+  "status": "draft",
+  "nodes": [
+    {
+      "id": "start-1",
+      "type": "start",
+      "data": {
+        "label": "Start",
+        "type": "start"
+      },
+      "position": {
+        "x": 250,
+        "y": 50
+      }
+    },
+    {
+      "id": "welcome-msg",
+      "type": "message",
+      "data": {
+        "label": "Hoşgeldin Mesajı",
+        "type": "message",
+        "content": "🏪 **Stok & Fiyat Yönetim Sistemi**\n\nMerhaba! Bu sistem ile ürün stoklarını ve fiyatlarını yönetebilirsiniz.\n\nNe yapmak istersiniz?"
+      },
+      "position": {
+        "x": 250,
+        "y": 150
+      }
+    },
+    {
+      "id": "main-menu",
+      "type": "question",
+      "data": {
+        "label": "Ana Menü",
+        "type": "question",
+        "questionType": "buttons",
+        "content": "Lütfen bir işlem seçin:",
+        "variable": "menu_choice",
+        "buttons": [
+          {
+            "id": "btn_stock",
+            "title": "📦 Stok Güncelle"
+          },
+          {
+            "id": "btn_price",
+            "title": "💰 Fiyat Güncelle"
+          }
+        ]
+      },
+      "position": {
+        "x": 250,
+        "y": 280
+      }
+    },
+    {
+      "id": "stock-flow",
+      "type": "whatsapp_flow",
+      "data": {
+        "label": "Stok Yönetimi Flow",
+        "type": "whatsapp_flow",
+        "whatsappFlowId": "1173529677606446",
+        "flowMode": "data_exchange",
+        "flowCta": "Stok Yönetimi",
+        "flowBodyText": "Ürün stoklarını güncellemek için formu açın.",
+        "flowHeaderText": "📦 Stok Güncelleme",
+        "flowFooterText": "Kolay ve hızlı güncelleme",
+        "flowOutputVariable": "stock_result",
+        "flowInitialData": {
+          "source": "whatsapp_chatbot"
+        }
+      },
+      "position": {
+        "x": 50,
+        "y": 450
+      }
+    },
+    {
+      "id": "price-flow",
+      "type": "whatsapp_flow",
+      "data": {
+        "label": "Fiyat Güncelleme Flow",
+        "type": "whatsapp_flow",
+        "whatsappFlowId": "836194732500069",
+        "flowMode": "data_exchange",
+        "flowCta": "Fiyat Güncelle",
+        "flowBodyText": "Ürün fiyatlarını güncellemek için formu açın.",
+        "flowHeaderText": "💰 Fiyat Güncelleme",
+        "flowFooterText": "Hızlı fiyat değişikliği",
+        "flowOutputVariable": "price_result",
+        "flowInitialData": {
+          "source": "whatsapp_chatbot"
+        }
+      },
+      "position": {
+        "x": 450,
+        "y": 450
+      }
+    },
+    {
+      "id": "complete-msg",
+      "type": "message",
+      "data": {
+        "label": "İşlem Tamamlandı",
+        "type": "message",
+        "content": "✅ İşlem başarıyla tamamlandı!\n\nGüncelleme detayları kaydedildi."
+      },
+      "position": {
+        "x": 250,
+        "y": 620
+      }
+    },
+    {
+      "id": "continue-question",
+      "type": "question",
+      "data": {
+        "label": "Devam Et?",
+        "type": "question",
+        "questionType": "buttons",
+        "content": "Başka bir işlem yapmak ister misiniz?",
+        "variable": "continue_choice",
+        "buttons": [
+          {
+            "id": "btn_yes",
+            "title": "✅ Evet"
+          },
+          {
+            "id": "btn_no",
+            "title": "❌ Hayır"
+          }
+        ]
+      },
+      "position": {
+        "x": 250,
+        "y": 750
+      }
+    },
+    {
+      "id": "goodbye-msg",
+      "type": "message",
+      "data": {
+        "label": "Veda Mesajı",
+        "type": "message",
+        "content": "Teşekkürler! İyi günler. 👋"
+      },
+      "position": {
+        "x": 250,
+        "y": 920
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-start-welcome",
+      "source": "start-1",
+      "target": "welcome-msg"
+    },
+    {
+      "id": "e-welcome-menu",
+      "source": "welcome-msg",
+      "target": "main-menu"
+    },
+    {
+      "id": "e-menu-stock",
+      "source": "main-menu",
+      "target": "stock-flow",
+      "sourceHandle": "btn_stock"
+    },
+    {
+      "id": "e-menu-price",
+      "source": "main-menu",
+      "target": "price-flow",
+      "sourceHandle": "btn_price"
+    },
+    {
+      "id": "e-stock-complete",
+      "source": "stock-flow",
+      "target": "complete-msg"
+    },
+    {
+      "id": "e-price-complete",
+      "source": "price-flow",
+      "target": "complete-msg"
+    },
+    {
+      "id": "e-complete-continue",
+      "source": "complete-msg",
+      "target": "continue-question"
+    },
+    {
+      "id": "e-continue-yes",
+      "source": "continue-question",
+      "target": "main-menu",
+      "sourceHandle": "btn_yes"
+    },
+    {
+      "id": "e-continue-no",
+      "source": "continue-question",
+      "target": "goodbye-msg",
+      "sourceHandle": "btn_no"
+    }
+  ]
+}

@@ -21,7 +21,7 @@ Yeni bir özellik istediğinde şu formatı kullan:
 Aşağıdaki agent'ları **paralel** olarak çalıştır:
 
 1. **project-architect** - Proje mimarisini ve cross-cutting concern'leri analiz et
-2. **Explore (backend)** - Backend yapısını, mevcut entity/service/controller pattern'lerini incele
+2. **nestjs-expert** - Backend modülleri, service/controller pattern'leri, dependency injection yapısını incele
 3. **Explore (frontend)** - Frontend component pattern'lerini, state management'ı incele
 4. **Explore (database)** - Mevcut entity ilişkilerini ve migration pattern'lerini incele
 

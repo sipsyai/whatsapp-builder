@@ -1,0 +1,458 @@
+{
+  "version": "5.0",
+  "data_api_version": "3.0",
+  "routing_model": {
+    "BRAND_SCREEN": [
+      "PRODUCT_SCREEN"
+    ],
+    "PRODUCT_SCREEN": [
+      "PRICE_INFO_SCREEN"
+    ],
+    "PRICE_INFO_SCREEN": [
+      "CONFIRM_SCREEN"
+    ],
+    "CONFIRM_SCREEN": [
+      "SUCCESS_SCREEN",
+      "ERROR_SCREEN"
+    ],
+    "SUCCESS_SCREEN": [],
+    "ERROR_SCREEN": []
+  },
+  "screens": [
+    {
+      "id": "BRAND_SCREEN",
+      "title": "Marka Seçimi",
+      "terminal": false,
+      "data": {
+        "brands": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          },
+          "__example__": [
+            {
+              "id": "flora",
+              "title": "Flora",
+              "description": "Flora markası ürünleri"
+            },
+            {
+              "id": "terazzi",
+              "title": "Terazzi",
+              "description": "Terazzi markası ürünleri"
+            }
+          ]
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Fiyat Güncelleme"
+          },
+          {
+            "type": "TextSubheading",
+            "text": "Marka Seçin"
+          },
+          {
+            "type": "TextBody",
+            "text": "Fiyat güncellemek istediğiniz ürünün markasını seçiniz."
+          },
+          {
+            "type": "Dropdown",
+            "name": "brand",
+            "label": "Marka",
+            "required": true,
+            "data-source": "${data.brands}"
+          },
+          {
+            "type": "Footer",
+            "label": "Devam Et",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action": "get_products_by_brand",
+                "brand": "${form.brand}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "PRODUCT_SCREEN",
+      "title": "Ürün Seçimi",
+      "terminal": false,
+      "data": {
+        "products": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          },
+          "__example__": [
+            {
+              "id": "123",
+              "title": "Ürün Adı",
+              "description": "Mevcut Fiyat: 100 TL"
+            }
+          ]
+        },
+        "selected_brand_name": {
+          "type": "string",
+          "__example__": "Flora"
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Ürün Seçimi"
+          },
+          {
+            "type": "TextSubheading",
+            "text": "Marka: ${data.selected_brand_name}"
+          },
+          {
+            "type": "TextBody",
+            "text": "Fiyatını güncellemek istediğiniz ürünü seçiniz."
+          },
+          {
+            "type": "Dropdown",
+            "name": "product",
+            "label": "Ürün",
+            "required": true,
+            "data-source": "${data.products}"
+          },
+          {
+            "type": "Footer",
+            "label": "Devam Et",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action": "get_product_details",
+                "product_id": "${form.product}",
+                "brand": "${screen.BRAND_SCREEN.form.brand}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "PRICE_INFO_SCREEN",
+      "title": "Fiyat Bilgileri",
+      "terminal": false,
+      "data": {
+        "product_name": {
+          "type": "string",
+          "__example__": "Ürün Adı"
+        },
+        "current_price": {
+          "type": "string",
+          "__example__": "100.00"
+        },
+        "current_original_price": {
+          "type": "string",
+          "__example__": "150.00"
+        },
+        "current_discount": {
+          "type": "string",
+          "__example__": "33"
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Fiyat Bilgileri"
+          },
+          {
+            "type": "TextSubheading",
+            "text": "${data.product_name}"
+          },
+          {
+            "type": "TextBody",
+            "text": "Mevcut Satış Fiyatı: ${data.current_price} TL"
+          },
+          {
+            "type": "TextBody",
+            "text": "Mevcut Orijinal Fiyat: ${data.current_original_price} TL"
+          },
+          {
+            "type": "TextBody",
+            "text": "Mevcut İndirim Oranı: %${data.current_discount}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "Yeni fiyat bilgilerini giriniz:"
+          },
+          {
+            "type": "TextInput",
+            "name": "new_price",
+            "label": "Yeni Satış Fiyatı (TL)",
+            "input-type": "number",
+            "required": true,
+            "helper-text": "Ürünün yeni satış fiyatını giriniz"
+          },
+          {
+            "type": "TextInput",
+            "name": "new_original_price",
+            "label": "Yeni Orijinal Fiyat (TL)",
+            "input-type": "number",
+            "required": false,
+            "helper-text": "İndirim yapılacaksa orijinal fiyatı giriniz (opsiyonel)"
+          },
+          {
+            "type": "Footer",
+            "label": "Devam Et",
+            "on-click-action": {
+              "name": "navigate",
+              "next": {
+                "type": "screen",
+                "name": "CONFIRM_SCREEN"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "CONFIRM_SCREEN",
+      "title": "Onay",
+      "terminal": false,
+      "data": {},
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Fiyat Güncelleme Onayı"
+          },
+          {
+            "type": "TextSubheading",
+            "text": "${screen.PRICE_INFO_SCREEN.data.product_name}"
+          },
+          {
+            "type": "TextBody",
+            "text": "Marka: ${screen.PRODUCT_SCREEN.data.selected_brand_name}"
+          },
+          {
+            "type": "EmbeddedLink",
+            "text": "─────────────────────────",
+            "on-click-action": {
+              "name": "navigate",
+              "next": {
+                "type": "screen",
+                "name": "CONFIRM_SCREEN"
+              }
+            }
+          },
+          {
+            "type": "TextBody",
+            "text": "ESKİ FİYATLAR:"
+          },
+          {
+            "type": "TextBody",
+            "text": "• Satış Fiyatı: ${screen.PRICE_INFO_SCREEN.data.current_price} TL"
+          },
+          {
+            "type": "TextBody",
+            "text": "• Orijinal Fiyat: ${screen.PRICE_INFO_SCREEN.data.current_original_price} TL"
+          },
+          {
+            "type": "TextBody",
+            "text": "• İndirim: %${screen.PRICE_INFO_SCREEN.data.current_discount}"
+          },
+          {
+            "type": "EmbeddedLink",
+            "text": "─────────────────────────",
+            "on-click-action": {
+              "name": "navigate",
+              "next": {
+                "type": "screen",
+                "name": "CONFIRM_SCREEN"
+              }
+            }
+          },
+          {
+            "type": "TextBody",
+            "text": "YENİ FİYATLAR:"
+          },
+          {
+            "type": "TextBody",
+            "text": "• Satış Fiyatı: ${screen.PRICE_INFO_SCREEN.form.new_price} TL"
+          },
+          {
+            "type": "TextBody",
+            "text": "• Orijinal Fiyat: ${screen.PRICE_INFO_SCREEN.form.new_original_price} TL"
+          },
+          {
+            "type": "TextCaption",
+            "text": "Fiyat güncellemesini onaylıyor musunuz?"
+          },
+          {
+            "type": "Footer",
+            "label": "Güncelle",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action": "update_product_price",
+                "product_id": "${screen.PRODUCT_SCREEN.form.product}",
+                "brand": "${screen.BRAND_SCREEN.form.brand}",
+                "new_price": "${screen.PRICE_INFO_SCREEN.form.new_price}",
+                "new_original_price": "${screen.PRICE_INFO_SCREEN.form.new_original_price}",
+                "product_name": "${screen.PRICE_INFO_SCREEN.data.product_name}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "SUCCESS_SCREEN",
+      "title": "Başarılı",
+      "terminal": true,
+      "success": true,
+      "data": {
+        "product_name": {
+          "type": "string",
+          "__example__": "Ürün Adı"
+        },
+        "updated_price": {
+          "type": "string",
+          "__example__": "120.00"
+        },
+        "updated_original_price": {
+          "type": "string",
+          "__example__": "150.00"
+        },
+        "updated_discount": {
+          "type": "string",
+          "__example__": "20"
+        },
+        "brand_name": {
+          "type": "string",
+          "__example__": "Flora"
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "✓ Fiyat Güncellendi"
+          },
+          {
+            "type": "TextSubheading",
+            "text": "${data.product_name}"
+          },
+          {
+            "type": "TextBody",
+            "text": "Marka: ${data.brand_name}"
+          },
+          {
+            "type": "EmbeddedLink",
+            "text": "─────────────────────────",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {}
+            }
+          },
+          {
+            "type": "TextBody",
+            "text": "Güncel Fiyat Bilgileri:"
+          },
+          {
+            "type": "TextBody",
+            "text": "• Satış Fiyatı: ${data.updated_price} TL"
+          },
+          {
+            "type": "TextBody",
+            "text": "• Orijinal Fiyat: ${data.updated_original_price} TL"
+          },
+          {
+            "type": "TextBody",
+            "text": "• İndirim Oranı: %${data.updated_discount}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "Fiyat güncelleme işlemi başarıyla tamamlandı."
+          },
+          {
+            "type": "Footer",
+            "label": "Tamam",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {}
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ERROR_SCREEN",
+      "title": "Hata",
+      "terminal": true,
+      "success": false,
+      "data": {
+        "error_message": {
+          "type": "string",
+          "__example__": "Fiyat güncellenirken bir hata oluştu."
+        },
+        "error_details": {
+          "type": "string",
+          "__example__": "Lütfen tekrar deneyiniz."
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "⚠ İşlem Başarısız"
+          },
+          {
+            "type": "TextBody",
+            "text": "${data.error_message}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "${data.error_details}"
+          },
+          {
+            "type": "Footer",
+            "label": "Tamam",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {}
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

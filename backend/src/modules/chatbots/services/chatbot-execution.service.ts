@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
 import { ConversationContext } from '../../../entities/conversation-context.entity';
 import { ChatBot } from '../../../entities/chatbot.entity';
 import { Conversation } from '../../../entities/conversation.entity';
@@ -13,9 +14,11 @@ import { FlowMode } from '../../whatsapp/dto/requests/send-flow-message.dto';
 import { MessagesService } from '../../messages/messages.service';
 import { NodeDataType, QuestionType } from '../dto/node-data.dto';
 import { WhatsAppFlow, WhatsAppFlowStatus } from '../../../entities/whatsapp-flow.entity';
+import { DataSource } from '../../../entities/data-source.entity';
 import { SessionHistoryService } from './session-history.service';
 import { SessionGateway } from '../../websocket/session.gateway';
 import { RestApiExecutorService } from './rest-api-executor.service';
+import { DataSourcesService } from '../../data-sources/data-sources.service';
 
 @Injectable()
 export class ChatBotExecutionService {
@@ -39,6 +42,8 @@ export class ChatBotExecutionService {
     private readonly sessionHistoryService: SessionHistoryService,
     private readonly sessionGateway: SessionGateway,
     private readonly restApiExecutor: RestApiExecutorService,
+    private readonly dataSourcesService: DataSourcesService,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -707,34 +712,97 @@ export class ChatBotExecutionService {
     await this.executeCurrentNode(context.id);
   }
 
-  // Strapi API configuration for Flow data prefetching
-  private readonly strapiBaseUrl = 'http://192.168.1.18:1337';
-  private readonly strapiToken = 'd3a4028ba0d5f00b572132d037ada86fef5a735be3efad3db46cec5ab72c82f1f1bf5bd228af0257d93d4f7ab935d5cf8ce9564f5b7db50928d245f4a3fdeef4d7aa460a4ef200eb6106cf15dc9aaba9f716b074493a9a7b246ed5054c3a714b9160d3cc59bc33c0cf485d875216e4c28eeccf5573a1be888d8b5f9f67e4813c';
+  /**
+   * Get data source configuration by ID or fallback to environment config
+   */
+  private async getDataSourceConfig(
+    dataSourceId?: string,
+  ): Promise<{ baseUrl: string; token: string } | null> {
+    if (dataSourceId) {
+      try {
+        const dataSource = await this.dataSourcesService.findOne(dataSourceId);
+        if (dataSource && dataSource.isActive) {
+          return {
+            baseUrl: dataSource.baseUrl,
+            token: dataSource.authToken || '',
+          };
+        }
+      } catch (error) {
+        this.logger.warn(`DataSource ${dataSourceId} not found: ${error.message}`);
+      }
+    }
+
+    // Fallback to config service
+    const baseUrl = this.configService.get<string>('STRAPI_BASE_URL');
+    const token = this.configService.get<string>('STRAPI_TOKEN');
+    if (baseUrl && token) {
+      return { baseUrl, token };
+    }
+
+    return null;
+  }
 
   /**
-   * Fetch brands from Strapi API for Flow initial data
+   * Fetch initial data from data source for WhatsApp Flow
    */
-  private async fetchBrandsFromStrapi(): Promise<{ id: string; title: string }[]> {
+  private async fetchFlowInitialData(
+    dataSource: DataSource,
+    config?: any,
+  ): Promise<any> {
+    const endpoint = config?.endpoint || '/api/brands';
     try {
-      const response = await fetch(`${this.strapiBaseUrl}/api/brands`, {
+      const response = await fetch(`${dataSource.baseUrl}${endpoint}`, {
         headers: {
-          Authorization: `Bearer ${this.strapiToken}`,
+          Authorization: `Bearer ${dataSource.authToken}`,
+          ...(dataSource.headers || {}),
         },
       });
 
       if (!response.ok) {
-        throw new Error(`Strapi API error: ${response.status}`);
+        throw new Error(`API error: ${response.status}`);
       }
 
       const data = await response.json();
 
-      // Transform Strapi response to Flow dropdown format
+      // Transform to dropdown format for WhatsApp Flow
+      return (data.data || []).map((item: any) => ({
+        id: item.name || item.id?.toString(),
+        title: item.name,
+      }));
+    } catch (error) {
+      this.logger.error(`Failed to fetch from data source: ${error.message}`);
+      return [];
+    }
+  }
+
+  /**
+   * Fetch brands from external API for Flow initial data (backward compatibility)
+   * @deprecated Use fetchFlowInitialData with DataSource instead
+   */
+  private async fetchBrandsFromStrapi(config: {
+    baseUrl: string;
+    token: string;
+  }): Promise<{ id: string; title: string }[]> {
+    try {
+      const response = await fetch(`${config.baseUrl}/api/brands`, {
+        headers: {
+          Authorization: `Bearer ${config.token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Transform response to Flow dropdown format
       return (data.data || []).map((brand: any) => ({
         id: brand.name || brand.id?.toString(),
         title: brand.name,
       }));
     } catch (error) {
-      this.logger.error(`Failed to fetch brands from Strapi: ${error.message}`);
+      this.logger.error(`Failed to fetch brands: ${error.message}`);
       return [];
     }
   }
@@ -758,9 +826,10 @@ export class ChatBotExecutionService {
       throw new Error('WhatsApp Flow ID required');
     }
 
-    // Load Flow from database - flowId is the Meta WhatsApp Flow ID
+    // Load Flow from database with dataSource relation
     const flow = await this.flowRepo.findOne({
       where: { whatsappFlowId: flowId },
+      relations: ['dataSource'],
     });
 
     if (!flow) {
@@ -779,15 +848,38 @@ export class ChatBotExecutionService {
       );
     }
 
-    // Pre-fetch data for specific flows that need it
-    // "Fiyat Güncelleme" Flow - ID: 836194732500069
+    // Get initial screen from node config
     let initialScreen = node.data?.flowInitialScreen;
-    if (flowId === '836194732500069') {
-      this.logger.log('Fiyat Güncelleme Flow detected - fetching brands from Strapi');
-      const brands = await this.fetchBrandsFromStrapi();
-      this.logger.log(`Fetched ${brands.length} brands for Flow initial data`);
-      initialData = { ...initialData, brands };
-      initialScreen = 'BRAND_SCREEN';
+
+    // If flow has an active data source, fetch dynamic initial data
+    if (flow.dataSource && flow.dataSource.isActive) {
+      this.logger.log(
+        `Flow has active data source: ${flow.dataSource.name} - fetching initial data`,
+      );
+
+      try {
+        const dynamicData = await this.fetchFlowInitialData(
+          flow.dataSource,
+          flow.metadata?.dataSourceConfig,
+        );
+
+        this.logger.log(`Fetched ${dynamicData.length} items for Flow initial data`);
+
+        // Merge dynamic data into initial data
+        // The key name can be configured in flow.metadata.dataSourceConfig.dataKey or default to 'brands'
+        const dataKey = flow.metadata?.dataSourceConfig?.dataKey || 'brands';
+        initialData = { ...initialData, [dataKey]: dynamicData };
+
+        // Use initial screen from metadata if specified
+        if (flow.metadata?.dataSourceConfig?.initialScreen && !initialScreen) {
+          initialScreen = flow.metadata.dataSourceConfig.initialScreen;
+        }
+      } catch (error) {
+        this.logger.error(
+          `Failed to fetch initial data from data source: ${error.message}`,
+        );
+        // Continue without dynamic data - don't fail the entire flow
+      }
     }
 
     // Create flow_token: {contextId}-{nodeId}
@@ -1015,16 +1107,16 @@ export class ChatBotExecutionService {
     this.logger.log(`Processing Flow response for token: ${flowToken}`);
 
     // Parse flow_token: {contextId}-{nodeId}
-    // UUID format: 8-4-4-4-12 characters = 5 parts each
-    // Combined: contextId (5 parts) + nodeId (5 parts) = 10 parts total
+    // UUID format: 8-4-4-4-12 characters = 5 parts when split by '-'
+    // nodeId can be any string (e.g., "price-flow", "stock-update-node")
     const parts = flowToken.split('-');
-    if (parts.length < 10) {
-      this.logger.error(`Invalid flow_token format: ${flowToken}, expected 10 parts but got ${parts.length}`);
+    if (parts.length < 6) {
+      this.logger.error(`Invalid flow_token format: ${flowToken}, expected at least 6 parts but got ${parts.length}`);
       return;
     }
 
     const contextId = parts.slice(0, 5).join('-'); // First 5 parts = contextId UUID
-    const nodeId = parts.slice(5).join('-'); // Remaining parts = nodeId UUID
+    const nodeId = parts.slice(5).join('-'); // Remaining parts = nodeId (can contain dashes)
 
     this.logger.log(`Parsed flow_token - contextId: ${contextId}, nodeId: ${nodeId}`);
 

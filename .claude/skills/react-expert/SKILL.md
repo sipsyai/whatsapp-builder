@@ -569,13 +569,28 @@ describe('Counter', () => {
 
 ## Documentation References
 
+**Always read relevant documentation files before answering questions.**
+
 For detailed information, see:
-- [Fundamentals](reference/01-fundamentals.md) - Components, JSX, Props
-- [Hooks](reference/02-hooks.md) - All React hooks
-- [TypeScript](reference/03-typescript.md) - React with TypeScript
-- [Performance](reference/04-performance.md) - Optimization techniques
-- [Patterns](reference/05-patterns.md) - Common React patterns
-- [Testing](reference/06-testing.md) - Testing React components
+- [Fundamentals](reference/01-fundamentals.md) - Components, JSX, Props, Events
+- [Hooks](reference/02-hooks.md) - useState, useEffect, useCallback, useMemo, useRef, custom hooks
+- [TypeScript](reference/03-typescript.md) - React + TypeScript patterns, event types, generics
+- [Performance](reference/04-performance.md) - React.memo, lazy loading, virtualization, profiling
+- [Patterns](reference/05-patterns.md) - Compound components, render props, HOC, provider pattern
+- [ReactFlow](reference/06-reactflow.md) - @xyflow/react integration, custom nodes/edges
+- [Forms & Validation](reference/07-forms-validation.md) - Form handling, validation patterns
+- [Drag & Drop](reference/08-dnd-kit.md) - @dnd-kit drag and drop integration
+
+### When to Read Documentation
+
+| Topic | Read This File |
+|-------|----------------|
+| Hooks questions | `reference/02-hooks.md` |
+| TypeScript questions | `reference/03-typescript.md` |
+| Performance issues | `reference/04-performance.md` |
+| ReactFlow questions | `reference/06-reactflow.md` |
+| Form handling | `reference/07-forms-validation.md` |
+| Drag-and-drop | `reference/08-dnd-kit.md` |
 
 ## Summary
 

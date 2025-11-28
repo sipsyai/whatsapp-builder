@@ -25,6 +25,7 @@ frontend/src/
 │   ├── chatbots/           # Chatbot list/management
 │   ├── conversations/      # Conversation list
 │   ├── flows/              # WhatsApp Flows management
+│   ├── data-sources/       # External API configuration
 │   ├── sessions/           # Session tracking
 │   ├── nodes/              # Custom ReactFlow nodes (5 types)
 │   ├── edges/              # Custom ReactFlow edges
@@ -680,6 +681,120 @@ features/[feature-name]/
 
 ---
 
+## DataSources Feature
+
+**Path**: `/frontend/src/features/data-sources/`
+
+**Purpose**: UI for managing external API configurations (replaces hardcoded credentials).
+
+### Components
+
+**DataSourcesPage.tsx** - Main management page
+- **Table View**: List all data sources with name, type, URL, auth type, status
+- **Create/Edit Modal**: Form for adding/updating data sources
+- **Delete Confirmation**: Warn before deletion
+- **Test Connection**: Real-time connection testing with response time
+
+### API Client
+
+**File**: `api.ts`
+
+**Types**:
+```typescript
+type DataSourceType = 'REST_API' | 'STRAPI' | 'GRAPHQL';
+type AuthType = 'NONE' | 'BEARER' | 'API_KEY' | 'BASIC';
+
+interface DataSource {
+  id: string;
+  name: string;
+  description?: string;
+  type: DataSourceType;
+  baseUrl: string;
+  authType: AuthType;
+  authToken?: string;
+  authHeaderName?: string;
+  isActive: boolean;
+  timeout?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+```
+
+**Functions**:
+- `getAll()`: Fetch all data sources
+- `getActiveDataSources()`: Fetch only active sources
+- `create(dto)`: Create new data source
+- `update(id, dto)`: Update existing
+- `delete(id)`: Delete data source
+- `testConnection(id)`: Test connectivity
+
+### UI Features
+
+**Form Fields**:
+- Name (text, required)
+- Description (textarea, optional)
+- Type (select: REST_API, STRAPI, GRAPHQL)
+- Base URL (text with URL validation)
+- Auth Type (select: NONE, BEARER, API_KEY, BASIC)
+- Auth Token (password field, conditional on auth type)
+- Auth Header Name (text, required for API_KEY)
+- Timeout (number, default 30000ms)
+- Is Active (toggle switch)
+
+**Conditional Logic**:
+- Auth token field shown only if auth type is not NONE
+- Auth header name required only for API_KEY type
+- Form validation prevents submission if required fields empty
+
+**Test Connection**:
+- Button per row in table
+- Loading spinner during test
+- Toast notification with result (success/error)
+- Shows response time on success
+
+### Integration with Builder
+
+**ConfigWhatsAppFlow Modal** (in builder/ConfigModals.tsx):
+- **Flow Selector**: Dropdown of published WhatsApp Flows
+- **Manual Flow ID**: Text input for override
+- **DataSource Selector**: Dropdown of active data sources
+- Selected data source saved to node's `dataSourceId` field
+- DataSource linked to WhatsApp Flow for dynamic data fetching
+
+### Navigation
+
+**Sidebar**: Added "Data Sources" menu item with storage icon
+**Route**: `/data-sources` → DataSourcesPage component
+
+### Styling
+
+- Dark theme matching WhatsApp Builder design
+- Green accent color for primary actions
+- Responsive table layout
+- Material Symbols icons
+- Tailwind CSS v4
+
+### Usage Flow
+
+1. Navigate to Data Sources page
+2. Click "Add Data Source"
+3. Fill form (name, type, URL, auth)
+4. Click "Save"
+5. Test connection to verify
+6. Use in WhatsApp Flow node configuration
+
+### File Structure
+```
+frontend/src/features/data-sources/
+├── components/
+│   └── DataSourcesPage.tsx      # Main page component
+├── api.ts                        # API client & types
+├── index.ts                      # Public exports
+└── README.md                     # Feature documentation
+```
+
+---
+
 ## Key Architectural Decisions
 
 1. **No React Router**: Simple state-based routing for MVP
@@ -696,7 +811,7 @@ features/[feature-name]/
 ## Summary
 
 ### Component Count
-- **Pages**: 8 (Landing, Builder, Chat, ChatBots, Flows, Sessions, Users, Settings)
+- **Pages**: 9 (Landing, Builder, Chat, ChatBots, Flows, DataSources, Sessions, Users, Settings)
 - **Custom Nodes**: 6 (Start, Message, Question, Condition, WhatsAppFlow, RestApi)
 - **Modals**: 10+ (Config, Create, Preview, Detail)
 

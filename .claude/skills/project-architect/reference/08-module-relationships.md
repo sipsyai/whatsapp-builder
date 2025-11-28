@@ -20,11 +20,15 @@ AppModule
   │
   ├─→ ChatBotsModule
   │     ├─→ TypeOrmModule.forFeature([ChatBot, ConversationContext, Conversation, User, WhatsAppFlow])
-  │     └─→ WhatsAppModule (imports for message sending)
+  │     ├─→ WhatsAppModule (imports for message sending)
+  │     └─→ DataSourcesModule (imports DataSourcesService for Flow data fetching)
   │
   ├─→ FlowsModule
   │     ├─→ TypeOrmModule.forFeature([WhatsAppFlow])
   │     └─→ WhatsAppModule (imports WhatsAppFlowService)
+  │
+  ├─→ DataSourcesModule
+  │     └─→ TypeOrmModule.forFeature([DataSource])
   │
   ├─→ ConversationsModule
   │     ├─→ TypeOrmModule.forFeature([Conversation, User])
@@ -36,9 +40,10 @@ AppModule
   │
   ├─→ WebhooksModule
   │     ├─→ ConfigModule
-  │     ├─→ TypeOrmModule.forFeature([Message, Conversation, User, ConversationContext])
+  │     ├─→ TypeOrmModule.forFeature([Message, Conversation, User, ConversationContext, WhatsAppFlow])
   │     ├─→ ChatBotsModule (imports ChatBotExecutionService)
   │     ├─→ WhatsAppModule (imports FlowEncryptionService)
+  │     ├─→ DataSourcesModule (imports DataSourcesService for Flow endpoint data)
   │     └─→ WebSocketModule (forwardRef - circular)
   │
   ├─→ MessagesModule
@@ -363,6 +368,143 @@ ChatPage Component
 
 ---
 
+## DataSourcesModule Integration
+
+**Purpose**: Centralized external API configuration management, eliminating hardcoded credentials.
+
+### Module Dependencies
+
+**DataSourcesModule** depends on:
+- `TypeOrmModule.forFeature([DataSource])`
+
+**Modules that depend on DataSourcesModule**:
+- `ChatBotsModule`: Uses `DataSourcesService` for WhatsApp Flow data prefetching
+- `WebhooksModule`: Uses `DataSourcesService` for Flow endpoint dynamic data
+
+### Service Integration
+
+**ChatBotExecutionService Integration**:
+```typescript
+constructor(
+  // ... other dependencies
+  private readonly dataSourcesService: DataSourcesService,
+  private readonly configService: ConfigService,
+) {}
+
+// When processing WhatsApp Flow node
+async processWhatsAppFlowNode() {
+  const dsConfig = await this.getDataSourceConfig(flow.dataSourceId);
+  if (dsConfig) {
+    // Fetch initial data from data source
+    const data = await this.fetchFlowInitialData(dsConfig, config);
+  }
+}
+
+private async getDataSourceConfig(dataSourceId?: string) {
+  // Primary: DataSource from database
+  if (dataSourceId) {
+    const dataSource = await this.dataSourcesService.findOne(dataSourceId);
+    if (dataSource?.isActive) {
+      return { baseUrl: dataSource.baseUrl, token: dataSource.authToken };
+    }
+  }
+  // Fallback: Environment variables
+  return {
+    baseUrl: this.configService.get('STRAPI_BASE_URL'),
+    token: this.configService.get('STRAPI_TOKEN'),
+  };
+}
+```
+
+**FlowEndpointService Integration**:
+```typescript
+constructor(
+  @InjectRepository(WhatsAppFlow)
+  private readonly flowRepo: Repository<WhatsAppFlow>,
+  private readonly dataSourcesService: DataSourcesService,
+) {}
+
+// When handling Flow INIT action
+async handleInit(flow_token: string) {
+  // Extract flow ID from context and node
+  const flow = await this.flowRepo.findOne({
+    where: { whatsappFlowId: flowNode.data.whatsappFlowId },
+  });
+
+  // Get data source configuration
+  const dsConfig = await this.getDataSourceConfig(flow.dataSourceId);
+
+  // Fetch dynamic data for Flow screens
+  const brands = await this.fetchBrandsFromDataSource(dsConfig);
+
+  return {
+    screen: 'BRAND_SCREEN',
+    data: { brands },
+  };
+}
+```
+
+### Data Flow with DataSources
+
+**Flow INIT with DataSource**:
+```
+WhatsApp User clicks Flow button
+  → WhatsApp sends webhook with nfm_reply (flow_token)
+  → FlowEndpointService.handleInit()
+  → Parse flow_token to get contextId and nodeId
+  → Load WhatsAppFlow from database
+  → Get dataSourceId from WhatsAppFlow
+  → DataSourcesService.findOne(dataSourceId)
+  → Create Axios client with auth headers
+  → Fetch data from external API
+  → Transform data to WhatsApp Flow format
+  → Encrypt response
+  → Return to WhatsApp
+  → WhatsApp shows Flow screen with dynamic data
+```
+
+**Chatbot Flow Execution with DataSource**:
+```
+User reaches WhatsApp Flow node in chatbot
+  → ChatBotExecutionService.processWhatsAppFlowNode()
+  → Load WhatsAppFlow entity
+  → Get dataSourceId from WhatsAppFlow
+  → DataSourcesService.findOne(dataSourceId)
+  → Fetch initial data from data source
+  → Send Flow message to user with flow_token
+  → Wait for user to complete Flow
+```
+
+### Entity Relationships
+
+```
+DataSource (1) ←─┐
+                  │ ManyToOne (nullable)
+                  │
+WhatsAppFlow ←────┘
+  ↓ (referenced in JSONB)
+ChatBot.nodes[].data.whatsappFlowId
+```
+
+**Cascade Behavior**:
+- When DataSource is deleted: `WhatsAppFlow.dataSourceId` set to NULL (not broken)
+- When WhatsAppFlow is deleted: No cascade (DataSource remains)
+
+### Frontend Integration
+
+**ConfigWhatsAppFlow Modal**:
+- Loads active data sources via `getActiveDataSources()` API
+- Displays dropdown for data source selection
+- Saves selected `dataSourceId` to node data
+- Node data includes both `whatsappFlowId` and `dataSourceId`
+
+**DataSourcesPage**:
+- Standalone feature for CRUD operations
+- Test connection functionality
+- No dependency on other features
+
+---
+
 ## Summary
 
 ### Module Interaction Patterns
@@ -382,6 +524,7 @@ ChatPage Component
 - **ChatBot Execution ↔ WhatsApp API**: Send responses (text, interactive, Flow)
 - **Flow Endpoint ↔ WhatsApp API**: Handle Flow interactions (encrypted)
 - **FlowsModule ↔ WhatsApp API**: Manage Flow lifecycle (create, publish, preview)
+- **DataSources ↔ Flows**: Dynamic data fetching for WhatsApp Flows
 - **Frontend ↔ Backend**: HTTP + WebSocket
 
 ---

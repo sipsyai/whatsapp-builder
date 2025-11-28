@@ -1,0 +1,326 @@
+{
+  "version": "7.2",
+  "data_api_version": "3.0",
+  "routing_model": {
+    "CATEGORY_SCREEN": ["PRODUCT_SCREEN"],
+    "PRODUCT_SCREEN": ["STOCK_INFO_SCREEN"],
+    "STOCK_INFO_SCREEN": ["CONFIRM_SCREEN"],
+    "CONFIRM_SCREEN": ["SUCCESS_SCREEN"],
+    "SUCCESS_SCREEN": [],
+    "ERROR_SCREEN": []
+  },
+  "screens": [
+    {
+      "id": "CATEGORY_SCREEN",
+      "title": "Stok Yönetimi",
+      "terminal": false,
+      "data": {
+        "categories": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "title": { "type": "string" },
+              "enabled": { "type": "boolean" }
+            }
+          },
+          "__example__": [
+            { "id": "masalar", "title": "Masalar", "enabled": true },
+            { "id": "sandalyeler", "title": "Sandalyeler", "enabled": true }
+          ]
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Stok Güncelleme"
+          },
+          {
+            "type": "TextBody",
+            "text": "Hangi kategorideki ürünün stok bilgisini güncellemek istiyorsunuz?"
+          },
+          {
+            "type": "Dropdown",
+            "name": "selected_category",
+            "label": "Kategori Seçin",
+            "required": true,
+            "data-source": "${data.categories}",
+            "on-select-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action": "get_products_by_category",
+                "category": "${form.selected_category}"
+              }
+            }
+          },
+          {
+            "type": "Footer",
+            "label": "Devam",
+            "on-click-action": {
+              "name": "navigate",
+              "next": {
+                "type": "screen",
+                "name": "PRODUCT_SCREEN"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "PRODUCT_SCREEN",
+      "title": "Ürün Seçimi",
+      "terminal": false,
+      "data": {
+        "products": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "title": { "type": "string" },
+              "enabled": { "type": "boolean" }
+            }
+          },
+          "__example__": [
+            { "id": "prod001", "title": "Premium Bahçe Sandalyesi - Stok: 50", "enabled": true }
+          ]
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Ürün Seçin"
+          },
+          {
+            "type": "TextBody",
+            "text": "Hangi ürünün stok bilgisini güncellemek istiyorsunuz?"
+          },
+          {
+            "type": "Dropdown",
+            "name": "selected_product",
+            "label": "Ürün Seçin",
+            "required": true,
+            "data-source": "${data.products}",
+            "on-select-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action": "get_product_stock_info",
+                "product_id": "${form.selected_product}"
+              }
+            }
+          },
+          {
+            "type": "Footer",
+            "label": "Devam",
+            "on-click-action": {
+              "name": "navigate",
+              "next": {
+                "type": "screen",
+                "name": "STOCK_INFO_SCREEN"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "STOCK_INFO_SCREEN",
+      "title": "Stok Bilgisi",
+      "terminal": false,
+      "data": {
+        "product_name": {
+          "type": "string",
+          "__example__": "Premium Bahçe Sandalyesi"
+        },
+        "product_sku": {
+          "type": "string",
+          "__example__": "GH-CHAIR-001"
+        },
+        "current_stock": {
+          "type": "string",
+          "__example__": "50"
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Stok Güncelleme"
+          },
+          {
+            "type": "TextSubheading",
+            "text": "Mevcut Ürün Bilgileri"
+          },
+          {
+            "type": "TextBody",
+            "text": "Ürün: ${data.product_name}\nSKU: ${data.product_sku}\nMevcut Stok: ${data.current_stock}"
+          },
+          {
+            "type": "TextSubheading",
+            "text": "Yeni Stok Miktarı"
+          },
+          {
+            "type": "TextInput",
+            "name": "new_stock",
+            "label": "Yeni Stok",
+            "input-type": "number",
+            "required": true,
+            "helper-text": "Güncel stok miktarını girin"
+          },
+          {
+            "type": "TextArea",
+            "name": "update_notes",
+            "label": "Notlar (Opsiyonel)",
+            "required": false,
+            "helper-text": "Stok güncellemesi ile ilgili notlar",
+            "max-length": 200
+          },
+          {
+            "type": "Footer",
+            "label": "Devam",
+            "on-click-action": {
+              "name": "navigate",
+              "next": {
+                "type": "screen",
+                "name": "CONFIRM_SCREEN"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "CONFIRM_SCREEN",
+      "title": "Onay",
+      "terminal": false,
+      "data": {},
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Onaylıyor musunuz?"
+          },
+          {
+            "type": "TextBody",
+            "text": "Ürün: ${screen.STOCK_INFO_SCREEN.data.product_name}\nSKU: ${screen.STOCK_INFO_SCREEN.data.product_sku}\n\nMevcut Stok: ${screen.STOCK_INFO_SCREEN.data.current_stock}\nYeni Stok: ${screen.STOCK_INFO_SCREEN.form.new_stock}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "Bu işlem geri alınamaz. Devam etmek istediğinize emin misiniz?"
+          },
+          {
+            "type": "Footer",
+            "label": "Onayla ve Güncelle",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action": "update_stock",
+                "product_id": "${screen.PRODUCT_SCREEN.form.selected_product}",
+                "new_stock": "${screen.STOCK_INFO_SCREEN.form.new_stock}",
+                "notes": "${screen.STOCK_INFO_SCREEN.form.update_notes}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "SUCCESS_SCREEN",
+      "title": "Başarılı",
+      "terminal": true,
+      "success": true,
+      "data": {
+        "success_message": {
+          "type": "string",
+          "__example__": "Stok başarıyla güncellendi!"
+        },
+        "product_name": {
+          "type": "string",
+          "__example__": "Premium Bahçe Sandalyesi"
+        },
+        "old_stock": {
+          "type": "string",
+          "__example__": "50"
+        },
+        "new_stock": {
+          "type": "string",
+          "__example__": "75"
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "✅ Başarılı!"
+          },
+          {
+            "type": "TextBody",
+            "text": "${data.success_message}"
+          },
+          {
+            "type": "TextBody",
+            "text": "Ürün: ${data.product_name}\nEski Stok: ${data.old_stock}\nYeni Stok: ${data.new_stock}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "Stok bilgisi sistemde güncellenmiştir."
+          },
+          {
+            "type": "Footer",
+            "label": "Tamam",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {}
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ERROR_SCREEN",
+      "title": "Hata",
+      "terminal": true,
+      "success": false,
+      "data": {
+        "error_message": {
+          "type": "string",
+          "__example__": "Stok güncellenirken bir hata oluştu."
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "❌ Hata"
+          },
+          {
+            "type": "TextBody",
+            "text": "${data.error_message}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "Lütfen daha sonra tekrar deneyin veya sistem yöneticisi ile iletişime geçin."
+          },
+          {
+            "type": "Footer",
+            "label": "Kapat",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {}
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

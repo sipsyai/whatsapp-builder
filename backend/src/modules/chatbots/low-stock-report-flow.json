@@ -1,0 +1,402 @@
+{
+  "version": "7.2",
+  "data_api_version": "3.0",
+  "routing_model": {
+    "FILTER_SCREEN": ["REPORT_SCREEN"],
+    "REPORT_SCREEN": ["ACTION_SCREEN"],
+    "ACTION_SCREEN": ["STOCK_UPDATE_SCREEN", "ORDER_SCREEN"],
+    "STOCK_UPDATE_SCREEN": ["SUCCESS_SCREEN"],
+    "ORDER_SCREEN": ["SUCCESS_SCREEN"],
+    "SUCCESS_SCREEN": [],
+    "ERROR_SCREEN": []
+  },
+  "screens": [
+    {
+      "id": "FILTER_SCREEN",
+      "title": "Düşük Stok Raporu",
+      "terminal": false,
+      "data": {},
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Düşük Stok Raporu"
+          },
+          {
+            "type": "TextBody",
+            "text": "Hangi stok seviyesinin altındaki ürünleri görmek istiyorsunuz?"
+          },
+          {
+            "type": "TextInput",
+            "name": "stock_threshold",
+            "label": "Minimum Stok Eşiği",
+            "input-type": "number",
+            "required": true,
+            "helper-text": "Varsayılan: 10"
+          },
+          {
+            "type": "RadioButtonsGroup",
+            "name": "sort_by",
+            "label": "Sıralama",
+            "required": true,
+            "data-source": [
+              {
+                "id": "stock_asc",
+                "title": "En Az Stok",
+                "description": "En düşük stoktan başla"
+              },
+              {
+                "id": "stock_desc",
+                "title": "En Çok Stok",
+                "description": "En yüksek stoktan başla"
+              },
+              {
+                "id": "name_asc",
+                "title": "İsme Göre (A-Z)",
+                "description": "Alfabetik sıralama"
+              }
+            ]
+          },
+          {
+            "type": "Footer",
+            "label": "Raporu Getir",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action": "get_low_stock_products",
+                "threshold": "${form.stock_threshold}",
+                "sort_by": "${form.sort_by}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "REPORT_SCREEN",
+      "title": "Düşük Stok Listesi",
+      "terminal": false,
+      "data": {
+        "total_products": {
+          "type": "string",
+          "__example__": "12"
+        },
+        "low_stock_products": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "title": { "type": "string" },
+              "enabled": { "type": "boolean" }
+            }
+          },
+          "__example__": [
+            { "id": "prod001", "title": "Premium Sandalye - Stok: 5", "enabled": true },
+            { "id": "prod002", "title": "Bahçe Masası - Stok: 8", "enabled": true }
+          ]
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Düşük Stoklu Ürünler"
+          },
+          {
+            "type": "TextBody",
+            "text": "Toplam ${data.total_products} ürün bulundu.\n\nEşik Değeri: ${screen.FILTER_SCREEN.form.stock_threshold}"
+          },
+          {
+            "type": "Dropdown",
+            "name": "selected_product",
+            "label": "Ürün Seçin",
+            "required": true,
+            "data-source": "${data.low_stock_products}",
+            "on-select-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action": "get_product_details",
+                "product_id": "${form.selected_product}"
+              }
+            }
+          },
+          {
+            "type": "Footer",
+            "label": "Aksiyon Al",
+            "on-click-action": {
+              "name": "navigate",
+              "next": {
+                "type": "screen",
+                "name": "ACTION_SCREEN"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ACTION_SCREEN",
+      "title": "Aksiyon Seçimi",
+      "terminal": false,
+      "data": {
+        "product_name": {
+          "type": "string",
+          "__example__": "Premium Bahçe Sandalyesi"
+        },
+        "product_sku": {
+          "type": "string",
+          "__example__": "GH-CHAIR-001"
+        },
+        "current_stock": {
+          "type": "string",
+          "__example__": "5"
+        },
+        "product_price": {
+          "type": "string",
+          "__example__": "2,499.99 TL"
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Ne Yapmak İstersiniz?"
+          },
+          {
+            "type": "TextSubheading",
+            "text": "Seçilen Ürün"
+          },
+          {
+            "type": "TextBody",
+            "text": "Ürün: ${data.product_name}\nSKU: ${data.product_sku}\nMevcut Stok: ${data.current_stock}\nFiyat: ${data.product_price}"
+          },
+          {
+            "type": "RadioButtonsGroup",
+            "name": "action_type",
+            "label": "Aksiyon Seçin",
+            "required": true,
+            "data-source": [
+              {
+                "id": "update_stock",
+                "title": "Stok Güncelle",
+                "description": "Mevcut stok miktarını güncelle"
+              },
+              {
+                "id": "create_order",
+                "title": "Sipariş Oluştur",
+                "description": "Yeni sipariş talebi oluştur"
+              }
+            ]
+          },
+          {
+            "type": "Footer",
+            "label": "Devam",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action": "route_action",
+                "action_type": "${form.action_type}",
+                "product_id": "${screen.REPORT_SCREEN.form.selected_product}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "STOCK_UPDATE_SCREEN",
+      "title": "Stok Güncelleme",
+      "terminal": false,
+      "data": {},
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Stok Güncelle"
+          },
+          {
+            "type": "TextBody",
+            "text": "Ürün: ${screen.ACTION_SCREEN.data.product_name}\nMevcut Stok: ${screen.ACTION_SCREEN.data.current_stock}"
+          },
+          {
+            "type": "TextInput",
+            "name": "new_stock",
+            "label": "Yeni Stok Miktarı",
+            "input-type": "number",
+            "required": true,
+            "helper-text": "Güncel stok miktarını girin"
+          },
+          {
+            "type": "TextArea",
+            "name": "update_reason",
+            "label": "Güncelleme Nedeni",
+            "required": false,
+            "helper-text": "Örn: Yeni sevkiyat geldi",
+            "max-length": 200
+          },
+          {
+            "type": "Footer",
+            "label": "Güncelle",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action": "update_stock",
+                "product_id": "${screen.REPORT_SCREEN.form.selected_product}",
+                "new_stock": "${form.new_stock}",
+                "reason": "${form.update_reason}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ORDER_SCREEN",
+      "title": "Sipariş Oluştur",
+      "terminal": false,
+      "data": {},
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Sipariş Talebi"
+          },
+          {
+            "type": "TextBody",
+            "text": "Ürün: ${screen.ACTION_SCREEN.data.product_name}\nSKU: ${screen.ACTION_SCREEN.data.product_sku}\nMevcut Stok: ${screen.ACTION_SCREEN.data.current_stock}"
+          },
+          {
+            "type": "TextInput",
+            "name": "order_quantity",
+            "label": "Sipariş Miktarı",
+            "input-type": "number",
+            "required": true,
+            "helper-text": "Kaç adet sipariş vermek istiyorsunuz?"
+          },
+          {
+            "type": "Dropdown",
+            "name": "order_priority",
+            "label": "Öncelik Durumu",
+            "required": true,
+            "data-source": [
+              { "id": "urgent", "title": "Acil", "enabled": true },
+              { "id": "high", "title": "Yüksek", "enabled": true },
+              { "id": "normal", "title": "Normal", "enabled": true },
+              { "id": "low", "title": "Düşük", "enabled": true }
+            ]
+          },
+          {
+            "type": "TextArea",
+            "name": "order_notes",
+            "label": "Sipariş Notları",
+            "required": false,
+            "helper-text": "Özel talepler veya notlar",
+            "max-length": 300
+          },
+          {
+            "type": "Footer",
+            "label": "Sipariş Oluştur",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action": "create_order",
+                "product_id": "${screen.REPORT_SCREEN.form.selected_product}",
+                "quantity": "${form.order_quantity}",
+                "priority": "${form.order_priority}",
+                "notes": "${form.order_notes}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "SUCCESS_SCREEN",
+      "title": "Başarılı",
+      "terminal": true,
+      "success": true,
+      "data": {
+        "success_message": {
+          "type": "string",
+          "__example__": "İşlem başarıyla tamamlandı!"
+        },
+        "action_details": {
+          "type": "string",
+          "__example__": "Stok güncellendi: 5 → 50"
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "✅ Başarılı!"
+          },
+          {
+            "type": "TextBody",
+            "text": "${data.success_message}"
+          },
+          {
+            "type": "TextBody",
+            "text": "${data.action_details}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "İşlem sistemde kaydedilmiştir."
+          },
+          {
+            "type": "Footer",
+            "label": "Tamam",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {}
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ERROR_SCREEN",
+      "title": "Hata",
+      "terminal": true,
+      "success": false,
+      "data": {
+        "error_message": {
+          "type": "string",
+          "__example__": "İşlem sırasında bir hata oluştu."
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "❌ Hata"
+          },
+          {
+            "type": "TextBody",
+            "text": "${data.error_message}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "Lütfen daha sonra tekrar deneyin veya sistem yöneticisi ile iletişime geçin."
+          },
+          {
+            "type": "Footer",
+            "label": "Kapat",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {}
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import type { ButtonItem, Condition, ConditionGroup } from "@/shared/types";
 import { useReactFlow } from "@xyflow/react";
 import { flowsApi, type WhatsAppFlow } from "../../flows/api";
+import { getActiveDataSources, type DataSource } from "../../data-sources/api";
 
 // ... Config Components ...
 export const ConfigMessage = ({ data, onClose, onSave }: any) => {
@@ -702,12 +703,16 @@ export const ConfigCondition = ({ data, onClose, onSave }: any) => {
 
 export const ConfigWhatsAppFlow = ({ data, onClose, onSave }: any) => {
     const [flows, setFlows] = useState<WhatsAppFlow[]>([]);
+    const [dataSources, setDataSources] = useState<DataSource[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadingDataSources, setLoadingDataSources] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     // Form state
     const [label, setLabel] = useState(data.label || "WhatsApp Flow");
     const [selectedFlowId, setSelectedFlowId] = useState(data.whatsappFlowId || "");
+    const [manualFlowId, setManualFlowId] = useState(""); // Manual Flow ID input
+    const [selectedDataSourceId, setSelectedDataSourceId] = useState(data.dataSourceId || "");
     const [flowCta, setFlowCta] = useState(data.flowCta || "Start");
     const [flowMode, setFlowMode] = useState<'navigate' | 'data_exchange'>(data.flowMode || "navigate");
     const [bodyText, setBodyText] = useState(data.flowBodyText || "");
@@ -719,15 +724,14 @@ export const ConfigWhatsAppFlow = ({ data, onClose, onSave }: any) => {
         data.flowInitialData ? JSON.stringify(data.flowInitialData, null, 2) : ""
     );
 
-    // Load available flows
+    // Load available flows and data sources
     useEffect(() => {
         const loadFlows = async () => {
             try {
                 setLoading(true);
-                // Only fetch published flows for chatbot use
-                const allFlows = await flowsApi.getAll();
-                const publishedFlows = allFlows.filter(f => f.status === 'PUBLISHED' && f.whatsappFlowId);
-                setFlows(publishedFlows);
+                // Fetch active/published flows for chatbot use
+                const activeFlows = await flowsApi.getActive();
+                setFlows(activeFlows);
             } catch (err) {
                 setError("Failed to load WhatsApp Flows");
                 console.error(err);
@@ -735,7 +739,21 @@ export const ConfigWhatsAppFlow = ({ data, onClose, onSave }: any) => {
                 setLoading(false);
             }
         };
+
+        const loadDataSources = async () => {
+            try {
+                setLoadingDataSources(true);
+                const activeSources = await getActiveDataSources();
+                setDataSources(activeSources);
+            } catch (err) {
+                console.error("Failed to load data sources:", err);
+            } finally {
+                setLoadingDataSources(false);
+            }
+        };
+
         loadFlows();
+        loadDataSources();
     }, []);
 
     const selectedFlow = useMemo(() => {
@@ -743,8 +761,11 @@ export const ConfigWhatsAppFlow = ({ data, onClose, onSave }: any) => {
     }, [flows, selectedFlowId]);
 
     const handleSave = () => {
-        if (!selectedFlowId) {
-            alert("Please select a WhatsApp Flow");
+        // Use manual Flow ID if provided, otherwise use selected Flow ID
+        const finalFlowId = manualFlowId.trim() || selectedFlowId;
+
+        if (!finalFlowId) {
+            alert("Please select a WhatsApp Flow or enter a Flow ID manually");
             return;
         }
 
@@ -772,7 +793,8 @@ export const ConfigWhatsAppFlow = ({ data, onClose, onSave }: any) => {
         onSave({
             ...data,
             label,
-            whatsappFlowId: selectedFlowId,
+            whatsappFlowId: finalFlowId,
+            dataSourceId: selectedDataSourceId || undefined,
             flowCta,
             flowMode,
             flowBodyText: bodyText,
@@ -830,31 +852,87 @@ export const ConfigWhatsAppFlow = ({ data, onClose, onSave }: any) => {
                                 />
                             </label>
 
-                            {/* Flow Selection */}
-                            <label className="block">
-                                <span className="text-sm font-medium text-white">Select WhatsApp Flow *</span>
-                                <select
-                                    className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
-                                    value={selectedFlowId}
-                                    onChange={e => setSelectedFlowId(e.target.value)}
-                                >
-                                    <option value="">-- Select a Flow --</option>
-                                    {flows.map(flow => (
-                                        <option key={flow.id} value={flow.whatsappFlowId}>
-                                            {flow.name} ({flow.status})
-                                        </option>
-                                    ))}
-                                </select>
-                            </label>
+                            {/* Flow Selection Dropdown */}
+                            <div className="space-y-2">
+                                <label className="block">
+                                    <span className="text-sm font-medium text-white">WhatsApp Flow</span>
+                                    <select
+                                        className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
+                                        value={selectedFlowId}
+                                        onChange={e => {
+                                            setSelectedFlowId(e.target.value);
+                                            setManualFlowId(""); // Clear manual input when selecting from dropdown
+                                        }}
+                                        disabled={loading || !!manualFlowId}
+                                    >
+                                        <option value="">-- Select a Flow --</option>
+                                        {flows.map(flow => (
+                                            <option key={flow.id} value={flow.whatsappFlowId}>
+                                                {flow.name} ({flow.whatsappFlowId})
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {loading && <span className="text-xs text-zinc-500 mt-1 block">Loading flows...</span>}
+                                </label>
 
-                            {selectedFlow && (
-                                <div className="bg-green-900/20 border border-green-800 rounded-lg p-3">
-                                    <p className="text-sm text-green-300">
-                                        <strong>Selected:</strong> {selectedFlow.name}
-                                    </p>
-                                    {selectedFlow.description && (
-                                        <p className="text-xs text-green-400 mt-1">{selectedFlow.description}</p>
-                                    )}
+                                {selectedFlow && !manualFlowId && (
+                                    <div className="bg-green-900/20 border border-green-800 rounded-lg p-3">
+                                        <p className="text-sm text-green-300">
+                                            <strong>Selected:</strong> {selectedFlow.name}
+                                        </p>
+                                        {selectedFlow.description && (
+                                            <p className="text-xs text-green-400 mt-1">{selectedFlow.description}</p>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Manual Flow ID Input */}
+                            <div className="space-y-2">
+                                <label className="block">
+                                    <span className="text-sm font-medium text-zinc-400">Or enter Flow ID manually</span>
+                                    <input
+                                        type="text"
+                                        value={manualFlowId}
+                                        onChange={e => {
+                                            setManualFlowId(e.target.value);
+                                            if (e.target.value.trim()) {
+                                                setSelectedFlowId(""); // Clear dropdown selection when entering manual ID
+                                            }
+                                        }}
+                                        placeholder="e.g., 1234567890123456"
+                                        className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10 placeholder:text-zinc-600"
+                                        disabled={!!selectedFlowId}
+                                    />
+                                    <span className="text-xs text-zinc-500 mt-1 block">
+                                        Enter a WhatsApp Flow ID if it's not in the list above
+                                    </span>
+                                </label>
+                            </div>
+
+                            {/* Data Source Selector (Optional) */}
+                            {flowMode === 'data_exchange' && (
+                                <div className="space-y-2 p-4 bg-blue-900/20 rounded-lg border border-blue-800">
+                                    <label className="block">
+                                        <span className="text-sm font-medium text-white">Data Source (Optional)</span>
+                                        <select
+                                            className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
+                                            value={selectedDataSourceId}
+                                            onChange={e => setSelectedDataSourceId(e.target.value)}
+                                            disabled={loadingDataSources}
+                                        >
+                                            <option value="">-- Select a Data Source --</option>
+                                            {dataSources.map(ds => (
+                                                <option key={ds.id} value={ds.id}>
+                                                    {ds.name} ({ds.type})
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {loadingDataSources && <span className="text-xs text-zinc-500 mt-1 block">Loading data sources...</span>}
+                                        <span className="text-xs text-blue-300 mt-1 block">
+                                            Select a data source if this flow requires backend data
+                                        </span>
+                                    </label>
                                 </div>
                             )}
 
@@ -982,11 +1060,13 @@ export const ConfigWhatsAppFlow = ({ data, onClose, onSave }: any) => {
                             )}
 
                             {/* Help Text */}
-                            <div className="text-xs text-gray-500 text-gray-400 space-y-1 pt-4 border-t border-white/10">
-                                <p>• Only published WhatsApp Flows can be used in chatbots</p>
+                            <div className="text-xs text-gray-400 space-y-1 pt-4 border-t border-white/10">
+                                <p>• Select a flow from the dropdown or enter a Flow ID manually</p>
+                                <p>• Only active/published WhatsApp Flows appear in the dropdown</p>
                                 <p>• Navigate mode: Static forms with predefined screens</p>
                                 <p>• Data Exchange mode: Dynamic flows with backend interaction</p>
                                 <p>• Flow responses can be stored in a variable for later use</p>
+                                <p>• Data sources are only needed for data_exchange mode flows</p>
                             </div>
                         </div>
                     )}
@@ -1001,8 +1081,7 @@ export const ConfigWhatsAppFlow = ({ data, onClose, onSave }: any) => {
                     </button>
                     <button
                         onClick={handleSave}
-                        disabled={flows.length === 0}
-                        className="px-4 py-2 rounded-lg bg-primary text-[#112217] font-bold hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-4 py-2 rounded-lg bg-primary text-[#112217] font-bold hover:bg-primary/90 transition-colors"
                     >
                         Save
                     </button>

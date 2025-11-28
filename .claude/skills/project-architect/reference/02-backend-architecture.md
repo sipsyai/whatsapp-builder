@@ -5,7 +5,7 @@
 NestJS 11.x modular architecture with TypeScript, TypeORM, and Socket.IO.
 
 ### Principles
-- Modular Design (9 feature modules)
+- Modular Design (10 feature modules)
 - Single Responsibility
 - Dependency Injection
 - Type Safety (strict mode)
@@ -17,14 +17,15 @@ NestJS 11.x modular architecture with TypeScript, TypeORM, and Socket.IO.
 backend/src/
 ├── main.ts, app.module.ts          # Bootstrap & root module
 ├── config/, database/              # Configuration & DB setup
-├── entities/                       # 8 TypeORM entities
-├── modules/                        # 9 feature modules
+├── entities/                       # 9 TypeORM entities
+├── modules/                        # 10 feature modules
 │   ├── chatbots/                   # Flow management & execution
 │   ├── whatsapp/                   # WhatsApp API integration
 │   ├── webhooks/                   # Webhook processing
 │   ├── conversations/, messages/   # Conversation management
 │   ├── websocket/                  # Socket.IO gateway
 │   ├── flows/                      # WhatsApp Flows lifecycle
+│   ├── data-sources/               # External API configuration
 │   ├── media/, users/              # Media upload & user management
 └── migrations/                     # TypeORM migrations
 ```
@@ -214,7 +215,74 @@ Disconnect → Remove from tracking → Broadcast user:offline
 
 ---
 
-### 7. MediaModule & UsersModule
+### 7. DataSourcesModule
+**Path**: `/backend/src/modules/data-sources/`
+
+**Entity**: DataSource
+
+**Purpose**: Manage external API configurations dynamically, eliminating hardcoded credentials.
+
+**Service**: `DataSourcesService`
+- `create(dto)`: Create new data source with auth validation
+- `findAll()`: List all data sources
+- `findAllActive()`: List only active data sources
+- `findOne(id)`: Get single data source
+- `update(id, dto)`: Update with re-validation
+- `delete(id)`: Delete data source
+- `testConnection(id)`: Test connectivity and measure response time
+- `fetchData(id, endpoint, options)`: Generic HTTP client for API calls
+- `createAxiosClient(ds)`: Private - Create configured Axios instance with auth headers
+- `validateAuthConfig(...)`: Private - Validate auth type and token requirements
+
+**Data Source Types**:
+- `REST_API`: Generic REST API
+- `STRAPI`: Strapi CMS
+- `GRAPHQL`: GraphQL endpoint
+
+**Authentication Types**:
+- `NONE`: No authentication
+- `BEARER`: Bearer token (Authorization: Bearer {token})
+- `API_KEY`: Custom header with API key
+- `BASIC`: Basic auth (Authorization: Basic {base64})
+
+**Controller**: `DataSourcesController`
+- POST /api/data-sources - Create
+- GET /api/data-sources - List all
+- GET /api/data-sources/active - List active only
+- GET /api/data-sources/:id - Get one
+- PUT /api/data-sources/:id - Update
+- DELETE /api/data-sources/:id - Delete
+- POST /api/data-sources/:id/test - Test connection
+
+**Integration Points**:
+- `ChatBotExecutionService`: Uses DataSource for WhatsApp Flow data prefetching
+- `FlowEndpointService`: Fetches dynamic data from DataSource for Flow INIT
+- `WhatsAppFlow` entity: Has optional `dataSourceId` foreign key
+
+**Key DTOs**:
+- `CreateDataSourceDto`: Validation with @IsUrl, @IsEnum, conditional auth fields
+- `UpdateDataSourceDto`: Partial update DTO
+- `TestConnectionResult`: Connection test response with timing
+
+**Security Notes**:
+- Auth tokens stored in plain text (encryption recommended for production)
+- Validation ensures auth token is required when auth type is not NONE
+- For API_KEY type, authHeaderName is also required
+
+**File Locations**:
+- Entity: `entities/data-source.entity.ts`
+- Service: `data-sources.service.ts`
+- Controller: `data-sources.controller.ts`
+- DTOs: `dto/create-data-source.dto.ts`, `dto/update-data-source.dto.ts`
+
+**Migration Impact**:
+- Removed hardcoded Strapi credentials from `FlowEndpointService` and `ChatBotExecutionService`
+- Added fallback to environment variables (STRAPI_BASE_URL, STRAPI_TOKEN) if DataSource not found
+- WhatsAppFlow entity updated with optional dataSourceId column
+
+---
+
+### 8. MediaModule & UsersModule
 
 **MediaModule**: Media file uploads to WhatsApp API (`MediaService.uploadMedia()`)
 
@@ -273,7 +341,7 @@ Disconnect → Remove from tracking → Broadcast user:offline
 
 ---
 
-### 8. AuthModule
+### 9. AuthModule
 **Path**: `/backend/src/modules/auth/`
 
 **Entities**: User (extended with auth fields)

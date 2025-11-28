@@ -19,6 +19,7 @@ import { MessagesModule } from './modules/messages/messages.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { WebSocketModule } from './modules/websocket/websocket.module';
 import { HealthModule } from './modules/health/health.module';
+import { DataSourcesModule } from './modules/data-sources/data-sources.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { HealthModule } from './modules/health/health.module';
     WebSocketModule,
     WebhooksModule,
     HealthModule,
+    DataSourcesModule,
   ],
   controllers: [AppController],
   providers: [

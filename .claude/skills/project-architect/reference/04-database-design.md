@@ -32,11 +32,12 @@ chatbots (1) ←→ (M) conversation_contexts
 Standalone:
 - whatsapp_config (singleton via partial unique index)
 - whatsapp_flows (referenced in chatbot nodes via JSONB)
+- data_sources (1) ←→ (M) whatsapp_flows (optional relation)
 ```
 
 ---
 
-## Entities (7 Tables)
+## Entities (8 Tables)
 
 ### 1. users
 **File**: `/backend/src/entities/user.entity.ts`
@@ -162,8 +163,48 @@ Standalone:
 - `previewUrl` (nullable)
 - `syncedFromMeta` (boolean) - **NEW**
 - `metadata` (JSONB)
+- `dataSourceId` (UUID, FK, nullable) - **NEW** - References data_sources.id
 
-**Indexes**: `whatsappFlowId` (unique), `status`
+**Indexes**: `whatsappFlowId` (unique), `status`, `dataSourceId`
+
+**Relations**:
+- `dataSource` (ManyToOne → DataSource, nullable, onDelete: SET NULL)
+
+---
+
+### 8. data_sources
+**File**: `/backend/src/entities/data-source.entity.ts`
+
+**Purpose**: Store external API configurations (Strapi, REST API, GraphQL) to eliminate hardcoded credentials.
+
+**Fields**:
+- `id` (UUID, PK)
+- `name` (string, 255) - Human-readable name
+- `description` (text, nullable)
+- `type` (ENUM: REST_API, STRAPI, GRAPHQL)
+- `baseUrl` (string, 500) - API base URL
+- `authType` (ENUM: NONE, BEARER, API_KEY, BASIC) - Default: NONE
+- `authToken` (text, nullable) - Token/password for authentication
+- `authHeaderName` (string, 100, nullable) - Custom header name for API_KEY auth
+- `headers` (JSONB, nullable) - Additional HTTP headers
+- `config` (JSONB, nullable) - Type-specific configuration
+- `isActive` (boolean) - Default: true
+- `timeout` (integer, nullable) - Request timeout in milliseconds
+- `createdAt`, `updatedAt` (timestamps)
+
+**Indexes**: `type`, `isActive`, `createdAt DESC`
+
+**Relations**:
+- `whatsappFlows` (OneToMany → WhatsAppFlow, via whatsapp_flows.dataSourceId)
+
+**Validation Rules**:
+- If `authType` is not NONE, `authToken` is required
+- If `authType` is API_KEY, `authHeaderName` is required
+- `baseUrl` must be valid URL format
+
+**Security Notes**:
+- Auth tokens stored in plain text (encryption recommended for production)
+- No authentication on API endpoints yet (TODO: add JWT guards)
 
 ---
 
@@ -181,6 +222,10 @@ Standalone:
 - `chatbots.nodes[].data.whatsappFlowId` → `whatsapp_flows.id`
 - No FK constraint (allows Flow deletion without breaking chatbots)
 
+### Optional Foreign Key
+- `whatsapp_flows.dataSourceId` → `data_sources.id` (nullable, onDelete: SET NULL)
+- Allows flows to work without data source or continue working if data source is deleted
+
 ---
 
 ## PostgreSQL Features
@@ -196,6 +241,7 @@ Standalone:
 - `messages.content`
 - `conversation_contexts.variables`, `conversation_contexts.nodeHistory`
 - `whatsapp_flows.categories`, `whatsapp_flows.flowJson`
+- `data_sources.headers`, `data_sources.config`
 
 ### 2. ENUM Types
 ```sql

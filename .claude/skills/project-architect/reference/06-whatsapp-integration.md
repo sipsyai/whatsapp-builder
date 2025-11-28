@@ -201,6 +201,56 @@ Create (DRAFT) → Publish (PUBLISHED) → Deprecate (DEPRECATED) → Delete
 
 **Encryption**: RSA + AES-128-GCM (see FlowEncryptionService)
 
+**DataSource Integration**: FlowEndpointService uses DataSources for dynamic data fetching
+
+### DataSource Integration in Flows
+
+**Purpose**: WhatsApp Flows can fetch dynamic data from external APIs (Strapi, REST, GraphQL) during INIT action.
+
+**Implementation** (FlowEndpointService):
+
+```typescript
+// Extract dataSourceId from flow_token and flow configuration
+const flow = await this.flowRepo.findOne({
+  where: { whatsappFlowId: flowNode.data.whatsappFlowId },
+});
+const dataSourceId = flow.dataSourceId;
+
+// Get data source configuration
+const dsConfig = await this.getDataSourceConfig(dataSourceId);
+
+// Fetch initial data for Flow screens
+const response = await fetch(`${dsConfig.baseUrl}/api/brands`, {
+  headers: {
+    'Authorization': `Bearer ${dsConfig.token}`,
+  },
+});
+
+const data = await response.json();
+
+// Transform to WhatsApp Flow dropdown format
+const brands = data.data.map(item => ({
+  id: item.name,
+  title: item.name,
+}));
+
+return {
+  screen: 'BRAND_SCREEN',
+  data: { brands }
+};
+```
+
+**Fallback Mechanism**:
+1. Primary: Use DataSource from WhatsAppFlow.dataSourceId
+2. Fallback: Environment variables (STRAPI_BASE_URL, STRAPI_TOKEN)
+3. Graceful degradation: Empty data if neither available
+
+**Benefits**:
+- No hardcoded credentials in code
+- UI-based configuration
+- Multiple environment support (dev, staging, prod)
+- Per-flow data source assignment
+
 ---
 
 ## Webhook Processing

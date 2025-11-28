@@ -4,7 +4,10 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
+import { DataSource } from './data-source.entity';
 
 export enum WhatsAppFlowStatus {
   DRAFT = 'DRAFT',
@@ -63,6 +66,14 @@ export class WhatsAppFlow {
 
   @Column({ type: 'jsonb', nullable: true })
   metadata?: Record<string, any>; // Additional metadata (validation errors, etc.)
+
+  // Data source for external API integration (e.g., Strapi for dynamic data)
+  @Column({ type: 'uuid', name: 'data_source_id', nullable: true })
+  dataSourceId?: string;
+
+  @ManyToOne(() => DataSource, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'data_source_id' })
+  dataSource?: DataSource;
 
   @CreateDateColumn({ type: 'timestamp with time zone', name: 'created_at' })
   createdAt: Date;

@@ -2,7 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConversationContext } from '../../../entities/conversation-context.entity';
+import { WhatsAppFlow } from '../../../entities/whatsapp-flow.entity';
 import { ConfigService } from '@nestjs/config';
+import { DataSourcesService } from '../../data-sources/data-sources.service';
 
 /**
  * Flow Endpoint Service
@@ -12,14 +14,13 @@ import { ConfigService } from '@nestjs/config';
 export class FlowEndpointService {
   private readonly logger = new Logger(FlowEndpointService.name);
 
-  // Strapi API configuration for Fiyat Guncelleme flow
-  private readonly strapiBaseUrl = 'http://192.168.1.18:1337';
-  private readonly strapiToken = 'd3a4028ba0d5f00b572132d037ada86fef5a735be3efad3db46cec5ab72c82f1f1bf5bd228af0257d93d4f7ab935d5cf8ce9564f5b7db50928d245f4a3fdeef4d7aa460a4ef200eb6106cf15dc9aaba9f716b074493a9a7b246ed5054c3a714b9160d3cc59bc33c0cf485d875216e4c28eeccf5573a1be888d8b5f9f67e4813c';
-
   constructor(
     @InjectRepository(ConversationContext)
     private readonly contextRepo: Repository<ConversationContext>,
+    @InjectRepository(WhatsAppFlow)
+    private readonly flowRepo: Repository<WhatsAppFlow>,
     private readonly configService: ConfigService,
+    private readonly dataSourcesService: DataSourcesService,
   ) {}
 
   /**
@@ -34,31 +35,75 @@ export class FlowEndpointService {
     // Extract context ID from flow_token if it contains context info
     // Format: {contextId}-{nodeId} or just a unique token
     let contextId: string | null = null;
+    let nodeId: string | null = null;
     let initialData: any = {};
+    let dataSourceId: string | null = null;
 
     if (flow_token && flow_token.includes('-')) {
       const parts = flow_token.split('-');
-      contextId = parts[0];
+      // UUID format: 8-4-4-4-12 = 5 parts when split by '-'
+      // flow_token format: {contextId}-{nodeId}
+      if (parts.length >= 6) {
+        contextId = parts.slice(0, 5).join('-');
+        nodeId = parts.slice(5).join('-');
+      }
 
-      // Load context to get variables for initial data
+      // Load context to get variables and flow configuration
       if (contextId) {
         try {
           const context = await this.contextRepo.findOne({
             where: { id: contextId },
+            relations: ['chatbot'],
           });
 
           if (context) {
             initialData = context.variables || {};
+
+            // Find the WhatsApp Flow node to get the flow ID
+            if (nodeId && context.chatbot) {
+              const flowNode = context.chatbot.nodes?.find(
+                (n: any) => n.id === nodeId,
+              );
+              if (flowNode?.data?.whatsappFlowId) {
+                // Load the flow to get dataSourceId
+                const flow = await this.flowRepo.findOne({
+                  where: { whatsappFlowId: flowNode.data.whatsappFlowId },
+                });
+                if (flow) {
+                  dataSourceId = flow.dataSourceId || null;
+                  this.logger.debug(
+                    `Flow loaded: ${flow.name}, dataSourceId: ${dataSourceId}`,
+                  );
+                }
+              }
+            }
           }
         } catch (error) {
-          this.logger.warn(`Could not load context ${contextId}:`, error.message);
+          this.logger.warn(
+            `Could not load context ${contextId}:`,
+            error.message,
+          );
         }
       }
     }
 
+    // Get data source configuration
+    const dsConfig = await this.getDataSourceConfig(dataSourceId);
+
+    if (!dsConfig) {
+      this.logger.error('No data source configuration available');
+      return {
+        screen: 'BRAND_SCREEN',
+        data: {
+          brands: [],
+          ...initialData,
+        },
+      };
+    }
+
     // Fetch brands from Strapi for BRAND_SCREEN
     try {
-      const brands = await this.fetchBrandsFromStrapi();
+      const brands = await this.fetchBrandsFromStrapi(dsConfig);
       this.logger.debug(`Fetched ${brands.length} brands from Strapi`);
 
       return {
@@ -84,10 +129,12 @@ export class FlowEndpointService {
   /**
    * Fetch brands from Strapi API
    */
-  private async fetchBrandsFromStrapi(): Promise<{ id: string; title: string }[]> {
-    const response = await fetch(`${this.strapiBaseUrl}/api/brands`, {
+  private async fetchBrandsFromStrapi(
+    config: { baseUrl: string; token: string },
+  ): Promise<{ id: string; title: string }[]> {
+    const response = await fetch(`${config.baseUrl}/api/brands`, {
       headers: {
-        Authorization: `Bearer ${this.strapiToken}`,
+        Authorization: `Bearer ${config.token}`,
       },
     });
 
@@ -107,12 +154,15 @@ export class FlowEndpointService {
   /**
    * Fetch products by brand from Strapi API
    */
-  private async fetchProductsByBrand(brandName: string): Promise<{ id: string; title: string }[]> {
-    const url = `${this.strapiBaseUrl}/api/products?filters[brand][name][$eq]=${encodeURIComponent(brandName)}&pagination[pageSize]=100`;
+  private async fetchProductsByBrand(
+    brandName: string,
+    config: { baseUrl: string; token: string },
+  ): Promise<{ id: string; title: string }[]> {
+    const url = `${config.baseUrl}/api/products?filters[brand][name][$eq]=${encodeURIComponent(brandName)}&pagination[pageSize]=100`;
 
     const response = await fetch(url, {
       headers: {
-        Authorization: `Bearer ${this.strapiToken}`,
+        Authorization: `Bearer ${config.token}`,
       },
     });
 
@@ -132,14 +182,43 @@ export class FlowEndpointService {
   /**
    * Fetch single product details from Strapi
    */
-  private async fetchProductDetails(productId: string): Promise<any> {
-    const url = `${this.strapiBaseUrl}/api/products/${productId}`;
+  private async fetchProductDetails(
+    productId: string,
+    config: { baseUrl: string; token: string },
+  ): Promise<any> {
+    // Try with documentId first, then with numeric id filter
+    let url = `${config.baseUrl}/api/products/${productId}?populate=*`;
+    this.logger.log(
+      `Fetching product details - productId: ${productId}, url: ${url}`,
+    );
 
-    const response = await fetch(url, {
+    let response = await fetch(url, {
       headers: {
-        Authorization: `Bearer ${this.strapiToken}`,
+        Authorization: `Bearer ${config.token}`,
       },
     });
+
+    // If 404, try with numeric id filter
+    if (response.status === 404) {
+      url = `${config.baseUrl}/api/products?filters[id][$eq]=${productId}&populate=*`;
+      this.logger.debug(`Retrying with filter: ${url}`);
+
+      response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${config.token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Strapi API error: ${response.status}`);
+      }
+
+      const filterData = await response.json();
+      if (filterData.data && filterData.data.length > 0) {
+        return filterData.data[0];
+      }
+      throw new Error('Product not found');
+    }
 
     if (!response.ok) {
       throw new Error(`Strapi API error: ${response.status}`);
@@ -152,23 +231,38 @@ export class FlowEndpointService {
   /**
    * Update product price in Strapi
    */
-  private async updateProductPrice(productId: string, newPrice: number): Promise<any> {
-    const url = `${this.strapiBaseUrl}/api/products/${productId}`;
+  private async updateProductPrice(
+    documentId: string,
+    newPrice: number,
+    config: { baseUrl: string; token: string },
+    newOriginalPrice?: number,
+  ): Promise<any> {
+    const url = `${config.baseUrl}/api/products/${documentId}`;
+
+    const updateData: any = {
+      price: newPrice,
+    };
+
+    if (newOriginalPrice && newOriginalPrice > 0) {
+      updateData.originalPrice = newOriginalPrice;
+    }
 
     const response = await fetch(url, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.strapiToken}`,
+        Authorization: `Bearer ${config.token}`,
       },
       body: JSON.stringify({
-        data: {
-          price: newPrice,
-        },
+        data: updateData,
       }),
     });
 
     if (!response.ok) {
+      const errorBody = await response.text();
+      this.logger.error(
+        `Strapi update error: ${response.status} - ${errorBody}`,
+      );
       throw new Error(`Strapi API error: ${response.status}`);
     }
 
@@ -188,17 +282,70 @@ export class FlowEndpointService {
    * Called when user submits a screen
    */
   async handleDataExchange(request: any): Promise<any> {
-    this.logger.debug('Processing data_exchange action');
+    this.logger.log('Processing data_exchange action');
 
     const { screen, data, flow_token } = request;
 
-    this.logger.debug(`Screen: ${screen}, Data: ${JSON.stringify(data)}`);
+    this.logger.log(`Screen: ${screen}, Data: ${JSON.stringify(data)}`);
 
     // Extract context info from flow_token
+    // flow_token format: {contextId}-{nodeId} where contextId is UUID (5 parts)
     let contextId: string | null = null;
+    let nodeId: string | null = null;
+    let dataSourceId: string | null = null;
+
     if (flow_token && flow_token.includes('-')) {
       const parts = flow_token.split('-');
-      contextId = parts[0];
+      if (parts.length >= 6) {
+        contextId = parts.slice(0, 5).join('-');
+        nodeId = parts.slice(5).join('-');
+      }
+    }
+
+    // Load context to get flow configuration
+    if (contextId) {
+      try {
+        const context = await this.contextRepo.findOne({
+          where: { id: contextId },
+          relations: ['chatbot'],
+        });
+
+        if (context && nodeId && context.chatbot) {
+          // Find the WhatsApp Flow node to get the flow ID
+          const flowNode = context.chatbot.nodes?.find((n: any) => n.id === nodeId);
+          if (flowNode?.data?.whatsappFlowId) {
+            // Load the flow to get dataSourceId
+            const flow = await this.flowRepo.findOne({
+              where: { whatsappFlowId: flowNode.data.whatsappFlowId },
+            });
+            if (flow) {
+              dataSourceId = flow.dataSourceId || null;
+              this.logger.debug(
+                `Flow loaded: ${flow.name}, dataSourceId: ${dataSourceId}`,
+              );
+            }
+          }
+        }
+      } catch (error) {
+        this.logger.warn(
+          `Could not load context ${contextId}:`,
+          error.message,
+        );
+      }
+    }
+
+    // Get data source configuration
+    const dsConfig = await this.getDataSourceConfig(dataSourceId);
+
+    if (!dsConfig) {
+      this.logger.error('No data source configuration available');
+      return {
+        screen: 'ERROR_SCREEN',
+        data: {
+          error_message: 'Data source configuration not found',
+          error_details: 'Unable to process request without data source',
+        },
+      };
     }
 
     // Process based on current screen - Fiyat Guncelleme Flow
@@ -209,8 +356,13 @@ export class FlowEndpointService {
         this.logger.debug(`Selected brand: ${selectedBrand}`);
 
         try {
-          const products = await this.fetchProductsByBrand(selectedBrand);
-          this.logger.debug(`Fetched ${products.length} products for brand ${selectedBrand}`);
+          const products = await this.fetchProductsByBrand(
+            selectedBrand,
+            dsConfig,
+          );
+          this.logger.debug(
+            `Fetched ${products.length} products for brand ${selectedBrand}`,
+          );
 
           return {
             screen: 'PRODUCT_SCREEN',
@@ -232,20 +384,32 @@ export class FlowEndpointService {
 
       case 'PRODUCT_SCREEN':
         // User selected a product, fetch product details
-        const selectedProductId = data.selected_product;
+        // Flow sends: selected_product (from dropdown named "product")
+        const selectedProductId =
+          data.selected_product || data.product_id || data.product;
         this.logger.debug(`Selected product ID: ${selectedProductId}`);
 
         try {
-          const product = await this.fetchProductDetails(selectedProductId);
+          const product = await this.fetchProductDetails(
+            selectedProductId,
+            dsConfig,
+          );
           this.logger.debug(`Product details: ${JSON.stringify(product)}`);
+
+          // Calculate discount percentage
+          const currentDiscount =
+            product.originalPrice && product.originalPrice > product.price
+              ? Math.round((1 - product.price / product.originalPrice) * 100)
+              : 0;
 
           return {
             screen: 'PRICE_UPDATE_SCREEN',
             data: {
-              product_id: selectedProductId,
+              product_id: product.documentId || selectedProductId,
               product_name: product.name,
-              product_sku: product.sku || 'N/A',
-              current_price: this.formatPrice(product.price) + ' TL',
+              product_sku:
+                product.sku || product.documentId || selectedProductId,
+              current_price: `${this.formatPrice(product.price)} TL`,
             },
           };
         } catch (error) {
@@ -254,34 +418,47 @@ export class FlowEndpointService {
             screen: 'PRICE_UPDATE_SCREEN',
             data: {
               product_id: selectedProductId,
-              product_name: 'Unknown',
-              product_sku: 'N/A',
+              product_name: 'Bilinmeyen Ürün',
+              product_sku: selectedProductId,
               current_price: '0 TL',
             },
           };
         }
 
       case 'PRICE_UPDATE_SCREEN':
-        // User entered new price, update in Strapi
-        const productId = data.product_id || request.data?.product_id;
+        // User submitted price update from PRICE_UPDATE_SCREEN
+        // Payload: product_id, new_price
+        const productId = data.product_id;
         const newPriceStr = data.new_price;
-        const newPrice = parseInt(newPriceStr, 10);
-        const oldPrice = data.current_price || data.old_price;
-        const productName = data.product_name;
 
-        this.logger.debug(`Updating product ${productId} price to ${newPrice}`);
+        const newPrice = parseFloat(newPriceStr) || 0;
+
+        this.logger.debug(
+          `Updating product ${productId} - new price: ${newPrice}`,
+        );
 
         try {
-          await this.updateProductPrice(productId, newPrice);
-          this.logger.log(`Price updated successfully for product ${productId}`);
+          // First fetch product to get documentId and old price
+          const productDetails = await this.fetchProductDetails(
+            productId,
+            dsConfig,
+          );
+          const documentId = productDetails.documentId || productId;
+          const oldPrice = productDetails.price || 0;
+          const fetchedProductName = productDetails.name || 'Ürün';
+
+          await this.updateProductPrice(documentId, newPrice, dsConfig);
+          this.logger.log(
+            `Price updated successfully for product ${documentId}`,
+          );
 
           // Save data to context if available
           if (contextId) {
             try {
               await this.saveFlowDataToContext(contextId, {
-                product_name: productName,
-                old_price: oldPrice,
-                new_price: this.formatPrice(newPrice) + ' TL',
+                product_name: fetchedProductName,
+                new_price: `${this.formatPrice(newPrice)} TL`,
+                old_price: `${this.formatPrice(oldPrice)} TL`,
               });
             } catch (error) {
               this.logger.error('Failed to save flow data:', error.message);
@@ -289,38 +466,22 @@ export class FlowEndpointService {
           }
 
           // Complete the flow with success screen
+          // Flow JSON expects: new_price, old_price, product_name
           return {
             screen: 'SUCCESS_SCREEN',
             data: {
-              product_name: productName,
-              old_price: oldPrice,
-              new_price: this.formatPrice(newPrice) + ' TL',
-              extension_message_response: {
-                params: {
-                  flow_token,
-                  product_name: productName,
-                  old_price: oldPrice,
-                  new_price: this.formatPrice(newPrice) + ' TL',
-                  update_status: 'success',
-                },
-              },
+              product_name: fetchedProductName,
+              new_price: `${this.formatPrice(newPrice)} TL`,
+              old_price: `${this.formatPrice(oldPrice)} TL`,
             },
           };
         } catch (error) {
           this.logger.error(`Failed to update price: ${error.message}`);
           return {
-            screen: 'SUCCESS_SCREEN',
+            screen: 'ERROR_SCREEN',
             data: {
-              product_name: productName,
-              old_price: oldPrice,
-              new_price: this.formatPrice(newPrice) + ' TL',
-              extension_message_response: {
-                params: {
-                  flow_token,
-                  error: error.message,
-                  update_status: 'failed',
-                },
-              },
+              error_message: 'Fiyat güncellenirken hata oluştu',
+              error_details: error.message,
             },
           };
         }
@@ -406,5 +567,46 @@ export class FlowEndpointService {
   private isValidEmail(email: string): boolean {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
+  }
+
+  /**
+   * Get data source configuration from dataSourceId or fallback to ConfigService
+   * @param dataSourceId Optional data source ID to load
+   * @returns Configuration with baseUrl and token, or null if not available
+   */
+  private async getDataSourceConfig(
+    dataSourceId?: string | null,
+  ): Promise<{ baseUrl: string; token: string } | null> {
+    // Try to load from data source first
+    if (dataSourceId) {
+      try {
+        const dataSource = await this.dataSourcesService.findOne(dataSourceId);
+        if (dataSource && dataSource.isActive) {
+          this.logger.debug(
+            `Using data source: ${dataSource.name} (${dataSource.baseUrl})`,
+          );
+          return {
+            baseUrl: dataSource.baseUrl,
+            token: dataSource.authToken || '',
+          };
+        }
+      } catch (error) {
+        this.logger.warn(
+          `Failed to load data source ${dataSourceId}: ${error.message}`,
+        );
+      }
+    }
+
+    // Fallback to ConfigService for backward compatibility
+    const baseUrl = this.configService.get<string>('STRAPI_BASE_URL');
+    const token = this.configService.get<string>('STRAPI_TOKEN');
+
+    if (baseUrl && token) {
+      this.logger.debug('Using fallback Strapi configuration from ConfigService');
+      return { baseUrl, token };
+    }
+
+    this.logger.warn('No data source configuration available');
+    return null;
   }
 }

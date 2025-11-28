@@ -14,9 +14,11 @@ import { Conversation } from '../../entities/conversation.entity';
 import { User } from '../../entities/user.entity';
 import { WhatsAppConfig } from '../../entities/whatsapp-config.entity';
 import { ConversationContext } from '../../entities/conversation-context.entity';
+import { WhatsAppFlow } from '../../entities/whatsapp-flow.entity';
 import { ChatBotsModule } from '../chatbots/chatbots.module';
 import { WebSocketModule } from '../websocket/websocket.module';
 import { WhatsAppModule } from '../whatsapp/whatsapp.module';
+import { DataSourcesModule } from '../data-sources/data-sources.module';
 
 /**
  * Webhooks Module
@@ -31,9 +33,11 @@ import { WhatsAppModule } from '../whatsapp/whatsapp.module';
       User,
       WhatsAppConfig,
       ConversationContext,
+      WhatsAppFlow,
     ]),
     ChatBotsModule,
     WhatsAppModule,
+    DataSourcesModule,
     forwardRef(() => WebSocketModule),
   ],
   controllers: [WebhooksController, FlowEndpointController],

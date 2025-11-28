@@ -1,0 +1,403 @@
+{
+  "version": "5.0",
+  "data_api_version": "3.0",
+  "routing_model": {
+    "CATEGORY_SCREEN": [
+      "PRODUCT_SCREEN"
+    ],
+    "PRODUCT_SCREEN": [
+      "STOCK_INFO_SCREEN"
+    ],
+    "STOCK_INFO_SCREEN": [
+      "CONFIRM_SCREEN"
+    ],
+    "CONFIRM_SCREEN": [
+      "SUCCESS_SCREEN",
+      "ERROR_SCREEN"
+    ],
+    "SUCCESS_SCREEN": [],
+    "ERROR_SCREEN": []
+  },
+  "screens": [
+    {
+      "id": "CATEGORY_SCREEN",
+      "title": "Kategori Seçimi",
+      "terminal": false,
+      "data": {
+        "categories": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "enabled": {
+                "type": "boolean"
+              }
+            }
+          },
+          "__example__": [
+            {
+              "id": "lounge",
+              "title": "Lounge Setler",
+              "description": "Bahçe ve balkon için konforlu oturma setleri",
+              "enabled": true
+            },
+            {
+              "id": "dining",
+              "title": "Yemek Takımları",
+              "description": "Dış mekan yemek masası ve sandalye setleri",
+              "enabled": true
+            }
+          ]
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Stok Yönetimi"
+          },
+          {
+            "type": "TextSubheading",
+            "text": "Kategori Seçin"
+          },
+          {
+            "type": "TextBody",
+            "text": "Stok güncellemek istediğiniz ürünün kategorisini seçin."
+          },
+          {
+            "type": "RadioButtonsGroup",
+            "name": "selected_category",
+            "label": "Ürün Kategorisi",
+            "required": true,
+            "data-source": "${data.categories}"
+          },
+          {
+            "type": "Footer",
+            "label": "Devam Et",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action": "get_products",
+                "category_slug": "${form.selected_category}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "PRODUCT_SCREEN",
+      "title": "Ürün Seçimi",
+      "terminal": false,
+      "data": {
+        "products": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "enabled": {
+                "type": "boolean"
+              }
+            }
+          },
+          "__example__": [
+            {
+              "id": "123",
+              "title": "Premium Lounge Set - Mevcut Stok: 15",
+              "description": "SKU: LS-001 | Fiyat: 12,500 TL",
+              "enabled": true
+            },
+            {
+              "id": "124",
+              "title": "Garden Lounge Set - Mevcut Stok: 8",
+              "description": "SKU: LS-002 | Fiyat: 9,800 TL",
+              "enabled": true
+            }
+          ]
+        },
+        "category_name": {
+          "type": "string",
+          "__example__": "Lounge Setler"
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Ürün Seçimi"
+          },
+          {
+            "type": "TextSubheading",
+            "text": "${data.category_name}"
+          },
+          {
+            "type": "TextBody",
+            "text": "Stok güncellemek istediğiniz ürünü seçin. Her ürünün yanında mevcut stok miktarı gösterilmektedir."
+          },
+          {
+            "type": "RadioButtonsGroup",
+            "name": "selected_product",
+            "label": "Ürün",
+            "required": true,
+            "data-source": "${data.products}"
+          },
+          {
+            "type": "Footer",
+            "label": "Devam Et",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action": "get_product_details",
+                "product_id": "${form.selected_product}",
+                "category_slug": "${screen.CATEGORY_SCREEN.form.selected_category}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "STOCK_INFO_SCREEN",
+      "title": "Stok Güncelleme",
+      "terminal": false,
+      "data": {
+        "product_name": {
+          "type": "string",
+          "__example__": "Premium Lounge Set"
+        },
+        "current_stock": {
+          "type": "number",
+          "__example__": 15
+        },
+        "sku": {
+          "type": "string",
+          "__example__": "LS-001"
+        },
+        "price": {
+          "type": "string",
+          "__example__": "12,500 TL"
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Stok Güncelleme"
+          },
+          {
+            "type": "TextSubheading",
+            "text": "${data.product_name}"
+          },
+          {
+            "type": "TextBody",
+            "text": "SKU: ${data.sku}\nFiyat: ${data.price}"
+          },
+          {
+            "type": "TextBody",
+            "text": "Mevcut Stok: ${data.current_stock} adet"
+          },
+          {
+            "type": "TextInput",
+            "name": "new_stock",
+            "label": "Yeni Stok Miktarı",
+            "input-type": "number",
+            "required": true,
+            "helper-text": "0 veya daha büyük bir sayı girin"
+          },
+          {
+            "type": "TextCaption",
+            "text": "Not: Yeni stok miktarını girdikten sonra onay ekranına yönlendirileceksiniz."
+          },
+          {
+            "type": "Footer",
+            "label": "İleri",
+            "on-click-action": {
+              "name": "navigate",
+              "next": {
+                "type": "screen",
+                "name": "CONFIRM_SCREEN"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "CONFIRM_SCREEN",
+      "title": "Onay",
+      "terminal": false,
+      "data": {},
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Stok Güncelleme Onayı"
+          },
+          {
+            "type": "TextSubheading",
+            "text": "Aşağıdaki bilgileri kontrol edin"
+          },
+          {
+            "type": "TextBody",
+            "text": "Ürün: ${screen.STOCK_INFO_SCREEN.data.product_name}\nSKU: ${screen.STOCK_INFO_SCREEN.data.sku}"
+          },
+          {
+            "type": "TextBody",
+            "text": "Mevcut Stok: ${screen.STOCK_INFO_SCREEN.data.current_stock} adet\nYeni Stok: ${screen.STOCK_INFO_SCREEN.form.new_stock} adet"
+          },
+          {
+            "type": "TextCaption",
+            "text": "Bu işlem geri alınamaz. Stok miktarı güncellenecektir."
+          },
+          {
+            "type": "Footer",
+            "label": "Güncelle",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action": "update_stock",
+                "product_id": "${screen.PRODUCT_SCREEN.form.selected_product}",
+                "new_stock": "${screen.STOCK_INFO_SCREEN.form.new_stock}",
+                "category_slug": "${screen.CATEGORY_SCREEN.form.selected_category}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "SUCCESS_SCREEN",
+      "title": "Başarılı",
+      "terminal": true,
+      "success": true,
+      "data": {
+        "success_message": {
+          "type": "string",
+          "__example__": "Stok başarıyla güncellendi!"
+        },
+        "product_name": {
+          "type": "string",
+          "__example__": "Premium Lounge Set"
+        },
+        "old_stock": {
+          "type": "string",
+          "__example__": "15"
+        },
+        "new_stock": {
+          "type": "string",
+          "__example__": "20"
+        },
+        "updated_at": {
+          "type": "string",
+          "__example__": "27.11.2025 14:30"
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "✅ Başarılı"
+          },
+          {
+            "type": "TextSubheading",
+            "text": "${data.success_message}"
+          },
+          {
+            "type": "TextBody",
+            "text": "Ürün: ${data.product_name}"
+          },
+          {
+            "type": "TextBody",
+            "text": "Önceki Stok: ${data.old_stock} adet\nYeni Stok: ${data.new_stock} adet"
+          },
+          {
+            "type": "TextCaption",
+            "text": "Güncelleme Zamanı: ${data.updated_at}"
+          },
+          {
+            "type": "Footer",
+            "label": "Tamam",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {
+                "product_id": "${screen.PRODUCT_SCREEN.form.selected_product}",
+                "new_stock": "${data.new_stock}",
+                "status": "success"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ERROR_SCREEN",
+      "title": "Hata",
+      "terminal": true,
+      "success": false,
+      "data": {
+        "error_message": {
+          "type": "string",
+          "__example__": "Stok güncellenirken bir hata oluştu."
+        },
+        "error_details": {
+          "type": "string",
+          "__example__": "Lütfen daha sonra tekrar deneyin veya sistem yöneticisi ile iletişime geçin."
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "❌ Hata Oluştu"
+          },
+          {
+            "type": "TextSubheading",
+            "text": "${data.error_message}"
+          },
+          {
+            "type": "TextBody",
+            "text": "${data.error_details}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "Sorun devam ederse lütfen teknik destek ile iletişime geçin."
+          },
+          {
+            "type": "Footer",
+            "label": "Tamam",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {
+                "status": "error"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

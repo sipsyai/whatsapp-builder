@@ -1,0 +1,389 @@
+{
+  "version": "7.2",
+  "data_api_version": "3.0",
+  "routing_model": {
+    "BRAND_SCREEN": ["PRODUCT_SCREEN"],
+    "PRODUCT_SCREEN": ["PRICE_INFO_SCREEN"],
+    "PRICE_INFO_SCREEN": ["DISCOUNT_SCREEN"],
+    "DISCOUNT_SCREEN": ["CONFIRM_SCREEN"],
+    "CONFIRM_SCREEN": ["SUCCESS_SCREEN"],
+    "SUCCESS_SCREEN": [],
+    "ERROR_SCREEN": []
+  },
+  "screens": [
+    {
+      "id": "BRAND_SCREEN",
+      "title": "Fiyat Güncelleme",
+      "terminal": false,
+      "data": {
+        "brands": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "title": { "type": "string" },
+              "enabled": { "type": "boolean" }
+            }
+          },
+          "__example__": [
+            { "id": "garden-pro", "title": "Garden Pro", "enabled": true },
+            { "id": "nature-living", "title": "Nature Living", "enabled": true }
+          ]
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Fiyat Güncelleme"
+          },
+          {
+            "type": "TextBody",
+            "text": "Hangi markanın ürününün fiyatını güncellemek istiyorsunuz?"
+          },
+          {
+            "type": "Dropdown",
+            "name": "selected_brand",
+            "label": "Marka Seçin",
+            "required": true,
+            "data-source": "${data.brands}",
+            "on-select-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action": "get_products_by_brand",
+                "brand": "${form.selected_brand}"
+              }
+            }
+          },
+          {
+            "type": "Footer",
+            "label": "Devam",
+            "on-click-action": {
+              "name": "navigate",
+              "next": {
+                "type": "screen",
+                "name": "PRODUCT_SCREEN"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "PRODUCT_SCREEN",
+      "title": "Ürün Seçimi",
+      "terminal": false,
+      "data": {
+        "brand_name": {
+          "type": "string",
+          "__example__": "Garden Pro"
+        },
+        "products": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "title": { "type": "string" },
+              "enabled": { "type": "boolean" }
+            }
+          },
+          "__example__": [
+            { "id": "prod001", "title": "Premium Bahçe Sandalyesi - 2,499.99 TL", "enabled": true }
+          ]
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Ürün Seçin"
+          },
+          {
+            "type": "TextBody",
+            "text": "Marka: ${data.brand_name}\n\nHangi ürünün fiyatını güncellemek istiyorsunuz?"
+          },
+          {
+            "type": "Dropdown",
+            "name": "selected_product",
+            "label": "Ürün Seçin",
+            "required": true,
+            "data-source": "${data.products}",
+            "on-select-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action": "get_product_price_info",
+                "product_id": "${form.selected_product}"
+              }
+            }
+          },
+          {
+            "type": "Footer",
+            "label": "Devam",
+            "on-click-action": {
+              "name": "navigate",
+              "next": {
+                "type": "screen",
+                "name": "PRICE_INFO_SCREEN"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "PRICE_INFO_SCREEN",
+      "title": "Fiyat Bilgileri",
+      "terminal": false,
+      "data": {
+        "product_name": {
+          "type": "string",
+          "__example__": "Premium Bahçe Sandalyesi"
+        },
+        "product_sku": {
+          "type": "string",
+          "__example__": "GH-CHAIR-001"
+        },
+        "current_price": {
+          "type": "string",
+          "__example__": "2,499.99 TL"
+        },
+        "original_price": {
+          "type": "string",
+          "__example__": "2,999.99 TL"
+        },
+        "current_discount": {
+          "type": "string",
+          "__example__": "17%"
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Fiyat Güncelleme"
+          },
+          {
+            "type": "TextSubheading",
+            "text": "Mevcut Fiyat Bilgileri"
+          },
+          {
+            "type": "TextBody",
+            "text": "Ürün: ${data.product_name}\nSKU: ${data.product_sku}\n\nGüncel Fiyat: ${data.current_price}\nOrijinal Fiyat: ${data.original_price}\nMevcut İndirim: ${data.current_discount}"
+          },
+          {
+            "type": "TextSubheading",
+            "text": "Yeni Fiyat Bilgileri"
+          },
+          {
+            "type": "TextInput",
+            "name": "new_price",
+            "label": "Yeni Fiyat (TL)",
+            "input-type": "number",
+            "required": true,
+            "helper-text": "Yeni satış fiyatını girin"
+          },
+          {
+            "type": "TextInput",
+            "name": "new_original_price",
+            "label": "Yeni Orijinal Fiyat (TL) - Opsiyonel",
+            "input-type": "number",
+            "required": false,
+            "helper-text": "İndirimli fiyat için orijinal fiyatı girin"
+          },
+          {
+            "type": "Footer",
+            "label": "İndirim Hesapla",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action": "calculate_discount",
+                "product_id": "${screen.PRODUCT_SCREEN.form.selected_product}",
+                "new_price": "${form.new_price}",
+                "new_original_price": "${form.new_original_price}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "DISCOUNT_SCREEN",
+      "title": "İndirim Bilgisi",
+      "terminal": false,
+      "data": {
+        "calculated_discount": {
+          "type": "string",
+          "__example__": "25%"
+        },
+        "price_difference": {
+          "type": "string",
+          "__example__": "750.00 TL"
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "İndirim Özeti"
+          },
+          {
+            "type": "TextBody",
+            "text": "Yeni Fiyat: ${screen.PRICE_INFO_SCREEN.form.new_price} TL\nOrijinal Fiyat: ${screen.PRICE_INFO_SCREEN.form.new_original_price} TL\n\nİndirim Oranı: ${data.calculated_discount}\nToplam İndirim: ${data.price_difference}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "Hesaplanan indirim bilgileri yukarıda gösterilmiştir."
+          },
+          {
+            "type": "Footer",
+            "label": "Devam",
+            "on-click-action": {
+              "name": "navigate",
+              "next": {
+                "type": "screen",
+                "name": "CONFIRM_SCREEN"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "CONFIRM_SCREEN",
+      "title": "Onay",
+      "terminal": false,
+      "data": {},
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Fiyat Değişikliğini Onayla"
+          },
+          {
+            "type": "TextBody",
+            "text": "Ürün: ${screen.PRICE_INFO_SCREEN.data.product_name}\nSKU: ${screen.PRICE_INFO_SCREEN.data.product_sku}\n\nEski Fiyat: ${screen.PRICE_INFO_SCREEN.data.current_price}\nYeni Fiyat: ${screen.PRICE_INFO_SCREEN.form.new_price} TL\n\nYeni İndirim: ${screen.DISCOUNT_SCREEN.data.calculated_discount}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "Bu işlem ürün fiyatını sistemde güncelleyecektir. Onaylıyor musunuz?"
+          },
+          {
+            "type": "Footer",
+            "label": "Onayla ve Güncelle",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action": "update_price",
+                "product_id": "${screen.PRODUCT_SCREEN.form.selected_product}",
+                "new_price": "${screen.PRICE_INFO_SCREEN.form.new_price}",
+                "new_original_price": "${screen.PRICE_INFO_SCREEN.form.new_original_price}",
+                "discount_percent": "${screen.DISCOUNT_SCREEN.data.calculated_discount}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "SUCCESS_SCREEN",
+      "title": "Başarılı",
+      "terminal": true,
+      "success": true,
+      "data": {
+        "success_message": {
+          "type": "string",
+          "__example__": "Fiyat başarıyla güncellendi!"
+        },
+        "product_name": {
+          "type": "string",
+          "__example__": "Premium Bahçe Sandalyesi"
+        },
+        "old_price": {
+          "type": "string",
+          "__example__": "2,499.99 TL"
+        },
+        "new_price": {
+          "type": "string",
+          "__example__": "1,999.99 TL"
+        },
+        "discount_percent": {
+          "type": "string",
+          "__example__": "25%"
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "✅ Fiyat Güncellendi!"
+          },
+          {
+            "type": "TextBody",
+            "text": "${data.success_message}"
+          },
+          {
+            "type": "TextBody",
+            "text": "Ürün: ${data.product_name}\n\nEski Fiyat: ${data.old_price}\nYeni Fiyat: ${data.new_price}\nİndirim: ${data.discount_percent}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "Fiyat bilgisi sistemde güncellenmiştir ve hemen yansıyacaktır."
+          },
+          {
+            "type": "Footer",
+            "label": "Tamam",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {}
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ERROR_SCREEN",
+      "title": "Hata",
+      "terminal": true,
+      "success": false,
+      "data": {
+        "error_message": {
+          "type": "string",
+          "__example__": "Fiyat güncellenirken bir hata oluştu."
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "❌ Hata"
+          },
+          {
+            "type": "TextBody",
+            "text": "${data.error_message}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "Lütfen daha sonra tekrar deneyin veya sistem yöneticisi ile iletişime geçin."
+          },
+          {
+            "type": "Footer",
+            "label": "Kapat",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {}
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

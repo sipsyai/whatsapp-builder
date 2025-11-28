@@ -160,8 +160,9 @@ export class FlowEndpointController {
           // Screen submission - process and return next screen
           response = await this.flowEndpointService.handleDataExchange(decryptedBody);
           this.logger.log(
-            `data_exchange processed - returning ${response.screen === 'SUCCESS' ? 'SUCCESS' : 'screen: ' + response.screen}`,
+            `data_exchange processed - returning screen: ${response.screen}`,
           );
+          this.logger.debug(`Response data: ${JSON.stringify(response.data)}`);
           break;
 
         case 'BACK':
