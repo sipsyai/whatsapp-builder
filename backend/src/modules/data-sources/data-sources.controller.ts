@@ -8,6 +8,7 @@ import {
   Param,
   HttpCode,
   HttpStatus,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -16,9 +17,14 @@ import {
   ApiParam,
   ApiBody,
 } from '@nestjs/swagger';
-import { DataSourcesService, TestConnectionResult } from './data-sources.service';
+import {
+  DataSourcesService,
+  TestConnectionResult,
+  TestEndpointResult,
+} from './data-sources.service';
 import { CreateDataSourceDto } from './dto/create-data-source.dto';
 import { UpdateDataSourceDto } from './dto/update-data-source.dto';
+import { TestEndpointDto } from './dto/test-endpoint.dto';
 import { DataSource } from '../../entities/data-source.entity';
 
 @ApiTags('Data Sources')
@@ -188,5 +194,46 @@ export class DataSourcesController {
   })
   async testConnection(@Param('id') id: string): Promise<TestConnectionResult> {
     return this.dataSourcesService.testConnection(id);
+  }
+
+  @Post(':id/test-endpoint')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Test a custom endpoint on a data source',
+    description: 'Tests a specific endpoint with custom method, params, and body to verify API functionality',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Data source UUID',
+    type: 'string',
+  })
+  @ApiBody({ type: TestEndpointDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Endpoint test completed with response data',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        statusCode: { type: 'number', example: 200 },
+        responseTime: { type: 'number', example: 234 },
+        data: {
+          type: 'object',
+          description: 'Response data from the endpoint',
+          example: { products: [{ id: 1, name: 'Product 1' }] },
+        },
+        error: { type: 'string', example: null },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Data source not found',
+  })
+  async testEndpoint(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: TestEndpointDto,
+  ): Promise<TestEndpointResult> {
+    return this.dataSourcesService.testEndpoint(id, dto);
   }
 }

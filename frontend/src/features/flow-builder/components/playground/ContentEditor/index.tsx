@@ -97,6 +97,11 @@ interface ContentEditorProps {
   getComponentPreviewText: (component: BuilderComponent) => string;
 
   /**
+   * All screens in the flow (for navigation selection)
+   */
+  allScreens?: Array<{ id: string; title: string }>;
+
+  /**
    * Additional CSS classes
    */
   className?: string;
@@ -121,6 +126,7 @@ export const ContentEditor: React.FC<ContentEditorProps> = ({
   // onReorderComponents, // TODO: Add drag-and-drop reordering to component list
   onExpandComponent,
   getComponentPreviewText,
+  allScreens = [],
   className = '',
 }) => {
   // Local state for screen title editor expansion
@@ -175,7 +181,13 @@ export const ContentEditor: React.FC<ContentEditorProps> = ({
 
     // Footer component
     if (component.type === 'Footer') {
-      return <FooterEditor {...editorProps} />;
+      return (
+        <FooterEditor
+          {...editorProps}
+          availableScreens={allScreens}
+          currentScreenId={screen?.id}
+        />
+      );
     }
 
     // Fallback for unsupported component types

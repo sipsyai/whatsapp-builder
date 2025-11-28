@@ -304,6 +304,44 @@ interface TestConnectionResult {
 - Returns response time in milliseconds
 - Captures and returns error messages
 
+#### 3.2.1 Custom Endpoint Testing (NEW)
+
+```typescript
+async testEndpoint(id: string, dto: TestEndpointDto): Promise<TestEndpointResponse>
+
+enum HttpMethod {
+  GET = 'GET',
+  POST = 'POST',
+  PUT = 'PUT',
+  PATCH = 'PATCH',
+  DELETE = 'DELETE',
+}
+
+class TestEndpointDto {
+  endpoint: string;           // Endpoint path (e.g., '/api/products')
+  method?: HttpMethod;        // HTTP method (default: GET)
+  params?: Record<string, any>; // Query parameters
+  body?: any;                 // Request body (for POST/PUT/PATCH)
+}
+
+interface TestEndpointResponse {
+  success: boolean;
+  statusCode: number;
+  responseTime: number;
+  data?: any;
+  error?: string;
+}
+```
+
+**Features:**
+- Test any endpoint path on the data source
+- Support all HTTP methods (GET, POST, PUT, PATCH, DELETE)
+- Custom query parameters
+- Custom request body for POST/PUT/PATCH
+- Returns full response data
+- Response time measurement
+- Error handling with detailed messages
+
 #### 3.3 Data Fetching
 
 ```typescript
@@ -380,6 +418,7 @@ private validateAuthConfig(
 | PUT | `/api/data-sources/:id` | Update | UpdateDataSourceDto | DataSource |
 | DELETE | `/api/data-sources/:id` | Delete | - | {success: boolean} |
 | POST | `/api/data-sources/:id/test` | Test connection | - | TestConnectionResult |
+| POST | `/api/data-sources/:id/test-endpoint` | **NEW** - Test custom endpoint | TestEndpointDto | TestEndpointResponse |
 
 **Swagger Documentation:**
 - All endpoints are documented with `@ApiOperation`
@@ -517,6 +556,7 @@ const dsConfig = await this.getDataSourceConfig(dataSourceId);
 - Create/Edit modal dialog
 - Delete confirmation dialog
 - Test connection button with real-time feedback
+- **NEW:** Test custom endpoint with inline expandable panel
 - Form validation
 - Loading states
 - Error handling
@@ -533,7 +573,13 @@ DataSourcesPage
 │   ├── Base URL
 │   ├── Auth Type badge
 │   ├── Active/Inactive toggle
-│   └── Actions (Edit | Delete | Test)
+│   └── Actions (Edit | Delete | Test | Test Endpoint)
+├── TestConnectionPanel (NEW - inline expandable)
+│   ├── Endpoint input
+│   ├── HTTP method dropdown
+│   ├── Request body textarea (for POST/PUT/PATCH)
+│   ├── Test button
+│   └── JSON response display
 ├── CreateEditModal
 │   ├── Form fields with validation
 │   ├── Conditional auth fields
@@ -578,6 +624,31 @@ isActive && hasValidUrl → Enable test button
    ✓ Success → Green toast with response time
    ✗ Failure → Red toast with error message
 5. Button returns to normal state
+```
+
+**Test Custom Endpoint Flow (NEW):**
+
+```typescript
+1. User clicks "Test Endpoint" button on data source row
+2. Inline TestConnectionPanel expands below the row
+3. User configures test:
+   - Selects HTTP method (GET/POST/PUT/PATCH/DELETE)
+   - Enters endpoint path (e.g., '/api/products')
+   - Optionally enters JSON body (for POST/PUT/PATCH)
+4. User clicks "Test" button
+5. POST /api/data-sources/:id/test-endpoint
+6. Response displayed inline:
+   ✓ Success:
+     - Green check icon
+     - Status code (e.g., 200)
+     - Response time (ms)
+     - JSON response with syntax highlighting
+   ✗ Failure:
+     - Red error icon
+     - Status code (e.g., 404, 500)
+     - Response time (ms)
+     - Error message details
+7. User can close panel or run another test
 ```
 
 ### 2. API Client
@@ -641,6 +712,28 @@ export const dataSourcesApi = {
   update: (id: string, dto: Partial<CreateDataSourceDto>) => Promise<DataSource>
   delete: (id: string) => Promise<{success: boolean}>
   testConnection: (id: string) => Promise<TestConnectionResult>
+  testEndpoint: (id: string, request: TestEndpointRequest) => Promise<TestEndpointResponse> // NEW
+}
+```
+
+**New Types for Test Endpoint (NEW):**
+
+```typescript
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
+export interface TestEndpointRequest {
+  endpoint: string;
+  method?: HttpMethod;
+  params?: Record<string, any>;
+  body?: any;
+}
+
+export interface TestEndpointResponse {
+  success: boolean;
+  statusCode: number;
+  responseTime: number;
+  data?: any;
+  error?: string;
 }
 ```
 
@@ -869,6 +962,50 @@ const data = await this.dataSourcesService.fetchData(
     params: { category: 'electronics' },
   }
 );
+```
+
+### Testing Custom Endpoints (NEW)
+
+**Via UI:**
+
+1. Navigate to "Data Sources" page
+2. Find the data source you want to test
+3. Click "Test Endpoint" button
+4. Configure the test:
+   - Endpoint: `/api/products`
+   - Method: `GET`
+   - Body: (leave empty for GET)
+5. Click "Test"
+6. Review response (status, time, data)
+
+**Via API:**
+
+```bash
+curl -X POST http://localhost:3000/api/data-sources/{id}/test-endpoint \
+  -H "Content-Type: application/json" \
+  -d '{
+    "endpoint": "/api/products",
+    "method": "GET",
+    "params": {
+      "page": 1,
+      "limit": 10
+    }
+  }'
+```
+
+**Example POST Test:**
+
+```bash
+curl -X POST http://localhost:3000/api/data-sources/{id}/test-endpoint \
+  -H "Content-Type: application/json" \
+  -d '{
+    "endpoint": "/api/products",
+    "method": "POST",
+    "body": {
+      "name": "New Product",
+      "price": 99.99
+    }
+  }'
 ```
 
 ---
@@ -1255,6 +1392,29 @@ describe('DataSources UI', () => {
 ---
 
 ## Changelog
+
+### v1.1.0 - 2025-11-28
+
+**New Features:**
+- **Test Custom Endpoint**: Added ability to test any endpoint on a data source
+  - Backend: `POST /api/data-sources/:id/test-endpoint` endpoint
+  - Backend: `TestEndpointDto` with support for all HTTP methods
+  - Frontend: `TestConnectionPanel` component with inline expandable UI
+  - Support for GET, POST, PUT, PATCH, DELETE methods
+  - Query parameters support
+  - Request body support for POST/PUT/PATCH
+  - JSON response display with syntax highlighting
+  - Response time and status code tracking
+
+**Files Added:**
+- `backend/src/modules/data-sources/dto/test-endpoint.dto.ts`
+- `frontend/src/features/data-sources/components/TestConnectionPanel.tsx`
+
+**Files Modified:**
+- `backend/src/modules/data-sources/data-sources.service.ts`
+- `backend/src/modules/data-sources/data-sources.controller.ts`
+- `frontend/src/features/data-sources/api.ts`
+- `frontend/src/features/data-sources/components/DataSourcesPage.tsx`
 
 ### v1.0.0 - 2025-11-28
 

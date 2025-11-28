@@ -11,6 +11,7 @@ import {
     type AuthType,
     type TestConnectionResponse,
 } from '../api';
+import { TestConnectionPanel } from './TestConnectionPanel';
 
 export const DataSourcesPage: React.FC = () => {
     const [dataSources, setDataSources] = useState<DataSource[]>([]);
@@ -20,6 +21,7 @@ export const DataSourcesPage: React.FC = () => {
     const [editingDataSource, setEditingDataSource] = useState<DataSource | null>(null);
     const [testingId, setTestingId] = useState<string | null>(null);
     const [testResult, setTestResult] = useState<{ id: string; result: TestConnectionResponse } | null>(null);
+    const [expandedTestId, setExpandedTestId] = useState<string | null>(null);
 
     // Form state
     const [formData, setFormData] = useState<CreateDataSourceDto>({
@@ -316,7 +318,8 @@ export const DataSourcesPage: React.FC = () => {
                         </thead>
                         <tbody className="divide-y divide-zinc-800">
                             {dataSources.map((dataSource) => (
-                                <tr key={dataSource.id} className="hover:bg-zinc-900/20 transition-colors">
+                                <React.Fragment key={dataSource.id}>
+                                <tr className="hover:bg-zinc-900/20 transition-colors">
                                     <td className="px-6 py-4">
                                         <div>
                                             <div className="text-sm text-white font-medium">{dataSource.name}</div>
@@ -353,6 +356,17 @@ export const DataSourcesPage: React.FC = () => {
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex items-center justify-end gap-2">
+                                            <button
+                                                onClick={() => setExpandedTestId(expandedTestId === dataSource.id ? null : dataSource.id)}
+                                                className={`p-2 rounded-lg transition-colors ${
+                                                    expandedTestId === dataSource.id
+                                                        ? 'text-primary bg-primary/10'
+                                                        : 'text-zinc-400 hover:text-blue-400 hover:bg-blue-900/20'
+                                                }`}
+                                                title="Test Custom Endpoint"
+                                            >
+                                                <span className="material-symbols-outlined">science</span>
+                                            </button>
                                             <button
                                                 onClick={() => handleTestConnection(dataSource.id)}
                                                 disabled={testingId === dataSource.id}
@@ -397,6 +411,17 @@ export const DataSourcesPage: React.FC = () => {
                                         )}
                                     </td>
                                 </tr>
+                                {expandedTestId === dataSource.id && (
+                                    <tr>
+                                        <td colSpan={6} className="p-0">
+                                            <TestConnectionPanel
+                                                dataSourceId={dataSource.id}
+                                                onClose={() => setExpandedTestId(null)}
+                                            />
+                                        </td>
+                                    </tr>
+                                )}
+                                </React.Fragment>
                             ))}
                             {dataSources.length === 0 && (
                                 <tr>

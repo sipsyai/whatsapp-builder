@@ -10,6 +10,7 @@ import { Repository } from 'typeorm';
 import { DataSource, AuthType, DataSourceType } from '../../entities/data-source.entity';
 import { CreateDataSourceDto } from './dto/create-data-source.dto';
 import { UpdateDataSourceDto } from './dto/update-data-source.dto';
+import { TestEndpointDto } from './dto/test-endpoint.dto';
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 export interface RequestOptions {
@@ -25,6 +26,14 @@ export interface TestConnectionResult {
   message: string;
   responseTime?: number;
   statusCode?: number;
+  error?: string;
+}
+
+export interface TestEndpointResult {
+  success: boolean;
+  statusCode?: number;
+  responseTime: number;
+  data?: any;
   error?: string;
 }
 
@@ -151,6 +160,62 @@ export class DataSourcesService {
         message: 'Connection failed',
         responseTime,
         error: error.message,
+      };
+    }
+  }
+
+  /**
+   * Test a custom endpoint on a data source
+   * Note: We don't use fetchData here because we need access to the full response including status code
+   */
+  async testEndpoint(id: string, dto: TestEndpointDto): Promise<TestEndpointResult> {
+    const startTime = Date.now();
+    const dataSource = await this.findOne(id);
+
+    if (!dataSource.isActive) {
+      return {
+        success: false,
+        statusCode: 400,
+        responseTime: Date.now() - startTime,
+        error: `Data source ${dataSource.name} is not active`,
+      };
+    }
+
+    const client = this.createAxiosClient(dataSource);
+
+    try {
+      const config: AxiosRequestConfig = {
+        method: dto.method || 'GET',
+        url: dto.endpoint,
+        params: dto.params,
+        data: dto.body,
+        timeout: dataSource.timeout || 30000,
+      };
+
+      this.logger.log(`Testing endpoint on ${dataSource.name}: ${config.method} ${dto.endpoint}`);
+
+      const response: AxiosResponse = await client.request(config);
+
+      return {
+        success: true,
+        statusCode: response.status,
+        responseTime: Date.now() - startTime,
+        data: response.data,
+      };
+    } catch (error) {
+      this.logger.error(`Endpoint test failed for data source ${id}:`, error.message);
+
+      // Extract status code from error if available
+      let statusCode = 500;
+      if (axios.isAxiosError(error) && error.response) {
+        statusCode = error.response.status;
+      }
+
+      return {
+        success: false,
+        statusCode,
+        responseTime: Date.now() - startTime,
+        error: error.message || 'Unknown error',
       };
     }
   }

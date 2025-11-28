@@ -500,6 +500,7 @@ export function FlowPlaygroundPage({
             }}
             onExpandComponent={playground.setExpandedComponentId}
             getComponentPreviewText={playground.getComponentPreviewText}
+            allScreens={playground.screens.map(s => ({ id: s.id, title: s.title || 'Untitled' }))}
           />
         </div>
 

@@ -57,6 +57,21 @@ export interface TestConnectionResponse {
     statusCode?: number;
 }
 
+export interface TestEndpointRequest {
+    endpoint: string;
+    method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+    params?: Record<string, any>;
+    body?: any;
+}
+
+export interface TestEndpointResponse {
+    success: boolean;
+    statusCode?: number;
+    responseTime: number;
+    data?: any;
+    error?: string;
+}
+
 // API Functions
 export const getAllDataSources = async (): Promise<DataSource[]> => {
     const response = await client.get<DataSource[]>('/api/data-sources');
@@ -89,5 +104,13 @@ export const deleteDataSource = async (id: string): Promise<void> => {
 
 export const testConnection = async (id: string): Promise<TestConnectionResponse> => {
     const response = await client.post<TestConnectionResponse>(`/api/data-sources/${id}/test`);
+    return response.data;
+};
+
+export const testEndpoint = async (
+    id: string,
+    request: TestEndpointRequest
+): Promise<TestEndpointResponse> => {
+    const response = await client.post<TestEndpointResponse>(`/api/data-sources/${id}/test-endpoint`, request);
     return response.data;
 };

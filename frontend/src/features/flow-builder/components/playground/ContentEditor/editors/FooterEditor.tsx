@@ -4,13 +4,25 @@ import type { Footer, NavigateAction, CompleteAction, DataExchangeAction } from 
 
 type FooterActionName = 'navigate' | 'complete' | 'data_exchange';
 
+interface AvailableScreen {
+  id: string;
+  title: string;
+}
+
+interface FooterEditorProps extends ComponentEditorProps {
+  availableScreens?: AvailableScreen[];
+  currentScreenId?: string;
+}
+
 /**
  * Editor for Footer component
  */
-export const FooterEditor: React.FC<ComponentEditorProps> = ({
+export const FooterEditor: React.FC<FooterEditorProps> = ({
   component,
   onChange,
   onDelete,
+  availableScreens = [],
+  currentScreenId,
 }) => {
   const config = component.config as Footer;
   const [actionType, setActionType] = useState<FooterActionName>(
@@ -143,22 +155,63 @@ export const FooterEditor: React.FC<ComponentEditorProps> = ({
       {/* Target Screen (Navigate only) */}
       {actionType === 'navigate' && (
         <div>
-          <label className="block text-sm text-zinc-400 mb-1.5">Target Screen ID</label>
-          <input
-            type="text"
-            value={
-              config['on-click-action']?.name === 'navigate'
-                ? config['on-click-action'].next.name
-                : ''
-            }
-            onChange={handleTargetScreenChange}
-            placeholder="SCREEN_ID"
-            className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg
-                       text-white placeholder-zinc-500 focus:outline-none focus:ring-2
-                       focus:ring-primary/50 focus:border-primary"
-          />
+          <label className="block text-sm text-zinc-400 mb-1.5">Target Screen</label>
+          {availableScreens.length > 0 ? (
+            <select
+              value={
+                config['on-click-action']?.name === 'navigate'
+                  ? config['on-click-action'].next.name
+                  : ''
+              }
+              onChange={(e) => {
+                if (config['on-click-action']?.name === 'navigate') {
+                  onChange({
+                    config: {
+                      ...component.config,
+                      'on-click-action': {
+                        name: 'navigate',
+                        next: {
+                          type: 'screen',
+                          name: e.target.value,
+                        },
+                        payload: {},
+                      },
+                    },
+                  });
+                }
+              }}
+              className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg
+                         text-white focus:outline-none focus:ring-2 focus:ring-primary/50
+                         focus:border-primary"
+            >
+              <option value="">Select a screen...</option>
+              {availableScreens
+                .filter(s => s.id !== currentScreenId)
+                .map((screen) => (
+                  <option key={screen.id} value={screen.id}>
+                    {screen.title} ({screen.id})
+                  </option>
+                ))}
+            </select>
+          ) : (
+            <input
+              type="text"
+              value={
+                config['on-click-action']?.name === 'navigate'
+                  ? config['on-click-action'].next.name
+                  : ''
+              }
+              onChange={handleTargetScreenChange}
+              placeholder="SCREEN_ID"
+              className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg
+                         text-white placeholder-zinc-500 focus:outline-none focus:ring-2
+                         focus:ring-primary/50 focus:border-primary"
+            />
+          )}
           <p className="text-xs text-zinc-500 mt-1">
-            The screen ID to navigate to when clicked
+            {availableScreens.length > 0
+              ? 'Select the screen to navigate to when clicked'
+              : 'Add more screens to see them here'}
           </p>
         </div>
       )}

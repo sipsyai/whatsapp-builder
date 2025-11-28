@@ -780,6 +780,14 @@ features/[feature-name]/
 - **Create/Edit Modal**: Form for adding/updating data sources
 - **Delete Confirmation**: Warn before deletion
 - **Test Connection**: Real-time connection testing with response time
+- **Test Custom Endpoint**: **NEW** - Inline expandable panel for endpoint testing
+
+**TestConnectionPanel.tsx** - **NEW** - Inline endpoint testing component
+- **Method Selector**: HTTP method dropdown (GET/POST/PUT/PATCH/DELETE)
+- **Endpoint Input**: Path input with placeholder
+- **Body Editor**: JSON textarea for POST/PUT/PATCH requests
+- **Response Display**: Formatted JSON with syntax highlighting
+- **Status Indicators**: Success/error icons, status code, response time
 
 ### API Client
 
@@ -813,6 +821,7 @@ interface DataSource {
 - `update(id, dto)`: Update existing
 - `delete(id)`: Delete data source
 - `testConnection(id)`: Test connectivity
+- `testEndpoint(id, request)`: **NEW** - Test custom endpoint with method/params/body
 
 ### UI Features
 
@@ -837,6 +846,20 @@ interface DataSource {
 - Loading spinner during test
 - Toast notification with result (success/error)
 - Shows response time on success
+
+**Test Custom Endpoint (NEW)**:
+- "Test Endpoint" button per row
+- Inline expandable panel below row
+- Method selector (GET/POST/PUT/PATCH/DELETE)
+- Endpoint path input field
+- Conditional body field (for POST/PUT/PATCH)
+- JSON validation for request body
+- Test button with loading state
+- Inline result display:
+  - Success/error icon
+  - HTTP status code
+  - Response time in ms
+  - Formatted JSON response or error message
 
 ### Integration with Builder
 

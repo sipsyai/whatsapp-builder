@@ -120,8 +120,15 @@ export class WhatsAppFlowService {
     const payload: any = {};
     if (dto.name) payload.name = dto.name;
     if (dto.categories) payload.categories = dto.categories;
-    if (dto.flowJson) payload.flow_json = JSON.stringify(dto.flowJson);
+    // Always include flowJson if provided (even if it's an empty object or has content)
+    if (dto.flowJson !== undefined) payload.flow_json = JSON.stringify(dto.flowJson);
     if (dto.endpointUri) payload.endpoint_uri = dto.endpointUri;
+
+    // Ensure we have at least one property to update
+    if (Object.keys(payload).length === 0) {
+      this.logger.warn('No properties provided for flow update');
+      throw new Error('No properties to update');
+    }
 
     return this.apiService.post<FlowResponse>(`/${flowId}`, payload);
   }

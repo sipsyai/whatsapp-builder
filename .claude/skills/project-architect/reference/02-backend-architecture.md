@@ -280,6 +280,7 @@ Disconnect → Remove from tracking → Broadcast user:offline
 - `update(id, dto)`: Update with re-validation
 - `delete(id)`: Delete data source
 - `testConnection(id)`: Test connectivity and measure response time
+- `testEndpoint(id, dto)`: **NEW** - Test custom endpoint with method, params, body
 - `fetchData(id, endpoint, options)`: Generic HTTP client for API calls
 - `createAxiosClient(ds)`: Private - Create configured Axios instance with auth headers
 - `validateAuthConfig(...)`: Private - Validate auth type and token requirements
@@ -303,6 +304,7 @@ Disconnect → Remove from tracking → Broadcast user:offline
 - PUT /api/data-sources/:id - Update
 - DELETE /api/data-sources/:id - Delete
 - POST /api/data-sources/:id/test - Test connection
+- POST /api/data-sources/:id/test-endpoint - **NEW** - Test custom endpoint
 
 **Integration Points**:
 - `ChatBotExecutionService`: Uses DataSource for WhatsApp Flow data prefetching
@@ -313,6 +315,8 @@ Disconnect → Remove from tracking → Broadcast user:offline
 - `CreateDataSourceDto`: Validation with @IsUrl, @IsEnum, conditional auth fields
 - `UpdateDataSourceDto`: Partial update DTO
 - `TestConnectionResult`: Connection test response with timing
+- `TestEndpointDto`: **NEW** - Custom endpoint test with method, params, body
+- `TestEndpointResponse`: **NEW** - Test result with status, time, data/error
 
 **Security Notes**:
 - Auth tokens stored in plain text (encryption recommended for production)
@@ -323,7 +327,7 @@ Disconnect → Remove from tracking → Broadcast user:offline
 - Entity: `entities/data-source.entity.ts`
 - Service: `data-sources.service.ts`
 - Controller: `data-sources.controller.ts`
-- DTOs: `dto/create-data-source.dto.ts`, `dto/update-data-source.dto.ts`
+- DTOs: `dto/create-data-source.dto.ts`, `dto/update-data-source.dto.ts`, `dto/test-endpoint.dto.ts`
 
 **Migration Impact**:
 - Removed hardcoded Strapi credentials from `FlowEndpointService` and `ChatBotExecutionService`
