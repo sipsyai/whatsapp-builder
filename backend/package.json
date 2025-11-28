@@ -52,6 +52,7 @@
     "class-validator": "^0.14.2",
     "dotenv": "^16.6.1",
     "form-data": "^4.0.5",
+    "jsonpath-plus": "^10.3.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "pg": "^8.16.3",

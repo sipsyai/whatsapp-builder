@@ -4,7 +4,9 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
+import { DataSourceConnection } from './data-source-connection.entity';
 
 export enum DataSourceType {
   REST_API = 'REST_API',
@@ -70,4 +72,7 @@ export class DataSource {
 
   @UpdateDateColumn({ type: 'timestamp with time zone', name: 'updated_at' })
   updatedAt: Date;
+
+  @OneToMany(() => DataSourceConnection, (conn) => conn.dataSource)
+  connections: DataSourceConnection[];
 }

@@ -4,3 +4,8 @@ export { Message, MessageType, MessageStatus } from './message.entity';
 export { WhatsAppConfig } from './whatsapp-config.entity';
 export { ConversationContext } from './conversation-context.entity';
 export { ChatBot } from './chatbot.entity';
+export { DataSource, DataSourceType, AuthType } from './data-source.entity';
+export {
+  DataSourceConnection,
+  HttpMethod,
+} from './data-source-connection.entity';

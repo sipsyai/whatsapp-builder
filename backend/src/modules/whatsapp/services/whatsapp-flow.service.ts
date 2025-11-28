@@ -109,20 +109,25 @@ export class WhatsAppFlowService {
   }
 
   /**
-   * Update Flow JSON
+   * Update Flow metadata (name, categories, endpoint_uri)
+   * NOTE: For updating flow JSON content, use updateFlowJson() instead
    */
   async updateFlow(
     flowId: string,
     dto: Partial<CreateFlowDto>,
   ): Promise<FlowResponse> {
-    this.logger.log(`Updating flow: ${flowId}`);
+    this.logger.log(`Updating flow metadata: ${flowId}`);
 
     const payload: any = {};
     if (dto.name) payload.name = dto.name;
     if (dto.categories) payload.categories = dto.categories;
-    // Always include flowJson if provided (even if it's an empty object or has content)
-    if (dto.flowJson !== undefined) payload.flow_json = JSON.stringify(dto.flowJson);
     if (dto.endpointUri) payload.endpoint_uri = dto.endpointUri;
+
+    // If flowJson is provided, use the assets endpoint instead
+    if (dto.flowJson !== undefined) {
+      this.logger.log('flowJson provided, using assets endpoint');
+      return this.updateFlowJson(flowId, dto.flowJson);
+    }
 
     // Ensure we have at least one property to update
     if (Object.keys(payload).length === 0) {
@@ -131,6 +136,49 @@ export class WhatsAppFlowService {
     }
 
     return this.apiService.post<FlowResponse>(`/${flowId}`, payload);
+  }
+
+  /**
+   * Update Flow JSON using the assets endpoint
+   * Meta requires flow JSON to be uploaded via multipart/form-data to the assets endpoint
+   */
+  async updateFlowJson(flowId: string, flowJson: any): Promise<FlowResponse> {
+    this.logger.log(`Updating flow JSON via assets endpoint: ${flowId}`);
+
+    const FormData = require('form-data');
+    const formData = new FormData();
+
+    // Create a buffer from the JSON string
+    const jsonString = JSON.stringify(flowJson);
+    const jsonBuffer = Buffer.from(jsonString, 'utf-8');
+
+    formData.append('name', 'flow.json');
+    formData.append('asset_type', 'FLOW_JSON');
+    formData.append('file', jsonBuffer, {
+      filename: 'flow.json',
+      contentType: 'application/json',
+    });
+
+    this.logger.log(`Uploading flow.json (${jsonBuffer.length} bytes)`);
+
+    // Use axios directly with multipart/form-data
+    const baseUrl = this.configService.get<string>('whatsapp.baseUrl') || 'https://graph.facebook.com';
+    const apiVersion = this.configService.get<string>('whatsapp.apiVersion') || 'v21.0';
+    const accessToken = this.configService.get<string>('whatsapp.accessToken');
+
+    const response = await axios.post(
+      `${baseUrl}/${apiVersion}/${flowId}/assets`,
+      formData,
+      {
+        headers: {
+          ...formData.getHeaders(),
+          Authorization: `Bearer ${accessToken}`,
+        },
+      },
+    );
+
+    this.logger.log(`Flow JSON updated successfully: ${JSON.stringify(response.data)}`);
+    return response.data;
   }
 
   /**

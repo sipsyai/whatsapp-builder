@@ -666,6 +666,7 @@ export class FlowsService {
     try {
       let whatsappFlowId: string;
       let localFlowId: string | undefined;
+      let isUsingExistingFlow = false;
 
       if (dto.flowId) {
         // Use existing flow
@@ -677,11 +678,49 @@ export class FlowsService {
 
         whatsappFlowId = existingFlow.whatsappFlowId;
         localFlowId = existingFlow.id;
+        isUsingExistingFlow = true;
 
-        // Update the flow JSON in Meta
-        await this.whatsappFlowService.updateFlow(whatsappFlowId, {
-          flowJson: normalizedFlowJson,
-        });
+        // Fetch current JSON from Meta to compare
+        let metaFlowJson: any = null;
+        try {
+          metaFlowJson = await this.whatsappFlowService.getFlowJson(whatsappFlowId);
+        } catch (e) {
+          this.logger.warn(`Could not fetch Meta flow JSON: ${e.message}`);
+        }
+
+        // Deep compare function to ignore key order
+        const deepEqual = (a: any, b: any): boolean => {
+          if (a === b) return true;
+          if (typeof a !== typeof b) return false;
+          if (typeof a !== 'object' || a === null || b === null) return false;
+          if (Array.isArray(a) !== Array.isArray(b)) return false;
+
+          const keysA = Object.keys(a).sort();
+          const keysB = Object.keys(b).sort();
+          if (keysA.length !== keysB.length) return false;
+          if (keysA.join(',') !== keysB.join(',')) return false;
+
+          for (const key of keysA) {
+            if (!deepEqual(a[key], b[key])) return false;
+          }
+          return true;
+        };
+
+        const isJsonSame = metaFlowJson && deepEqual(metaFlowJson, normalizedFlowJson);
+
+        // Log comparison result
+        this.logger.log(`Flow JSON comparison: ${isJsonSame ? 'same as Meta' : 'differs from Meta'}`);
+
+        if (!isJsonSame) {
+          // JSON has changed compared to Meta, update it
+          this.logger.log('Flow JSON differs from Meta, updating...');
+          await this.whatsappFlowService.updateFlow(whatsappFlowId, {
+            flowJson: normalizedFlowJson,
+          });
+        } else {
+          // JSON is the same as Meta, just fetch validation errors
+          this.logger.log('Flow JSON same as Meta, skipping update');
+        }
       } else {
         // Create a temporary validation flow
         const tempName = dto.name || `_validation_temp_${Date.now()}`;

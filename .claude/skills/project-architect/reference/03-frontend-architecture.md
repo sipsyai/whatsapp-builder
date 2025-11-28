@@ -410,6 +410,7 @@ client.interceptors.response.use(
 - **Edit Mode**: Saves directly without modal (uses existing metadata)
 - Real-time WhatsApp preview with iPhone frame
 - 3-panel layout: Screens → Editor → Preview
+- **Navigate Action Screen Dropdown**: **NEW** - When Navigate action is selected in Footer editor, displays dropdown with all available screens from the current flow
 
 **State Management**:
 - `usePlaygroundState`: Manages screens, components, selection
@@ -422,6 +423,15 @@ client.interceptors.response.use(
 - Hooks: `features/flow-builder/components/playground/hooks/`
 - DataSource Selector: `features/flow-builder/components/playground/ContentEditor/DataSourceSelector.tsx`
 - Dropdown Editor: `features/flow-builder/components/playground/ContentEditor/editors/DropdownEditor.tsx`
+- Footer Editor: `features/flow-builder/components/playground/ContentEditor/editors/FooterEditor.tsx`
+
+**FooterEditor Component Enhancements**:
+- **Navigate Action Screen Selection**: When user selects "navigate" action for a footer button:
+  - Automatically displays a "Target Screen" dropdown
+  - Dropdown is populated with all screen IDs from the current flow (`Object.keys(screens)`)
+  - Selected screen ID is stored in `button.navigate.navigate.next`
+  - Provides user-friendly screen selection instead of manual ID entry
+  - Improves UX and reduces errors in screen navigation configuration
 
 **Data Source Integration in Playground**:
 - **DataSourceSelector Component** (NEW): Enables per-dropdown data source configuration

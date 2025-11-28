@@ -282,8 +282,12 @@ class CreateFlowFromPlaygroundDto {
 2. **Normalize JSON**: Ensure required fields, preserve optional ones
 3. **Generate Name**: From `dto.name` → first screen title → first screen ID → "Playground Flow"
 4. **Create in WhatsApp API**: Call `whatsappFlowService.createFlow()`
-5. **Save to Database**: Store with metadata indicating playground source
-6. **Auto-Publish** (if requested): Call `publish(flow.id)`
+5. **Upload Flow JSON**: Call `whatsappFlowService.updateFlowJson()` to upload JSON via assets endpoint
+6. **Save to Database**: Store with metadata indicating playground source
+7. **Auto-Publish** (if requested): Call `publish(flow.id)`
+
+**Important Note on Flow JSON Upload**:
+After creating the flow, the flow JSON must be uploaded separately using the assets endpoint (`/{flow_id}/assets`) with multipart/form-data. This is because Meta API does not accept flow_json in the standard create/update request body.
 
 **Validation Logic**:
 ```typescript
@@ -398,8 +402,18 @@ async createFromPlayground(data: {
 
 **Service Level**:
 - Playground JSON structure validation
+- **Deep Equality Check**: When validating with existing flow, compares JSON using `deepEqual()` helper
+  - Ignores key ordering in objects
+  - Recursively compares nested structures
+  - Skips unnecessary Meta API updates if JSON semantically identical
 - WhatsApp API error handling
 - Database constraint validation
+
+**Flow JSON Validation with Meta API**:
+- Uses `flowsService.validateFlowJson()` method
+- Efficient validation by checking deep equality before updating
+- Returns validation_errors from Meta API
+- For details, see [WhatsApp Integration - validateFlowJson](./06-whatsapp-integration.md#flowsservice-methods)
 
 ### Error Responses
 

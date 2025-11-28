@@ -107,7 +107,13 @@ User responds → processUserResponse() → save to variables → executeCurrent
 - `TextMessageService`: Text message sending
 - `InteractiveMessageService`: Buttons (max 3), Lists (max 10 rows)
 - `WhatsAppMessageService`: Orchestrator routing to message type services
-- `WhatsAppFlowService`: Flow lifecycle (create, update, publish, deprecate, delete, getDetails, getPreviewUrl)
+- `WhatsAppFlowService`: Flow lifecycle management
+  - `create, update, publish, deprecate, delete, getDetails, getPreviewUrl`
+  - `updateFlowJson(flowId, flowJson)`: **NEW** - Updates flow JSON via assets endpoint
+    - Uses multipart/form-data with form-data package
+    - POSTs to `/{flow_id}/assets` endpoint (not main flow endpoint)
+    - Required because Meta API rejects flow_json in standard update body
+    - Returns flow with validation_errors from Meta
 - `FlowEncryptionService`: RSA + AES-128-GCM encryption for Flow webhooks (decryptRequest, encryptResponse, verifySignature)
 
 **Character Limits**:
@@ -223,6 +229,12 @@ Disconnect → Remove from tracking → Broadcast user:offline
   - Auto-generates flow name from first screen title/ID
   - Saves with metadata: `{ source: 'playground', created_from_playground: true }`
   - Optional auto-publish after creation
+- `validateFlowJson(dto)`: **NEW** - Smart validation with deep equality check
+  - With existing flowId: Fetches current JSON, compares with deep equality (ignores key order)
+  - If unchanged: Returns existing validation_errors without update
+  - If changed: Updates via assets endpoint, returns new validation_errors
+  - Without flowId: Creates temp flow, validates, deletes
+  - Prevents unnecessary Meta API calls
 - `findAll()`, `getActiveFlows()`: List flows
 - `update(id, dto)`: Update (resets to DRAFT)
 - `publish(id)`: Publish to WhatsApp (status → PUBLISHED)

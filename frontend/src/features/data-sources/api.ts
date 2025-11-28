@@ -1,4 +1,12 @@
 import { client } from '../../api/client';
+import type {
+  DataSourceConnection,
+  CreateConnectionDto,
+  UpdateConnectionDto,
+  TestConnectionRequest,
+  TestConnectionResponse as ConnectionTestResponse,
+  GroupedConnections,
+} from './types';
 
 // Type definitions
 export type DataSourceType = 'REST_API' | 'STRAPI' | 'GRAPHQL';
@@ -113,4 +121,63 @@ export const testEndpoint = async (
 ): Promise<TestEndpointResponse> => {
     const response = await client.post<TestEndpointResponse>(`/api/data-sources/${id}/test-endpoint`, request);
     return response.data;
+};
+
+// ============================================================================
+// Connection API
+// ============================================================================
+
+export const connectionApi = {
+  // Get all connections for a data source
+  getByDataSource: async (dataSourceId: string): Promise<DataSourceConnection[]> => {
+    const response = await client.get<DataSourceConnection[]>(`/api/data-sources/${dataSourceId}/connections`);
+    return response.data;
+  },
+
+  // Get active connections for a data source
+  getActiveByDataSource: async (dataSourceId: string): Promise<DataSourceConnection[]> => {
+    const response = await client.get<DataSourceConnection[]>(`/api/data-sources/${dataSourceId}/connections/active`);
+    return response.data;
+  },
+
+  // Get single connection
+  getById: async (connectionId: string): Promise<DataSourceConnection> => {
+    const response = await client.get<DataSourceConnection>(`/api/data-sources/connections/${connectionId}`);
+    return response.data;
+  },
+
+  // Create connection
+  create: async (dataSourceId: string, data: CreateConnectionDto): Promise<DataSourceConnection> => {
+    const response = await client.post<DataSourceConnection>(`/api/data-sources/${dataSourceId}/connections`, data);
+    return response.data;
+  },
+
+  // Update connection
+  update: async (connectionId: string, data: UpdateConnectionDto): Promise<DataSourceConnection> => {
+    const response = await client.put<DataSourceConnection>(`/api/data-sources/connections/${connectionId}`, data);
+    return response.data;
+  },
+
+  // Delete connection
+  delete: async (connectionId: string): Promise<void> => {
+    await client.delete(`/api/data-sources/connections/${connectionId}`);
+  },
+
+  // Execute connection
+  execute: async (connectionId: string, request?: TestConnectionRequest): Promise<ConnectionTestResponse> => {
+    const response = await client.post<ConnectionTestResponse>(`/api/data-sources/connections/${connectionId}/execute`, request);
+    return response.data;
+  },
+
+  // Execute chained connection
+  executeChain: async (connectionId: string, contextData?: Record<string, any>): Promise<any> => {
+    const response = await client.post(`/api/data-sources/connections/${connectionId}/execute-chain`, { contextData });
+    return response.data;
+  },
+
+  // Get all active connections grouped by data source (for selectors)
+  getAllActiveGrouped: async (): Promise<GroupedConnections[]> => {
+    const response = await client.get<GroupedConnections[]>('/api/data-sources/connections/grouped/active');
+    return response.data;
+  },
 };

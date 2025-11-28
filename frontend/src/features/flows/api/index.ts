@@ -35,6 +35,7 @@ export interface TransformTo {
 
 export interface ComponentDataSourceConfig {
   componentName: string;
+  connectionId?: string;
   dataSourceId: string;
   endpoint: string;
   dataKey: string;

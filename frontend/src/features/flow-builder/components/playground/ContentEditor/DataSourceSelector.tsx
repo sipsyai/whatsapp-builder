@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { getActiveDataSources } from '../../../../data-sources/api';
-import type { DataSource } from '../../../../data-sources/api';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { connectionApi } from '../../../../data-sources/api';
+import type { GroupedConnections } from '../../../../data-sources/types';
 import type { ComponentDataSourceConfig } from '../../../../flows/api';
 
 interface DataSourceSelectorProps {
   value?: ComponentDataSourceConfig;
   onChange: (config: ComponentDataSourceConfig | undefined) => void;
   componentName: string;
-  availableFields?: string[]; // Diger form field'lari (dependsOn icin)
+  availableFields?: string[]; // Other form fields (for dependsOn)
 }
 
 export const DataSourceSelector: React.FC<DataSourceSelectorProps> = ({
@@ -16,64 +16,90 @@ export const DataSourceSelector: React.FC<DataSourceSelectorProps> = ({
   componentName,
   availableFields = [],
 }) => {
-  const [dataSources, setDataSources] = useState<DataSource[]>([]);
+  const [groupedConnections, setGroupedConnections] = useState<GroupedConnections[]>([]);
   const [loading, setLoading] = useState(false);
   const [enabled, setEnabled] = useState(!!value);
+  const [selectedConnectionId, setSelectedConnectionId] = useState(value?.connectionId || '');
+  const [dependsOnField, setDependsOnField] = useState(value?.dependsOn || '');
 
-  // Form state
-  const [dataSourceId, setDataSourceId] = useState(value?.dataSourceId || '');
-  const [endpoint, setEndpoint] = useState(value?.endpoint || '');
-  const [dataKey, setDataKey] = useState(value?.dataKey || 'data');
-  const [idField, setIdField] = useState(value?.transformTo?.idField || 'id');
-  const [titleField, setTitleField] = useState(value?.transformTo?.titleField || 'name');
-  const [descriptionField, setDescriptionField] = useState(value?.transformTo?.descriptionField || '');
-  const [dependsOn, setDependsOn] = useState(value?.dependsOn || '');
-  const [filterParam, setFilterParam] = useState(value?.filterParam || '');
-
+  // Load grouped connections
   useEffect(() => {
-    const loadDataSources = async () => {
+    const loadConnections = async () => {
       setLoading(true);
       try {
-        const sources = await getActiveDataSources();
-        setDataSources(sources);
+        const grouped = await connectionApi.getAllActiveGrouped();
+        setGroupedConnections(grouped);
       } catch (error) {
-        console.error('Failed to load data sources:', error);
+        console.error('Failed to load connections:', error);
       } finally {
         setLoading(false);
       }
     };
-    loadDataSources();
+    loadConnections();
   }, []);
 
-  // Memoize onChange to prevent infinite loops
+  // Find selected connection and its data source
+  const selectedConnection = useMemo(() => {
+    for (const group of groupedConnections) {
+      const found = group.connections.find((c) => c.id === selectedConnectionId);
+      if (found) {
+        return { connection: found, dataSource: group.dataSource };
+      }
+    }
+    return null;
+  }, [groupedConnections, selectedConnectionId]);
+
+  // Memoize onChange callback
   const handleConfigChange = useCallback(() => {
-    if (!enabled) {
+    if (!enabled || !selectedConnection) {
       onChange(undefined);
       return;
     }
 
-    if (dataSourceId && endpoint && dataKey && idField && titleField) {
-      const config: ComponentDataSourceConfig = {
-        componentName,
-        dataSourceId,
-        endpoint,
-        dataKey,
-        transformTo: {
-          idField,
-          titleField,
-          descriptionField: descriptionField || undefined,
-        },
-        dependsOn: dependsOn || undefined,
-        filterParam: filterParam || undefined,
-      };
-      onChange(config);
-    }
-  }, [enabled, dataSourceId, endpoint, dataKey, idField, titleField, descriptionField, dependsOn, filterParam, componentName, onChange]);
+    const { connection, dataSource } = selectedConnection;
+    const config: ComponentDataSourceConfig = {
+      componentName,
+      connectionId: connection.id,
+      dataSourceId: dataSource.id,
+      endpoint: connection.endpoint,
+      dataKey: connection.dataKey || 'data',
+      transformTo: connection.transformConfig || { idField: 'id', titleField: 'name' },
+      dependsOn: connection.dependsOnConnectionId ? dependsOnField : undefined,
+      filterParam: connection.paramMapping
+        ? Object.keys(connection.paramMapping)[0]
+        : undefined,
+    };
+    onChange(config);
+  }, [enabled, selectedConnection, dependsOnField, componentName, onChange]);
 
-  // Config degistiginde parent'a bildir
+  // Update parent when selection changes
   useEffect(() => {
     handleConfigChange();
   }, [handleConfigChange]);
+
+  // Handle enable/disable toggle
+  const handleToggle = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newEnabled = e.target.checked;
+    setEnabled(newEnabled);
+    if (!newEnabled) {
+      setSelectedConnectionId('');
+      setDependsOnField('');
+    }
+  }, []);
+
+  // Handle connection selection
+  const handleConnectionChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedConnectionId(e.target.value);
+    setDependsOnField(''); // Reset depends on when connection changes
+  }, []);
+
+  // Handle depends on field selection
+  const handleDependsOnChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    setDependsOnField(e.target.value);
+  }, []);
+
+  // Check if connection has chaining configured
+  const hasChaining = selectedConnection?.connection.dependsOnConnectionId;
 
   return (
     <div className="space-y-3 p-3 bg-blue-900/20 rounded-lg border border-blue-800">
@@ -82,7 +108,7 @@ export const DataSourceSelector: React.FC<DataSourceSelectorProps> = ({
         <input
           type="checkbox"
           checked={enabled}
-          onChange={(e) => setEnabled(e.target.checked)}
+          onChange={handleToggle}
           className="w-4 h-4 rounded"
         />
         <span className="text-sm font-medium text-white">Fill from Data Source</span>
@@ -90,114 +116,113 @@ export const DataSourceSelector: React.FC<DataSourceSelectorProps> = ({
 
       {enabled && (
         <div className="space-y-3 pl-6">
-          {/* Data Source Secimi */}
+          {/* Connection Dropdown - Grouped by DataSource */}
           <div>
-            <label className="block text-xs text-gray-400 mb-1">Data Source</label>
+            <label className="block text-xs text-gray-400 mb-1">Connection</label>
             <select
-              value={dataSourceId}
-              onChange={(e) => setDataSourceId(e.target.value)}
+              value={selectedConnectionId}
+              onChange={handleConnectionChange}
               className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
               disabled={loading}
             >
-              <option value="">Select a Data Source</option>
-              {dataSources.map((ds) => (
-                <option key={ds.id} value={ds.id}>
-                  {ds.name} ({ds.type})
-                </option>
+              <option value="">Select a connection...</option>
+              {groupedConnections.map((group) => (
+                <optgroup key={group.dataSource.id} label={group.dataSource.name}>
+                  {group.connections.map((conn) => (
+                    <option key={conn.id} value={conn.id}>
+                      {conn.name} ({conn.method} {conn.endpoint})
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
+            {loading && (
+              <p className="text-xs text-gray-500 mt-1">Loading connections...</p>
+            )}
           </div>
 
-          {/* Endpoint */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Endpoint</label>
-            <input
-              type="text"
-              value={endpoint}
-              onChange={(e) => setEndpoint(e.target.value)}
-              placeholder="/api/brands"
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
-            />
-          </div>
-
-          {/* Data Key */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Data Key (path to array)</label>
-            <input
-              type="text"
-              value={dataKey}
-              onChange={(e) => setDataKey(e.target.value)}
-              placeholder="data"
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
-            />
-            <p className="text-xs text-gray-500 mt-1">e.g., "data" or "data.items"</p>
-          </div>
-
-          {/* Transform Fields */}
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">ID Field</label>
-              <input
-                type="text"
-                value={idField}
-                onChange={(e) => setIdField(e.target.value)}
-                placeholder="id"
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
-              />
+          {/* Show connection details when selected */}
+          {selectedConnection && (
+            <div className="p-2 bg-gray-800/50 rounded border border-gray-700">
+              <div className="text-xs text-gray-400 space-y-1">
+                <div className="flex justify-between">
+                  <span>Data Source:</span>
+                  <span className="text-white">{selectedConnection.dataSource.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Endpoint:</span>
+                  <span className="text-white font-mono text-xs">
+                    {selectedConnection.connection.method} {selectedConnection.connection.endpoint}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Data Key:</span>
+                  <span className="text-white font-mono text-xs">
+                    {selectedConnection.connection.dataKey || 'data'}
+                  </span>
+                </div>
+                {selectedConnection.connection.transformConfig && (
+                  <div className="flex justify-between">
+                    <span>Mapping:</span>
+                    <span className="text-white font-mono text-xs">
+                      id={selectedConnection.connection.transformConfig.idField},{' '}
+                      title={selectedConnection.connection.transformConfig.titleField}
+                      {selectedConnection.connection.transformConfig.descriptionField && (
+                        <>, desc={selectedConnection.connection.transformConfig.descriptionField}</>
+                      )}
+                    </span>
+                  </div>
+                )}
+                {hasChaining && (
+                  <div className="flex justify-between text-yellow-400">
+                    <span>Chained:</span>
+                    <span>Yes (depends on parent connection)</span>
+                  </div>
+                )}
+              </div>
             </div>
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Title Field</label>
-              <input
-                type="text"
-                value={titleField}
-                onChange={(e) => setTitleField(e.target.value)}
-                placeholder="name"
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
-              />
-            </div>
-          </div>
+          )}
 
-          {/* Description Field (Optional) */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Description Field (optional)</label>
-            <input
-              type="text"
-              value={descriptionField}
-              onChange={(e) => setDescriptionField(e.target.value)}
-              placeholder="description"
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
-            />
-          </div>
-
-          {/* Cascading (Depends On) */}
-          {availableFields.length > 0 && (
+          {/* Depends On Field - only if connection is chained and has available fields */}
+          {hasChaining && availableFields.length > 0 && (
             <div className="pt-2 border-t border-gray-700">
-              <label className="block text-xs text-gray-400 mb-1">Depends On (for cascading)</label>
+              <label className="block text-xs text-gray-400 mb-1">
+                Depends On (form field for filtering)
+              </label>
               <select
-                value={dependsOn}
-                onChange={(e) => setDependsOn(e.target.value)}
+                value={dependsOnField}
+                onChange={handleDependsOnChange}
                 className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
               >
-                <option value="">None</option>
+                <option value="">Select form field...</option>
                 {availableFields.map((field) => (
                   <option key={field} value={field}>
                     {field}
                   </option>
                 ))}
               </select>
+              <p className="text-xs text-gray-500 mt-1">
+                This connection will filter based on the selected value of this field
+              </p>
+            </div>
+          )}
 
-              {dependsOn && (
-                <div className="mt-2">
-                  <label className="block text-xs text-gray-400 mb-1">Filter Parameter</label>
-                  <input
-                    type="text"
-                    value={filterParam}
-                    onChange={(e) => setFilterParam(e.target.value)}
-                    placeholder="filters[brand][id][$eq]"
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
-                  />
-                </div>
-              )}
+          {/* Warning if chained but no dependsOn selected */}
+          {hasChaining && availableFields.length > 0 && !dependsOnField && (
+            <div className="p-2 bg-yellow-900/30 rounded border border-yellow-700">
+              <p className="text-xs text-yellow-400">
+                This connection is chained. Select a form field above to enable cascading behavior.
+              </p>
+            </div>
+          )}
+
+          {/* Warning if chained but no available fields */}
+          {hasChaining && availableFields.length === 0 && (
+            <div className="p-2 bg-yellow-900/30 rounded border border-yellow-700">
+              <p className="text-xs text-yellow-400">
+                This connection is chained but there are no other form fields to depend on.
+                Add another dropdown field first.
+              </p>
             </div>
           )}
         </div>

@@ -4,6 +4,8 @@
 
 This feature enables dynamic data population in WhatsApp Flows using external APIs (Strapi, REST, GraphQL) through the DataSources system. It supports cascading dropdowns where selecting one option filters another dropdown's options.
 
+> **Note:** This document describes the original component-level configuration system. For the newer hierarchical **DataSourceConnection** system that provides reusable endpoint definitions and improved chaining, see [DataSourceConnection Feature](./22-data-source-connections.md).
+
 ## Feature Summary
 
 | Aspect | Details |
@@ -13,6 +15,7 @@ This feature enables dynamic data population in WhatsApp Flows using external AP
 | Frontend | DataSourceSelector component in Playground |
 | Backend | FlowEndpointService config-driven data exchange |
 | Storage | ComponentDataSourceConfigDto[] in Flow metadata |
+| **New (v2)** | DataSourceConnection entities for reusable endpoints |
 
 ## Features
 
@@ -260,11 +263,68 @@ interface FlowMetadata {
 2. **Conditional Visibility** - Show/hide based on selections
 3. **Data Caching** - Cache API responses
 4. **Real-time Preview** - Show dynamic data in Playground
-5. **Connection Testing** - Validate config before save
+5. ~~**Connection Testing** - Validate config before save~~ (Implemented in DataSourceConnection)
+
+---
+
+## DataSourceConnection System (v2)
+
+The newer **DataSourceConnection** feature provides a hierarchical two-level system:
+
+### Key Improvements
+
+| Aspect | Original (v1) | DataSourceConnection (v2) |
+|--------|---------------|---------------------------|
+| Endpoint Config | Inline per component | Reusable Connection entities |
+| Chaining | `dependsOn` + `filterParam` | `dependsOnConnectionId` + JSONPath `paramMapping` |
+| Testing | None | Execute endpoint with test panel |
+| UI | Scattered in modal | Dedicated two-panel management page |
+| Storage | Flow metadata JSONB | Separate database table |
+
+### Migration Path
+
+The new system is **additive** - both approaches work:
+
+1. **Legacy:** `dataSourceConfig[]` in Flow metadata continues to work
+2. **New:** DataSourceSelector now uses `connectionId` to reference reusable connections
+
+### Architecture
+
+```
+DataSource (Parent)
+├── baseUrl, authType, authToken
+└── DataSourceConnection[] (Children)
+    ├── endpoint, method
+    ├── dataKey, transformConfig
+    └── dependsOnConnectionId, paramMapping (JSONPath)
+```
+
+### New API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/data-sources/:dsId/connections` | Create connection |
+| GET | `/api/data-sources/:dsId/connections` | List connections |
+| GET | `/api/data-sources/connections/:id` | Get connection |
+| PUT | `/api/data-sources/connections/:id` | Update connection |
+| DELETE | `/api/data-sources/connections/:id` | Delete connection |
+| POST | `/api/data-sources/connections/:id/execute` | Execute connection |
+| POST | `/api/data-sources/connections/:id/execute-chain` | Execute with context |
+| GET | `/api/data-sources/connections/grouped/active` | Grouped for selectors |
+
+### Full Documentation
+
+See [DataSourceConnection Feature](./22-data-source-connections.md) for complete details on:
+- Entity schema and relationships
+- Chaining with JSONPath
+- Frontend UI components
+- Migration guide
+- Usage examples
 
 ---
 
 **Related Documentation**:
+- [DataSourceConnection Feature](./22-data-source-connections.md) - **New hierarchical system**
 - [Create with Playground Feature](./20-create-with-playground-feature.md)
 - [WhatsApp Integration](./06-whatsapp-integration.md)
 - [Backend Architecture](./02-backend-architecture.md) - DataSourcesModule

@@ -8,10 +8,14 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { DataSource, AuthType, DataSourceType } from '../../entities/data-source.entity';
+import { DataSourceConnection, HttpMethod } from '../../entities/data-source-connection.entity';
 import { CreateDataSourceDto } from './dto/create-data-source.dto';
 import { UpdateDataSourceDto } from './dto/update-data-source.dto';
 import { TestEndpointDto } from './dto/test-endpoint.dto';
+import { CreateConnectionDto } from './dto/create-connection.dto';
+import { UpdateConnectionDto } from './dto/update-connection.dto';
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import { JSONPath } from 'jsonpath-plus';
 
 export interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -44,6 +48,8 @@ export class DataSourcesService {
   constructor(
     @InjectRepository(DataSource)
     private readonly dataSourceRepository: Repository<DataSource>,
+    @InjectRepository(DataSourceConnection)
+    private readonly connectionRepository: Repository<DataSourceConnection>,
   ) {}
 
   /**
@@ -322,5 +328,294 @@ export class DataSourcesService {
         'Header name is required for API_KEY authentication type',
       );
     }
+  }
+
+  // =====================================================
+  // Connection CRUD Operations
+  // =====================================================
+
+  /**
+   * Create a new connection for a data source
+   */
+  async createConnection(
+    dataSourceId: string,
+    dto: CreateConnectionDto,
+  ): Promise<DataSourceConnection> {
+    // Verify the data source exists
+    await this.findOne(dataSourceId);
+
+    // Validate depends on connection if provided
+    if (dto.dependsOnConnectionId) {
+      const dependsOn = await this.connectionRepository.findOne({
+        where: { id: dto.dependsOnConnectionId },
+      });
+      if (!dependsOn) {
+        throw new NotFoundException(
+          `Dependent connection with ID ${dto.dependsOnConnectionId} not found`,
+        );
+      }
+    }
+
+    const connection = this.connectionRepository.create({
+      ...dto,
+      dataSourceId,
+    });
+
+    return await this.connectionRepository.save(connection);
+  }
+
+  /**
+   * Find all connections for a data source
+   */
+  async findConnections(dataSourceId: string): Promise<DataSourceConnection[]> {
+    // Verify the data source exists
+    await this.findOne(dataSourceId);
+
+    return await this.connectionRepository.find({
+      where: { dataSourceId },
+      relations: ['dependsOnConnection'],
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  /**
+   * Find all active connections for a data source
+   */
+  async findActiveConnections(dataSourceId: string): Promise<DataSourceConnection[]> {
+    // Verify the data source exists
+    await this.findOne(dataSourceId);
+
+    return await this.connectionRepository.find({
+      where: { dataSourceId, isActive: true },
+      relations: ['dependsOnConnection'],
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  /**
+   * Find a single connection by ID
+   */
+  async findConnection(connectionId: string): Promise<DataSourceConnection> {
+    const connection = await this.connectionRepository.findOne({
+      where: { id: connectionId },
+      relations: ['dataSource', 'dependsOnConnection'],
+    });
+
+    if (!connection) {
+      throw new NotFoundException(`Connection with ID ${connectionId} not found`);
+    }
+
+    return connection;
+  }
+
+  /**
+   * Update a connection
+   */
+  async updateConnection(
+    connectionId: string,
+    dto: UpdateConnectionDto,
+  ): Promise<DataSourceConnection> {
+    const connection = await this.findConnection(connectionId);
+
+    // Validate depends on connection if being updated
+    if (dto.dependsOnConnectionId !== undefined) {
+      if (dto.dependsOnConnectionId) {
+        // Prevent circular dependency
+        if (dto.dependsOnConnectionId === connectionId) {
+          throw new BadRequestException('A connection cannot depend on itself');
+        }
+
+        const dependsOn = await this.connectionRepository.findOne({
+          where: { id: dto.dependsOnConnectionId },
+        });
+        if (!dependsOn) {
+          throw new NotFoundException(
+            `Dependent connection with ID ${dto.dependsOnConnectionId} not found`,
+          );
+        }
+      }
+    }
+
+    Object.assign(connection, dto);
+    return await this.connectionRepository.save(connection);
+  }
+
+  /**
+   * Delete a connection
+   */
+  async deleteConnection(connectionId: string): Promise<{ success: boolean }> {
+    const result = await this.connectionRepository.delete(connectionId);
+    if (result.affected === 0) {
+      throw new NotFoundException(`Connection with ID ${connectionId} not found`);
+    }
+    return { success: true };
+  }
+
+  /**
+   * Execute a connection and return the data
+   */
+  async executeConnection(
+    connectionId: string,
+    params?: Record<string, any>,
+    body?: any,
+  ): Promise<any> {
+    const connection = await this.findConnection(connectionId);
+
+    if (!connection.isActive) {
+      throw new BadRequestException(`Connection ${connection.name} is not active`);
+    }
+
+    if (!connection.dataSource.isActive) {
+      throw new BadRequestException(
+        `Data source ${connection.dataSource.name} is not active`,
+      );
+    }
+
+    const client = this.createAxiosClient(connection.dataSource);
+
+    // Merge default params with provided params
+    const mergedParams = {
+      ...(connection.defaultParams || {}),
+      ...(params || {}),
+    };
+
+    // Merge default body with provided body
+    const mergedBody = body !== undefined ? body : connection.defaultBody;
+
+    try {
+      const config: AxiosRequestConfig = {
+        method: connection.method,
+        url: connection.endpoint,
+        params: Object.keys(mergedParams).length > 0 ? mergedParams : undefined,
+        data: mergedBody,
+        timeout: connection.dataSource.timeout || 30000,
+      };
+
+      this.logger.log(
+        `Executing connection ${connection.name}: ${config.method} ${connection.endpoint}`,
+      );
+
+      const response: AxiosResponse = await client.request(config);
+      let data = response.data;
+
+      // Extract data using dataKey if specified
+      if (connection.dataKey) {
+        data = this.extractDataByKey(data, connection.dataKey);
+      }
+
+      return data;
+    } catch (error) {
+      this.logger.error(
+        `Failed to execute connection ${connection.name}:`,
+        error.message,
+      );
+
+      if (axios.isAxiosError(error)) {
+        if (error.response) {
+          throw new BadRequestException(
+            `Connection returned ${error.response.status}: ${error.response.statusText}`,
+          );
+        } else if (error.request) {
+          throw new InternalServerErrorException(
+            `No response received from connection: ${error.message}`,
+          );
+        }
+      }
+
+      throw new InternalServerErrorException(
+        `Failed to execute connection: ${error.message}`,
+      );
+    }
+  }
+
+  /**
+   * Execute a chained connection with context data from parent connections
+   */
+  async executeChainedConnection(
+    connectionId: string,
+    contextData?: Record<string, any>,
+  ): Promise<any> {
+    const connection = await this.findConnection(connectionId);
+
+    if (!connection.isActive) {
+      throw new BadRequestException(`Connection ${connection.name} is not active`);
+    }
+
+    // Resolve param mappings using JSONPath from context data
+    const resolvedParams: Record<string, any> = { ...(connection.defaultParams || {}) };
+
+    if (connection.paramMapping && contextData) {
+      for (const [paramKey, jsonPath] of Object.entries(connection.paramMapping)) {
+        try {
+          const values = JSONPath({ path: jsonPath, json: contextData });
+          if (values && values.length > 0) {
+            resolvedParams[paramKey] = values[0];
+          }
+        } catch (error) {
+          this.logger.warn(
+            `Failed to resolve JSONPath ${jsonPath} for param ${paramKey}: ${error.message}`,
+          );
+        }
+      }
+    }
+
+    return await this.executeConnection(connectionId, resolvedParams, connection.defaultBody);
+  }
+
+  /**
+   * Extract data from response using a dot-notation key path
+   */
+  private extractDataByKey(data: any, dataKey: string): any {
+    if (!dataKey) {
+      return data;
+    }
+
+    const keys = dataKey.split('.');
+    let result = data;
+
+    for (const key of keys) {
+      if (result && typeof result === 'object' && key in result) {
+        result = result[key];
+      } else {
+        this.logger.warn(`Data key path '${dataKey}' not found in response`);
+        return data;
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Get all active connections grouped by data source
+   */
+  async findAllActiveConnectionsGrouped(): Promise<
+    {
+      dataSource: {
+        id: string;
+        name: string;
+        type: DataSourceType;
+        baseUrl: string;
+      };
+      connections: DataSourceConnection[];
+    }[]
+  > {
+    // Get all active data sources with their active connections
+    const dataSources = await this.dataSourceRepository.find({
+      where: { isActive: true },
+      relations: ['connections'],
+      order: { name: 'ASC' },
+    });
+
+    return dataSources
+      .map((ds) => ({
+        dataSource: {
+          id: ds.id,
+          name: ds.name,
+          type: ds.type,
+          baseUrl: ds.baseUrl,
+        },
+        connections: (ds.connections || []).filter((conn) => conn.isActive),
+      }))
+      .filter((group) => group.connections.length > 0);
   }
 }

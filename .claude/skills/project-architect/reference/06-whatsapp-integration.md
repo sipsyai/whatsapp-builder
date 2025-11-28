@@ -157,6 +157,57 @@ Create (DRAFT) → Publish (PUBLISHED) → Deprecate (DEPRECATED) → Delete
 - `delete(id)`: Smart deletion (deprecates if PUBLISHED first)
 - `getPreview(id)`: Get preview URL for testing
 - `syncFromMeta()`: Import flows from Meta API
+- `validateFlowJson(dto)`: **NEW** - Smart validation with deep equality check
+
+**validateFlowJson Method Details**:
+This method intelligently validates Flow JSON with Meta API while avoiding unnecessary updates:
+
+**Validation Process**:
+1. **With Existing Flow** (flowId provided):
+   - Fetches current flow details from Meta API
+   - Downloads existing flow_json from Meta CDN
+   - Performs deep equality comparison (ignores key ordering)
+   - If JSON unchanged: Skips update, returns existing validation_errors
+   - If JSON changed: Updates via assets endpoint, returns new validation_errors
+
+2. **Without Existing Flow** (no flowId):
+   - Creates temporary flow on Meta API
+   - Uploads flow_json via assets endpoint
+   - Gets validation_errors from Meta
+   - Deletes temporary flow
+   - Returns validation results
+
+**Deep Equality Comparison**:
+- Uses custom `deepEqual()` helper function
+- Ignores key ordering in objects
+- Recursively compares nested structures
+- Prevents unnecessary API calls when JSON is semantically identical
+
+**Response Format**:
+```typescript
+interface FlowValidationResult {
+  isValid: boolean;
+  validationErrors: ValidationError[];
+  flowId?: string;
+  message?: string;
+}
+```
+
+**Example**:
+```typescript
+// Validate with existing flow (efficient)
+const result = await flowsService.validateFlowJson({
+  flowJson: myFlowJson,
+  flowId: 'existing-flow-id',
+  name: 'My Flow'
+});
+
+// Validate without existing flow (creates temp flow)
+const result = await flowsService.validateFlowJson({
+  flowJson: myFlowJson,
+  name: 'My Flow'
+});
+```
 
 ### WhatsAppFlowService (API Client)
 **File**: `/backend/src/modules/whatsapp/services/whatsapp-flow.service.ts`
@@ -164,6 +215,7 @@ Create (DRAFT) → Publish (PUBLISHED) → Deprecate (DEPRECATED) → Delete
 **Methods**:
 - `createFlow(dto)`: POST to Meta API
 - `updateFlow(flowId, dto)`: POST to update endpoint
+- `updateFlowJson(flowId, flowJson)`: **NEW** - POST to `/{flow_id}/assets` endpoint with multipart/form-data
 - `publishFlow(flowId)`: POST to publish endpoint
 - `deprecateFlow(flowId)`: POST to deprecate
 - `deleteFlow(flowId)`: DELETE from Meta
@@ -171,6 +223,25 @@ Create (DRAFT) → Publish (PUBLISHED) → Deprecate (DEPRECATED) → Delete
 - `getPreviewUrl(flowId)`: GET preview URL
 - `fetchAllFlows()`: GET all flows with pagination
 - `getFlowJson(assetUrl)`: Download flow JSON from Meta CDN
+
+**Important Note on Flow JSON Updates**:
+Meta API does **NOT** accept flow_json updates via standard JSON body on the flow update endpoint. Attempting to update flow_json in the body will result in a "No properties to update" error.
+
+**Correct Method for Flow JSON Updates**:
+Use the `updateFlowJson(flowId, flowJson)` method which:
+1. Creates a multipart/form-data payload using the `form-data` package
+2. Adds fields: `name='flow.json'`, `asset_type='FLOW_JSON'`, `file=<json_buffer>`
+3. POSTs to `/{flow_id}/assets` endpoint (not the main flow update endpoint)
+4. Returns the updated flow with validation_errors from Meta
+
+**Example**:
+```typescript
+// ❌ WRONG - This will fail with "No properties to update"
+await this.whatsappFlowService.updateFlow(flowId, { flow_json: newJson });
+
+// ✅ CORRECT - Use assets endpoint with multipart/form-data
+await this.whatsappFlowService.updateFlowJson(flowId, newJson);
+```
 
 ### Flow JSON Structure
 ```typescript
