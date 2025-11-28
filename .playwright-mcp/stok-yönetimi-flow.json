@@ -1,0 +1,177 @@
+{
+  "version": "7.2",
+  "data_api_version": "3.0",
+  "screens": [
+    {
+      "id": "STOCK_SCREEN",
+      "title": "Stok Güncelleme",
+      "terminal": false,
+      "data": {
+        "product_sku": {
+          "type": "string",
+          "__example__": "FLR-TRV-001"
+        },
+        "current_stock": {
+          "type": "string",
+          "__example__": "8"
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "name": "stock_form",
+            "type": "Form",
+            "children": [
+              {
+                "text": "Stok Güncelleme Formu",
+                "type": "TextHeading"
+              },
+              {
+                "text": "Ürün: ${data.product_sku}",
+                "type": "TextSubheading"
+              },
+              {
+                "text": "Mevcut Stok: ${data.current_stock} adet",
+                "type": "TextBody"
+              },
+              {
+                "name": "action_type",
+                "type": "Dropdown",
+                "label": "İşlem Tipi",
+                "required": true,
+                "data-source": [
+                  {
+                    "id": "add",
+                    "title": "Stok Ekle (+)"
+                  },
+                  {
+                    "id": "remove",
+                    "title": "Stok Çıkar (-)"
+                  },
+                  {
+                    "id": "set",
+                    "title": "Stok Belirle (=)"
+                  }
+                ]
+              },
+              {
+                "name": "quantity",
+                "type": "TextInput",
+                "label": "Miktar",
+                "required": true,
+                "input-type": "number",
+                "helper-text": "Sadece sayı girin"
+              },
+              {
+                "name": "note",
+                "type": "TextArea",
+                "label": "Not (İsteğe Bağlı)",
+                "required": false,
+                "helper-text": "İşlem için açıklama ekleyin"
+              },
+              {
+                "type": "Footer",
+                "label": "Devam Et",
+                "on-click-action": {
+                  "name": "navigate",
+                  "next": {
+                    "name": "CONFIRM_SCREEN",
+                    "type": "screen"
+                  },
+                  "payload": {
+                    "note": "${form.note}",
+                    "quantity": "${form.quantity}",
+                    "action_type": "${form.action_type}",
+                    "product_sku": "${data.product_sku}",
+                    "current_stock": "${data.current_stock}"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "CONFIRM_SCREEN",
+      "title": "Onay",
+      "terminal": true,
+      "data": {
+        "note": {
+          "type": "string",
+          "__example__": "Yeni sipariş geldi"
+        },
+        "quantity": {
+          "type": "string",
+          "__example__": "5"
+        },
+        "action_type": {
+          "type": "string",
+          "__example__": "add"
+        },
+        "product_sku": {
+          "type": "string",
+          "__example__": "FLR-TRV-001"
+        },
+        "current_stock": {
+          "type": "string",
+          "__example__": "8"
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "name": "confirm_form",
+            "type": "Form",
+            "children": [
+              {
+                "text": "İşlem Onayı",
+                "type": "TextHeading"
+              },
+              {
+                "text": "Lütfen bilgileri kontrol edin",
+                "type": "TextSubheading"
+              },
+              {
+                "text": "Ürün: ${data.product_sku}",
+                "type": "TextBody"
+              },
+              {
+                "text": "Mevcut Stok: ${data.current_stock} adet",
+                "type": "TextBody"
+              },
+              {
+                "text": "İşlem: ${data.action_type}",
+                "type": "TextBody"
+              },
+              {
+                "text": "Miktar: ${data.quantity} adet",
+                "type": "TextBody"
+              },
+              {
+                "text": "Not: ${data.note}",
+                "type": "TextBody"
+              },
+              {
+                "type": "Footer",
+                "label": "Onayla ve Güncelle",
+                "on-click-action": {
+                  "name": "complete",
+                  "payload": {
+                    "note": "${data.note}",
+                    "quantity": "${data.quantity}",
+                    "confirmed": true,
+                    "action_type": "${data.action_type}",
+                    "product_sku": "${data.product_sku}"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
