@@ -9,6 +9,7 @@ import { WhatsappConfigPage } from "../features/settings/WhatsappConfigPage";
 import { FlowsPage } from "../features/flows";
 import { SessionsListPage, SessionDetailPage } from "../features/sessions/components";
 import { FlowBuilderPage } from "../features/flow-builder/FlowBuilderPage";
+import { FlowPlaygroundPage } from "../features/flow-builder/FlowPlaygroundPage";
 import { DataSourcesPage } from "../features/data-sources";
 import { SideBar } from "../shared/components/SideBar";
 import { LoginPage } from "../features/auth/components/LoginPage";
@@ -19,7 +20,7 @@ import type { ChatBot } from "../features/chatbots/api";
 import type { WhatsAppFlow } from "../features/flows/api";
 
 // Extend ViewState type locally since we can't easily edit shared types without seeing them
-type ExtendedViewState = ViewState | "chatbots" | "users" | "flows" | "flowBuilder" | "sessions" | "sessionDetail" | "data-sources";
+type ExtendedViewState = ViewState | "chatbots" | "users" | "flows" | "flowBuilder" | "playground" | "sessions" | "sessionDetail" | "data-sources";
 
 // Parse URL hash to determine initial view state
 const parseUrlHash = (): { view: ExtendedViewState; sessionId?: string } => {
@@ -39,6 +40,7 @@ const parseUrlHash = (): { view: ExtendedViewState; sessionId?: string } => {
     'users': 'users',
     'flows': 'flows',
     'flowBuilder': 'flowBuilder',
+    'playground': 'playground',
     'settings': 'settings',
     'builder': 'builder',
     'data-sources': 'data-sources',
@@ -73,6 +75,7 @@ const App = () => {
   const [selectedChatBot, setSelectedChatBot] = useState<ChatBot | null>(null);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(initialState.sessionId || null);
   const [selectedFlow, setSelectedFlow] = useState<WhatsAppFlow | null>(null);
+  const [playgroundFlow, setPlaygroundFlow] = useState<WhatsAppFlow | null>(null);
 
   // Update URL hash when view or session changes
   useEffect(() => {
@@ -113,6 +116,13 @@ const App = () => {
   useEffect(() => {
     if (view !== "flowBuilder") {
       setSelectedFlow(null);
+    }
+  }, [view]);
+
+  // Clear playground flow when navigating away from playground
+  useEffect(() => {
+    if (view !== "playground") {
+      setPlaygroundFlow(null);
     }
   }, [view]);
 
@@ -182,6 +192,10 @@ const App = () => {
               setSelectedFlow(flow);
               setView("flowBuilder");
             }}
+            onOpenPlayground={(flow) => {
+              setPlaygroundFlow(flow);
+              setView("playground");
+            }}
           />}
           {view === "flowBuilder" && selectedFlow && (
             <FlowBuilderPage
@@ -204,6 +218,60 @@ const App = () => {
                 } catch (error) {
                   console.error('Failed to save flow:', error);
                   throw error; // Re-throw to let FlowBuilderPage handle the error
+                }
+              }}
+              onBack={() => setView("flows")}
+            />
+          )}
+          {view === "playground" && playgroundFlow && (
+            <FlowPlaygroundPage
+              flowId={playgroundFlow.id}
+              initialFlow={{
+                name: playgroundFlow.name,
+                screens: playgroundFlow.flowJson.screens?.map((screen: any, index: number) => ({
+                  id: screen.id || `screen-${index}`,
+                  title: screen.title || 'Untitled Screen',
+                  terminal: screen.terminal || false,
+                  refresh_on_back: screen.refresh_on_back,
+                  data: screen.data || {},
+                  components: (screen.layout?.children || []).map((child: any, cIndex: number) => ({
+                    id: `component-${screen.id || index}-${cIndex}`,
+                    type: child.type,
+                    config: { ...child },
+                    validation: { isValid: true, errors: [], warnings: [] },
+                  })),
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                })) || [],
+                version: '7.2',
+              }}
+              onSave={async (flowData) => {
+                try {
+                  const flowJson = {
+                    version: flowData.version,
+                    screens: flowData.screens.map(screen => ({
+                      id: screen.id,
+                      title: screen.title,
+                      terminal: screen.terminal,
+                      refresh_on_back: screen.refresh_on_back,
+                      data: screen.data,
+                      layout: {
+                        type: 'SingleColumnLayout',
+                        children: screen.components.map(c => ({
+                          type: c.type,
+                          ...c.config,
+                        })),
+                      },
+                    })),
+                  };
+                  await flowsApi.update(playgroundFlow.id, {
+                    name: flowData.name,
+                    flowJson,
+                  });
+                  setView("flows");
+                } catch (error) {
+                  console.error('Failed to save flow:', error);
+                  throw error;
                 }
               }}
               onBack={() => setView("flows")}

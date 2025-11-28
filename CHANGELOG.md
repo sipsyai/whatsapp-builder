@@ -2,7 +2,48 @@
 
 All notable changes to WhatsApp Builder project.
 
-## [Latest] - 2025-11-27
+## [Latest] - 2025-11-28
+
+### WhatsApp Flows Playground Bug Fixes
+
+#### Fixed
+- **WhatsApp Flows ID Format** - Screen and component IDs now use underscores
+  - Changed ID generation from hyphen format (`screen-123`) to underscore format (`screen_123`)
+  - Affected files:
+    - `frontend/src/features/flow-builder/hooks/useFlowBuilder.ts`
+  - Reason: WhatsApp Flows API only accepts alphanumeric characters and underscores
+  - ID regex: `/^[a-zA-Z0-9_]+$/`
+
+- **data-source Property Name** - Corrected to hyphenated format
+  - Changed from camelCase `dataSource` to hyphenated `'data-source'`
+  - Affected components: RadioButtonsGroup, CheckboxGroup, Dropdown
+  - Affected file:
+    - `frontend/src/features/flow-builder/components/playground/constants/contentCategories.ts`
+  - Ensures compliance with WhatsApp Flow JSON schema specification
+
+- **Default Flow Template** - Fixed initial flow structure in FlowsPage
+  - Added proper END screen with `terminal: true` and `success: true`
+  - Previous template only had START screen navigating to non-existent END screen
+  - Affected file:
+    - `frontend/src/features/flows/components/FlowsPage.tsx`
+  - Now creates valid two-screen flow (START → END)
+
+#### Improved
+- **AddContentMenu UX** - Menu position improvement
+  - Menu now opens upward (`bottom-full mb-2`) instead of downward
+  - Prevents menu overflow on screens with limited vertical space
+  - Affected file:
+    - `frontend/src/features/flow-builder/components/playground/ContentEditor/AddContentMenu.tsx`
+
+#### Documentation
+- Updated `docs/features/WHATSAPP_FLOWS_PLAYGROUND.md` - Added changelog section with bug fix details
+- Updated `docs/META_PLAYGROUND_IMPLEMENTATION.md` - Corrected Flow JSON examples
+- Updated `docs/FLOW_BUILDER_ANALYSIS.md` - Added recent improvements section
+- All documentation now reflects correct ID format and property names
+
+---
+
+## [2025-11-27] - Production Deployment
 
 ### Production Deployment
 

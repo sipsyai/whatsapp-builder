@@ -105,7 +105,7 @@ export const useFlowBuilder = (options: UseFlowBuilderOptions = {}): UseFlowBuil
    * Add a new screen to the flow
    */
   const addScreen = useCallback((screen?: Partial<BuilderScreen>): BuilderScreen => {
-    const screenId = screen?.id || `screen-${Date.now()}`;
+    const screenId = screen?.id || `screen_${Date.now()}`;
     const newScreen: BuilderScreen = {
       ...createEmptyScreen(screenId),
       ...screen,
@@ -159,14 +159,14 @@ export const useFlowBuilder = (options: UseFlowBuilderOptions = {}): UseFlowBuil
       return null;
     }
 
-    const newScreenId = `${screenId}-copy-${Date.now()}`;
+    const newScreenId = `${screenId}_copy_${Date.now()}`;
     const duplicatedScreen: BuilderScreen = {
       ...screenToDuplicate,
       id: newScreenId,
       title: `${screenToDuplicate.title} (Copy)`,
       components: screenToDuplicate.components.map(component => ({
         ...component,
-        id: `${component.id}-copy-${Date.now()}`,
+        id: `${component.id}_copy_${Date.now()}`,
       })),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -195,7 +195,7 @@ export const useFlowBuilder = (options: UseFlowBuilderOptions = {}): UseFlowBuil
       return null;
     }
 
-    const componentId = component.id || `component-${screenId}-${Date.now()}`;
+    const componentId = component.id || `component_${screenId}_${Date.now()}`;
     const newComponent: BuilderComponent = {
       id: componentId,
       type: component.type || 'TextBody',
@@ -291,7 +291,7 @@ export const useFlowBuilder = (options: UseFlowBuilderOptions = {}): UseFlowBuil
       return null;
     }
 
-    const newComponentId = `${componentId}-copy-${Date.now()}`;
+    const newComponentId = `${componentId}_copy_${Date.now()}`;
     const duplicatedComponent: BuilderComponent = {
       ...componentToDuplicate,
       id: newComponentId,

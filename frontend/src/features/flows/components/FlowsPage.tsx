@@ -3,9 +3,10 @@ import { flowsApi, type WhatsAppFlow, type SyncResult } from '../api';
 
 export interface FlowsPageProps {
   onEditInBuilder?: (flow: WhatsAppFlow) => void;
+  onOpenPlayground?: (flow: WhatsAppFlow) => void;
 }
 
-export const FlowsPage = ({ onEditInBuilder }: FlowsPageProps) => {
+export const FlowsPage = ({ onEditInBuilder, onOpenPlayground }: FlowsPageProps) => {
   const [flows, setFlows] = useState<WhatsAppFlow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -213,6 +214,15 @@ export const FlowsPage = ({ onEditInBuilder }: FlowsPageProps) => {
 
                   {/* Action Buttons - Top Right */}
                   <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {onOpenPlayground && (
+                      <button
+                        onClick={() => onOpenPlayground(flow)}
+                        className="p-2 bg-zinc-800 text-purple-400 hover:bg-purple-900/20 rounded-lg transition-colors shadow-lg"
+                        title="Open in Playground"
+                      >
+                        <span className="material-symbols-outlined text-xl">science</span>
+                      </button>
+                    )}
                     {onEditInBuilder && (
                       <button
                         onClick={() => onEditInBuilder(flow)}
@@ -326,6 +336,7 @@ const EXAMPLE_FLOW_JSON = {
       id: 'START',
       title: 'Welcome',
       data: {},
+      terminal: false,
       layout: {
         type: 'SingleColumnLayout',
         children: [
@@ -343,6 +354,34 @@ const EXAMPLE_FLOW_JSON = {
             'on-click-action': {
               name: 'navigate',
               next: { type: 'screen', name: 'END' },
+              payload: {},
+            },
+          },
+        ],
+      },
+    },
+    {
+      id: 'END',
+      title: 'Thank You',
+      data: {},
+      terminal: true,
+      success: true,
+      layout: {
+        type: 'SingleColumnLayout',
+        children: [
+          {
+            type: 'TextHeading',
+            text: 'Thank You!',
+          },
+          {
+            type: 'TextBody',
+            text: 'Your submission has been received.',
+          },
+          {
+            type: 'Footer',
+            label: 'Done',
+            'on-click-action': {
+              name: 'complete',
               payload: {},
             },
           },

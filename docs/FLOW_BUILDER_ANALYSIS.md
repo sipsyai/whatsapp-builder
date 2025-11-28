@@ -465,6 +465,25 @@ Based on backend service usage, the WhatsApp API integration supports:
 
 ---
 
+## Recent Improvements (2025-11-28)
+
+### Bug Fixes
+1. **WhatsApp Flows ID Format** - Fixed screen/component ID generation
+   - Changed from hyphen (`screen-123`) to underscore (`screen_123`)
+   - WhatsApp API only accepts alphanumeric + underscore format
+
+2. **data-source Property** - Corrected property name format
+   - Changed from camelCase `dataSource` to hyphenated `'data-source'`
+   - Affects RadioButtonsGroup, CheckboxGroup, Dropdown components
+
+3. **Default Flow Template** - Fixed initial flow structure
+   - Added proper END screen with `terminal: true, success: true`
+   - Previous template had START navigating to non-existent END
+
+4. **AddContentMenu UX** - Menu position improvement
+   - Menu now opens upward instead of downward
+   - Prevents overflow on limited vertical space
+
 ## Conclusion
 
 The WhatsApp Flow Builder in this project is a **highly capable visual editor** with comprehensive support for WhatsApp Flow JSON v7.2. The core functionality is solid, with excellent component coverage, validation, and preview capabilities.
@@ -474,6 +493,7 @@ The WhatsApp Flow Builder in this project is a **highly capable visual editor** 
 - Intuitive visual design interface
 - Real-time validation and preview
 - Full API integration with Meta WhatsApp
+- Recent bug fixes ensure API compliance
 
 **Main Gaps:**
 - Flow management UX could be streamlined (create → edit flow)
@@ -482,9 +502,10 @@ The WhatsApp Flow Builder in this project is a **highly capable visual editor** 
 - No JSON import feature
 - Publishing requires switching to FlowsPage
 
-**Overall Assessment:** 7.5/10
+**Overall Assessment:** 8.0/10 (improved from 7.5)
 - Excellent technical foundation
-- Some UX friction points
+- Recent fixes improved API compliance
+- Some UX friction points remain
 - Missing power user features
 - Ready for MVP deployment with Phase 1 improvements
 
