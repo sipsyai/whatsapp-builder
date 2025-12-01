@@ -223,18 +223,27 @@ Disconnect → Remove from tracking → Broadcast user:offline
 
 **Service**: `FlowsService`
 - `create(dto)`: Create & publish to WhatsApp
-- `createFromPlayground(dto)`: **NEW** - Create flow from Playground JSON with auto-validation
+- `createFromPlayground(dto)`: Create flow from Playground JSON with auto-validation
   - Validates playground JSON structure (version, screens)
   - Normalizes JSON format
   - Auto-generates flow name from first screen title/ID
   - Saves with metadata: `{ source: 'playground', created_from_playground: true }`
   - Optional auto-publish after creation
-- `validateFlowJson(dto)`: **NEW** - Smart validation with deep equality check
+- `validateFlowJson(dto)`: Smart validation with deep equality check
   - With existing flowId: Fetches current JSON, compares with deep equality (ignores key order)
   - If unchanged: Returns existing validation_errors without update
   - If changed: Updates via assets endpoint, returns new validation_errors
   - Without flowId: Creates temp flow, validates, deletes
   - Prevents unnecessary Meta API calls
+- `exportFlow(id, options)`: **NEW** - Export flow as JSON file
+  - Includes flow configuration, categories, endpoint, status
+  - Optionally includes linked DataSource info
+  - Returns `ExportedFlowData` structure with version and timestamp
+- `importFlow(buffer, options)`: **NEW** - Import flow from JSON file
+  - Validates JSON structure and version
+  - Generates unique name if duplicate exists
+  - Optionally creates flow in Meta API
+  - Returns warnings for missing DataSources
 - `findAll()`, `getActiveFlows()`: List flows
 - `update(id, dto)`: Update (resets to DRAFT)
 - `publish(id)`: Publish to WhatsApp (status → PUBLISHED)
@@ -244,12 +253,14 @@ Disconnect → Remove from tracking → Broadcast user:offline
 **Flow Lifecycle**: DRAFT → PUBLISHED → DEPRECATED → DELETED
 
 **Controller**: `FlowsController`
-- GET /, GET /active, POST /, POST /sync, **POST /from-playground**
+- GET /, GET /active, POST /, POST /sync, POST /from-playground
 - GET /:id, PUT /:id, POST /:id/publish, GET /:id/preview, DELETE /:id
+- **GET /:id/export** - Export flow as JSON file download
+- **POST /import** - Import flow from JSON file (multipart/form-data)
 
 **Key DTOs**:
 - `CreateFlowDto`: Standard flow creation
-- `CreateFlowFromPlaygroundDto`: **NEW** - Playground JSON with categories
+- `CreateFlowFromPlaygroundDto`: Playground JSON with categories
   - `playgroundJson: any` - Complete playground export
   - `name?: string` - Optional (auto-generated)
   - `categories: WhatsAppFlowCategory[]` - Required (min 1)
@@ -257,7 +268,7 @@ Disconnect → Remove from tracking → Broadcast user:offline
   - `dataSourceId?: string` - Optional flow-level DataSource
   - `dataSourceConfig?: ComponentDataSourceConfigDto[]` - Component-level configs
 - `UpdateFlowDto`: Partial updates
-- `ComponentDataSourceConfigDto`: **NEW** - Per-component data source configuration
+- `ComponentDataSourceConfigDto`: Per-component data source configuration
   - `componentName: string` - Component name in Flow JSON
   - `dataSourceId: string` - DataSource UUID
   - `endpoint: string` - API endpoint path
@@ -265,6 +276,13 @@ Disconnect → Remove from tracking → Broadcast user:offline
   - `transformTo: TransformToDto` - Field mapping (idField, titleField, descriptionField)
   - `dependsOn?: string` - For cascading dropdowns
   - `filterParam?: string` - Filter parameter for cascading
+- `ExportFlowQueryDto`: **NEW** - Export query parameters
+  - `includeMetadata?: boolean` - Include metadata (default: true)
+- `ExportFlowResponseDto`: **NEW** - Export JSON structure (version, timestamp, flow data, dataSource)
+- `ImportFlowBodyDto`: **NEW** - Import form data
+  - `name?: string` - Override flow name
+  - `createInMeta?: boolean` - Create in Meta API (default: false)
+- `ImportFlowResponseDto`: **NEW** - Import result with warnings
 
 **WhatsApp Flow Categories**:
 - SIGN_UP, SIGN_IN, APPOINTMENT_BOOKING
@@ -274,6 +292,7 @@ Disconnect → Remove from tracking → Broadcast user:offline
 **See**:
 - [Create with Playground Feature](./20-create-with-playground-feature.md) for detailed documentation
 - [Data Sources + WhatsApp Flows Integration](./21-data-sources-whatsapp-flows-integration.md) for cascading dropdowns
+- [WhatsApp Flows Import/Export](./23-whatsapp-flows-import-export.md) for import/export feature
 
 ---
 
@@ -494,7 +513,9 @@ providers: [
 ├── /chatbots            15 endpoints (CRUD, stats, toggle, restore, stop, test-rest-api, export, import)
 │   ├── GET /:id/export     Export chatbot as JSON with embedded flows
 │   └── POST /import        Import chatbot from JSON file (multipart/form-data)
-├── /flows               8 endpoints (CRUD, sync, publish, preview)
+├── /flows               10 endpoints (CRUD, sync, publish, preview, import, export)
+│   ├── GET /:id/export     Export flow as JSON file
+│   └── POST /import        Import flow from JSON file (multipart/form-data)
 ├── /conversations       4 endpoints (list, get, messages, send)
 ├── /users               4 endpoints
 ├── /media               1 endpoint (upload)

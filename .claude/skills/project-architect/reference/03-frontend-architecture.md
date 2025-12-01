@@ -383,8 +383,20 @@ client.interceptors.response.use(
 - **Sync from Meta**: Import flows from Meta/Facebook API
 - Preview URL generation
 - Flow JSON editor
+- **Import/Export**: Backup, share, and migrate flows as JSON files
 
-**New Feature: Create with Playground**:
+**Import/Export Feature** (NEW - 2025-12-01):
+- **Export**: Download flow configuration as JSON file
+  - Includes flow JSON, categories, status, endpoint, metadata
+  - Optionally includes linked DataSource info
+  - Generates timestamped filename
+- **Import**: Upload JSON file to create new flow
+  - Validates JSON structure and version
+  - Auto-generates unique name if duplicate
+  - Optionally creates flow in Meta API
+  - Shows warnings for missing DataSources
+
+**Create with Playground**:
 - Button in FlowsPage header opens FlowPlaygroundPage in create mode
 - SaveFlowModal collects flow name + categories (min 1)
 - Creates flow via `POST /api/flows/from-playground`
@@ -394,6 +406,7 @@ client.interceptors.response.use(
 - List: `features/flows/FlowsPage.tsx`
 - Create: `features/flows/components/CreateFlowModal.tsx`
 - Save Modal: `features/flow-builder/components/playground/modals/SaveFlowModal.tsx`
+- API Client: `features/flows/api/index.ts`
 
 ### 6. Flow Builder (WhatsApp Flows)
 **Path**: `/frontend/src/features/flow-builder/`
@@ -624,14 +637,14 @@ export const ChatBotsService = {
 
 ### Available Services
 - `chatbots.service.ts`: ChatBot CRUD, import/export
-- `flows.service.ts`: WhatsApp Flows CRUD, publish, sync, **createFromPlayground**
+- `flows.service.ts`: WhatsApp Flows CRUD, publish, sync, createFromPlayground, **import/export**
 - `conversations.service.ts`: Conversations & messages
 - `users.service.ts`: User management
 - `whatsapp-config.service.ts`: WhatsApp config
 
 **New API Methods**:
 ```typescript
-// flows.service.ts
+// flows.service.ts - Create from Playground
 flowsApi.createFromPlayground({
   name: string,
   categories: WhatsAppFlowCategory[],
@@ -649,6 +662,36 @@ flowsApi.validate({
   flowId?: string,
   name?: string
 }): Promise<FlowValidationResult>
+
+// flows.service.ts - Export Flow (NEW)
+flowsApi.exportFlow(id: string, includeMetadata?: boolean): Promise<Blob>
+
+// flows.service.ts - Import Flow (NEW)
+flowsApi.importFlow(file: File, options?: {
+  name?: string,
+  createInMeta?: boolean
+}): Promise<ImportFlowResponse>
+```
+
+**Import/Export Types** (NEW):
+```typescript
+interface ImportFlowResponse {
+  success: boolean;
+  message: string;
+  flowId?: string;
+  flowName?: string;
+  importedAt: string;
+  warnings?: string[];
+  whatsappFlowId?: string;
+}
+```
+
+**IMPORTANT - Content-Type for File Uploads**:
+When uploading files via FormData, set `Content-Type` to `undefined` to let the browser automatically set the correct `multipart/form-data` header with boundary:
+```typescript
+const response = await client.post('/api/flows/import', formData, {
+  headers: { 'Content-Type': undefined }
+});
 ```
 
 **Component Data Source Config Type** (NEW):

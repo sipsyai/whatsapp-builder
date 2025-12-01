@@ -1,0 +1,151 @@
+{
+  "version": "1.0",
+  "exportedAt": "2025-12-01T09:00:00.000Z",
+  "flow": {
+    "name": "E-Ticaret Siparis Flow",
+    "description": "Urun secimi ve siparis demo flow - 3 ekran",
+    "status": "DRAFT",
+    "categories": ["OTHER"],
+    "flowJson": {
+      "version": "6.0",
+      "screens": [
+        {
+          "id": "URUN",
+          "title": "Urun Sec",
+          "layout": {
+            "type": "SingleColumnLayout",
+            "children": [
+              { "type": "TextHeading", "text": "Urun Secin" },
+              {
+                "type": "Dropdown",
+                "name": "kategori",
+                "label": "Kategori",
+                "required": true,
+                "data-source": [
+                  { "id": "elektronik", "title": "Elektronik" },
+                  { "id": "giyim", "title": "Giyim" },
+                  { "id": "ev", "title": "Ev & Yasam" }
+                ]
+              },
+              {
+                "type": "RadioButtonsGroup",
+                "name": "urun",
+                "label": "Urun",
+                "required": true,
+                "data-source": [
+                  { "id": "saat", "title": "Akilli Saat - 2.499 TL" },
+                  { "id": "kulaklik", "title": "Kulaklik - 899 TL" },
+                  { "id": "hoparlor", "title": "Hoparlor - 1.299 TL" }
+                ]
+              },
+              {
+                "type": "Dropdown",
+                "name": "adet",
+                "label": "Adet",
+                "required": true,
+                "data-source": [
+                  { "id": "1", "title": "1 Adet" },
+                  { "id": "2", "title": "2 Adet" },
+                  { "id": "3", "title": "3 Adet" }
+                ]
+              },
+              {
+                "type": "Footer",
+                "label": "Devam",
+                "on-click-action": {
+                  "name": "navigate",
+                  "next": { "type": "screen", "name": "ADRES" },
+                  "payload": { "urun": "${form.urun}", "adet": "${form.adet}" }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "ADRES",
+          "title": "Teslimat",
+          "data": {
+            "urun": { "type": "string", "__example__": "saat" },
+            "adet": { "type": "string", "__example__": "1" }
+          },
+          "layout": {
+            "type": "SingleColumnLayout",
+            "children": [
+              { "type": "TextHeading", "text": "Teslimat Bilgileri" },
+              { "type": "TextInput", "name": "ad", "label": "Ad Soyad", "required": true, "input-type": "text" },
+              { "type": "TextInput", "name": "telefon", "label": "Telefon", "required": true, "input-type": "phone" },
+              {
+                "type": "Dropdown",
+                "name": "il",
+                "label": "Il",
+                "required": true,
+                "data-source": [
+                  { "id": "istanbul", "title": "Istanbul" },
+                  { "id": "ankara", "title": "Ankara" },
+                  { "id": "izmir", "title": "Izmir" }
+                ]
+              },
+              { "type": "TextArea", "name": "adres", "label": "Acik Adres", "required": true },
+              {
+                "type": "RadioButtonsGroup",
+                "name": "odeme",
+                "label": "Odeme",
+                "required": true,
+                "data-source": [
+                  { "id": "kapida", "title": "Kapida Odeme" },
+                  { "id": "havale", "title": "Havale/EFT" }
+                ]
+              },
+              {
+                "type": "Footer",
+                "label": "Siparis Ver",
+                "on-click-action": {
+                  "name": "navigate",
+                  "next": { "type": "screen", "name": "ONAY" },
+                  "payload": {
+                    "urun": "${data.urun}",
+                    "adet": "${data.adet}",
+                    "ad": "${form.ad}",
+                    "il": "${form.il}",
+                    "odeme": "${form.odeme}"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "ONAY",
+          "title": "Siparis Onay",
+          "terminal": true,
+          "success": true,
+          "data": {
+            "urun": { "type": "string", "__example__": "saat" },
+            "adet": { "type": "string", "__example__": "1" },
+            "ad": { "type": "string", "__example__": "Ahmet" },
+            "il": { "type": "string", "__example__": "istanbul" },
+            "odeme": { "type": "string", "__example__": "kapida" }
+          },
+          "layout": {
+            "type": "SingleColumnLayout",
+            "children": [
+              { "type": "TextHeading", "text": "Siparisiz Alindi!" },
+              { "type": "TextBody", "text": "Sayin ${data.ad}, siparisiz olusturuldu. 2-3 is gunu icinde teslim edilecektir." },
+              {
+                "type": "Footer",
+                "label": "Tamam",
+                "on-click-action": {
+                  "name": "complete",
+                  "payload": { "urun": "${data.urun}", "adet": "${data.adet}", "ad": "${data.ad}" }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "endpointUri": null,
+    "isActive": false,
+    "metadata": {}
+  }
+}

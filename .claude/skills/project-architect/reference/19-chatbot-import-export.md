@@ -899,6 +899,125 @@ if (!chatbot.nodes || !Array.isArray(chatbot.nodes)) {
 
 ---
 
+## Bug Fixes (2025-12-01)
+
+### 1. Axios Content-Type Header Fix
+
+**Problem**: The Axios client default `Content-Type: application/json` header was interfering with FormData uploads, preventing proper `multipart/form-data` boundary generation.
+
+**Solution**: Set `Content-Type` to `undefined` in import requests to let the browser/Axios automatically set the correct header with boundary.
+
+**File**: `frontend/src/features/chatbots/api.ts`
+
+```typescript
+const response = await client.post('/api/chatbots/import', formData, {
+    headers: {
+        'Content-Type': undefined,  // Let browser set multipart/form-data with boundary
+    },
+});
+```
+
+---
+
+### 2. Stale Closure Fix (loadChatBotsRef Pattern)
+
+**Problem**: The `processImportFile` callback captured the `loadChatBots` function at creation time, causing stale closure issues when called after state changes.
+
+**Solution**: Use a ref pattern to always access the latest `loadChatBots` function.
+
+**File**: `frontend/src/features/chatbots/components/ChatBotsListPage.tsx`
+
+```typescript
+// Use ref to store loadChatBots to avoid stale closure
+const loadChatBotsRef = useRef(loadChatBots);
+useEffect(() => {
+    loadChatBotsRef.current = loadChatBots;
+});
+
+// In processImportFile callback:
+loadChatBotsRef.current();  // Always calls latest version
+```
+
+---
+
+### 3. Double Trigger Fix (isProcessingRef Pattern)
+
+**Problem**: File selection could trigger both native DOM events and React synthetic events, causing duplicate import attempts.
+
+**Solution**: Use a processing flag ref to prevent concurrent execution.
+
+**File**: `frontend/src/features/chatbots/components/ChatBotsListPage.tsx`
+
+```typescript
+const isProcessingRef = useRef(false);
+
+const processImportFile = useCallback(async (file: File) => {
+    // Prevent double execution from both native and React events
+    if (isProcessingRef.current) {
+        return;
+    }
+    isProcessingRef.current = true;
+
+    try {
+        // ... import logic
+    } finally {
+        isProcessingRef.current = false;
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+}, []);
+```
+
+---
+
+### 4. Backend MIME Type Validation Enhancement
+
+**Problem**: Some browsers send different MIME types for JSON files (e.g., `application/octet-stream`, `text/plain`).
+
+**Solution**: Accept multiple MIME types and also check file extension as fallback.
+
+**File**: `backend/src/modules/chatbots/chatbots.controller.ts`
+
+```typescript
+const validMimeTypes = ['application/json', 'text/plain', 'text/json', 'application/octet-stream'];
+const isValidMimeType = validMimeTypes.includes(file.mimetype);
+const hasJsonExtension = file.originalname?.toLowerCase().endsWith('.json');
+
+if (!isValidMimeType && !hasJsonExtension) {
+    throw new BadRequestException('File must be a JSON file');
+}
+```
+
+---
+
+### 5. Native Event Listener for Playwright Compatibility
+
+**Problem**: Playwright's `browser_file_upload` tool doesn't always trigger React's synthetic `onChange` event.
+
+**Solution**: Add a native DOM event listener alongside React's handler.
+
+**File**: `frontend/src/features/chatbots/components/ChatBotsListPage.tsx`
+
+```typescript
+// Native change event listener for Playwright compatibility
+useEffect(() => {
+    const input = fileInputRef.current;
+    if (!input) return;
+
+    const handleNativeChange = (e: Event) => {
+        const target = e.target as HTMLInputElement;
+        const file = target.files?.[0];
+        if (file) {
+            processImportFile(file);
+        }
+    };
+
+    input.addEventListener('change', handleNativeChange);
+    return () => input.removeEventListener('change', handleNativeChange);
+}, [processImportFile]);
+```
+
+---
+
 ## File Locations Reference
 
 ### Backend
@@ -925,7 +1044,9 @@ if (!chatbot.nodes || !Array.isArray(chatbot.nodes)) {
 - **UI Components**: `frontend/src/features/chatbots/components/ChatBotsListPage.tsx`
   - `handleExport()` (line 107)
   - `handleImportClick()` (line 122)
-  - `handleImportFileChange()` (line 125)
+  - `processImportFile()` (line 136)
+  - `handleFileChange()` (line 191)
+  - Native event listener (line 173-187)
 
 ---
 

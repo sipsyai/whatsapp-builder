@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { flowsApi, type WhatsAppFlow, type SyncResult, WhatsAppFlowCategory, WHATSAPP_FLOW_CATEGORY_LABELS } from '../api';
 
 export interface FlowsPageProps {
@@ -14,10 +14,27 @@ export const FlowsPage = ({ onEditInBuilder, onOpenPlayground }: FlowsPageProps)
   const [selectedFlow, setSelectedFlow] = useState<WhatsAppFlow | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Ref to store loadFlows to avoid stale closure in processImportFile
+  const loadFlowsRef = useRef<() => Promise<void>>(null!);
+
+  // Track if import is being processed to prevent double execution
+  const isProcessingRef = useRef(false);
 
   useEffect(() => {
     loadFlows();
   }, []);
+
+  // Auto-hide toast after 3 seconds
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   const loadFlows = async () => {
     try {
@@ -29,6 +46,98 @@ export const FlowsPage = ({ onEditInBuilder, onOpenPlayground }: FlowsPageProps)
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Update ref on each render to avoid stale closure
+  useEffect(() => {
+    loadFlowsRef.current = loadFlows;
+  });
+
+  // Import handlers
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  // File processing logic - uses ref to always call latest loadFlows
+  const processImportFile = useCallback(async (file: File) => {
+    // Prevent double execution from both native and React events
+    if (isProcessingRef.current) {
+      return;
+    }
+
+    if (!file.name.endsWith('.json')) {
+      setToast({ message: 'Please select a JSON file', type: 'error' });
+      return;
+    }
+
+    isProcessingRef.current = true;
+    setImporting(true);
+    try {
+      const result = await flowsApi.importFlow(file);
+      if (result.success) {
+        let message = `Flow "${result.flowName}" imported successfully`;
+        if (result.warnings?.length) {
+          message += ` (with ${result.warnings.length} warning${result.warnings.length > 1 ? 's' : ''})`;
+        }
+        setToast({
+          message,
+          type: 'success'
+        });
+        // Use ref to get the latest loadFlows with current state
+        loadFlowsRef.current();
+      } else {
+        setToast({ message: result.message, type: 'error' });
+      }
+    } catch (error: any) {
+      setToast({ message: error.response?.data?.message || 'Failed to import flow', type: 'error' });
+    } finally {
+      setImporting(false);
+      isProcessingRef.current = false;
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }, []);
+
+  // Native change event listener for Playwright compatibility
+  // Playwright's browser_file_upload doesn't always trigger React's synthetic onChange
+  // This listener catches native DOM events that React might miss
+  useEffect(() => {
+    const input = fileInputRef.current;
+    if (!input) return;
+
+    const handleNativeChange = (e: Event) => {
+      const target = e.target as HTMLInputElement;
+      const file = target.files?.[0];
+      if (file) {
+        processImportFile(file);
+      }
+    };
+
+    input.addEventListener('change', handleNativeChange);
+    return () => input.removeEventListener('change', handleNativeChange);
+  }, [processImportFile]);
+
+  // React synthetic event handler - kept for standard browser compatibility
+  // The isProcessingRef guard prevents double execution if native event also fires
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await processImportFile(file);
+  };
+
+  // Export handler
+  const handleExport = async (flow: WhatsAppFlow) => {
+    try {
+      const blob = await flowsApi.exportFlow(flow.id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${flow.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setToast({ message: 'Flow exported successfully', type: 'success' });
+    } catch (error) {
+      setToast({ message: 'Failed to export flow', type: 'error' });
     }
   };
 
@@ -94,6 +203,29 @@ export const FlowsPage = ({ onEditInBuilder, onOpenPlayground }: FlowsPageProps)
   return (
     <div className="h-full bg-background overflow-y-auto">
       <div className="max-w-7xl mx-auto p-8">
+        {/* Toast Notification */}
+        {toast && (
+          <div className={`fixed top-4 right-4 z-50 px-6 py-4 rounded-xl shadow-lg flex items-center gap-3 animate-slideIn ${
+            toast.type === 'success'
+              ? 'bg-green-100 border border-green-400 text-green-800'
+              : 'bg-red-100 border border-red-400 text-red-800'
+          }`}>
+            <span className="material-symbols-outlined">
+              {toast.type === 'success' ? 'check_circle' : 'error'}
+            </span>
+            <span className="font-medium">{toast.message}</span>
+          </div>
+        )}
+
+        {/* Hidden file input */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          accept=".json"
+          className="hidden"
+        />
+
         {/* Header */}
         <div className="mb-8">
           <div className="flex justify-between items-start mb-6">
@@ -118,6 +250,15 @@ export const FlowsPage = ({ onEditInBuilder, onOpenPlayground }: FlowsPageProps)
                     Sync from Meta
                   </>
                 )}
+              </button>
+              {/* Import button */}
+              <button
+                onClick={handleImportClick}
+                disabled={importing}
+                className="px-6 py-3 bg-surface border border-zinc-700 text-white rounded-xl font-medium hover:bg-zinc-800 transition-colors flex items-center gap-2 disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined">upload</span>
+                {importing ? 'Importing...' : 'Import'}
               </button>
               {onOpenPlayground && (
                 <button
@@ -259,6 +400,13 @@ export const FlowsPage = ({ onEditInBuilder, onOpenPlayground }: FlowsPageProps)
                         <span className="material-symbols-outlined text-xl">visibility</span>
                       </button>
                     )}
+                    <button
+                      onClick={() => handleExport(flow)}
+                      className="p-2 bg-zinc-800 text-green-600 hover:bg-green-900/20 rounded-lg transition-colors shadow-lg"
+                      title="Export as JSON"
+                    >
+                      <span className="material-symbols-outlined text-xl">download</span>
+                    </button>
                     <button
                       onClick={() => handleDelete(flow.id)}
                       className="p-2 bg-zinc-800 text-red-600 hover:bg-red-900/20 rounded-lg transition-colors shadow-lg"

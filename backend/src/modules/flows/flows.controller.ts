@@ -9,6 +9,11 @@ import {
   HttpCode,
   HttpStatus,
   Query,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
+  PayloadTooLargeException,
+  Res,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,18 +22,77 @@ import {
   ApiParam,
   ApiQuery,
   ApiBody,
+  ApiConsumes,
 } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import type { Response } from 'express';
 import { FlowsService, SyncResult, FlowValidationResult } from './flows.service';
 import { CreateFlowDto } from './dto/create-flow.dto';
 import { UpdateFlowDto } from './dto/update-flow.dto';
 import { CreateFlowFromPlaygroundDto } from './dto/create-flow-from-playground.dto';
 import { ValidateFlowDto } from './dto/validate-flow.dto';
+import { ExportFlowQueryDto, ExportFlowResponseDto } from './dto/export-flow.dto';
+import { ImportFlowBodyDto, ImportFlowResponseDto } from './dto/import-flow.dto';
 import { WhatsAppFlow } from '../../entities/whatsapp-flow.entity';
 
 @ApiTags('Flows')
 @Controller('api/flows')
 export class FlowsController {
   constructor(private readonly flowsService: FlowsService) {}
+
+  @Post('import')
+  @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Import flow', description: 'Imports a WhatsApp Flow from JSON file' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    description: 'Flow JSON file and import options',
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'JSON file containing flow configuration (max 5MB)',
+        },
+        name: {
+          type: 'string',
+          description: 'Optional: Override flow name',
+        },
+        createInMeta: {
+          type: 'boolean',
+          description: 'Create flow in Meta API (default: false)',
+        },
+      },
+      required: ['file'],
+    },
+  })
+  @ApiResponse({ status: 201, description: 'Flow imported successfully', type: ImportFlowResponseDto })
+  @ApiResponse({ status: 400, description: 'Invalid file or data' })
+  @ApiResponse({ status: 413, description: 'File too large (max 5MB)' })
+  async importFlow(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() bodyDto: ImportFlowBodyDto,
+  ): Promise<ImportFlowResponseDto> {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    const validMimeTypes = ['application/json', 'text/plain', 'text/json', 'application/octet-stream'];
+    const isValidMimeType = validMimeTypes.includes(file.mimetype);
+    const hasJsonExtension = file.originalname?.toLowerCase().endsWith('.json');
+
+    if (!isValidMimeType && !hasJsonExtension) {
+      throw new BadRequestException('File must be a JSON file');
+    }
+
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      throw new PayloadTooLargeException('File size exceeds 5MB limit');
+    }
+
+    return this.flowsService.importFlow(file.buffer, bodyDto);
+  }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -96,6 +160,31 @@ export class FlowsController {
   @ApiResponse({ status: 404, description: 'Flow not found' })
   async findOne(@Param('id') id: string): Promise<WhatsAppFlow> {
     return this.flowsService.findOne(id);
+  }
+
+  @Get(':id/export')
+  @ApiOperation({ summary: 'Export flow', description: 'Exports a WhatsApp Flow configuration as JSON file' })
+  @ApiParam({ name: 'id', description: 'Flow UUID', type: 'string' })
+  @ApiResponse({ status: 200, description: 'Flow exported successfully', type: ExportFlowResponseDto })
+  @ApiResponse({ status: 404, description: 'Flow not found' })
+  async exportFlow(
+    @Param('id') id: string,
+    @Query() queryDto: ExportFlowQueryDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<ExportFlowResponseDto> {
+    const result = await this.flowsService.exportFlow(id, queryDto);
+
+    const safeName = result.flow.name
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .substring(0, 50);
+    const filename = `flow-${safeName}-${Date.now()}.json`;
+
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+
+    return result;
   }
 
   @Put(':id')

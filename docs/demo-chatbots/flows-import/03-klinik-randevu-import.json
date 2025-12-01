@@ -1,0 +1,135 @@
+{
+  "version": "1.0",
+  "exportedAt": "2025-12-01T09:00:00.000Z",
+  "flow": {
+    "name": "Klinik Randevu Flow",
+    "description": "Doktor secimi ve randevu alma demo flow - 3 ekran",
+    "status": "DRAFT",
+    "categories": ["APPOINTMENT_BOOKING"],
+    "flowJson": {
+      "version": "6.0",
+      "screens": [
+        {
+          "id": "BOLUM",
+          "title": "Poliklinik",
+          "layout": {
+            "type": "SingleColumnLayout",
+            "children": [
+              { "type": "TextHeading", "text": "Poliklinik Secin" },
+              {
+                "type": "RadioButtonsGroup",
+                "name": "bolum",
+                "label": "Bolum",
+                "required": true,
+                "data-source": [
+                  { "id": "dahiliye", "title": "Dahiliye" },
+                  { "id": "goz", "title": "Goz Hastaliklari" },
+                  { "id": "kbb", "title": "KBB" },
+                  { "id": "ortopedi", "title": "Ortopedi" },
+                  { "id": "dermatoloji", "title": "Dermatoloji" }
+                ]
+              },
+              {
+                "type": "Footer",
+                "label": "Doktor Sec",
+                "on-click-action": {
+                  "name": "navigate",
+                  "next": { "type": "screen", "name": "DOKTOR" },
+                  "payload": { "bolum": "${form.bolum}" }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "DOKTOR",
+          "title": "Doktor ve Tarih",
+          "data": { "bolum": { "type": "string", "__example__": "dahiliye" } },
+          "layout": {
+            "type": "SingleColumnLayout",
+            "children": [
+              { "type": "TextHeading", "text": "Doktor ve Tarih Secin" },
+              {
+                "type": "Dropdown",
+                "name": "doktor",
+                "label": "Doktor",
+                "required": true,
+                "data-source": [
+                  { "id": "dr_ayse", "title": "Dr. Ayse Yilmaz" },
+                  { "id": "dr_mehmet", "title": "Dr. Mehmet Kaya" },
+                  { "id": "dr_fatma", "title": "Dr. Fatma Demir" }
+                ]
+              },
+              { "type": "DatePicker", "name": "tarih", "label": "Tarih", "required": true },
+              {
+                "type": "Dropdown",
+                "name": "saat",
+                "label": "Saat",
+                "required": true,
+                "data-source": [
+                  { "id": "09:00", "title": "09:00" },
+                  { "id": "10:00", "title": "10:00" },
+                  { "id": "11:00", "title": "11:00" },
+                  { "id": "14:00", "title": "14:00" },
+                  { "id": "15:00", "title": "15:00" }
+                ]
+              },
+              { "type": "TextInput", "name": "tc", "label": "TC Kimlik No", "required": true, "input-type": "text" },
+              { "type": "TextInput", "name": "ad", "label": "Ad Soyad", "required": true, "input-type": "text" },
+              { "type": "TextInput", "name": "telefon", "label": "Telefon", "required": true, "input-type": "phone" },
+              {
+                "type": "Footer",
+                "label": "Randevu Al",
+                "on-click-action": {
+                  "name": "navigate",
+                  "next": { "type": "screen", "name": "ONAY" },
+                  "payload": {
+                    "bolum": "${data.bolum}",
+                    "doktor": "${form.doktor}",
+                    "tarih": "${form.tarih}",
+                    "saat": "${form.saat}",
+                    "tc": "${form.tc}",
+                    "ad": "${form.ad}"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "ONAY",
+          "title": "Randevu Onay",
+          "terminal": true,
+          "success": true,
+          "data": {
+            "bolum": { "type": "string", "__example__": "dahiliye" },
+            "doktor": { "type": "string", "__example__": "dr_ayse" },
+            "tarih": { "type": "string", "__example__": "2025-01-18" },
+            "saat": { "type": "string", "__example__": "10:00" },
+            "tc": { "type": "string", "__example__": "12345678901" },
+            "ad": { "type": "string", "__example__": "Ali Veli" }
+          },
+          "layout": {
+            "type": "SingleColumnLayout",
+            "children": [
+              { "type": "TextHeading", "text": "Randevunuz Olusturuldu!" },
+              { "type": "TextBody", "text": "Sayin ${data.ad}, ${data.tarih} ${data.saat} icin randevunuz alindi." },
+              { "type": "TextCaption", "text": "Kimlik belgenizi getirmeyi unutmayin." },
+              {
+                "type": "Footer",
+                "label": "Tamam",
+                "on-click-action": {
+                  "name": "complete",
+                  "payload": { "bolum": "${data.bolum}", "doktor": "${data.doktor}", "tarih": "${data.tarih}", "saat": "${data.saat}" }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "endpointUri": null,
+    "isActive": false,
+    "metadata": {}
+  }
+}

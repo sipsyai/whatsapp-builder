@@ -1,0 +1,161 @@
+{
+  "version": "1.0",
+  "exportedAt": "2025-12-01T09:00:00.000Z",
+  "flow": {
+    "name": "Emlak Danismanlik Flow",
+    "description": "Ev arama ve gorusme talebi demo flow - 3 ekran",
+    "status": "DRAFT",
+    "categories": ["OTHER"],
+    "flowJson": {
+      "version": "6.0",
+      "screens": [
+        {
+          "id": "ARAMA",
+          "title": "Emlak Ara",
+          "layout": {
+            "type": "SingleColumnLayout",
+            "children": [
+              { "type": "TextHeading", "text": "Ne Ariyorsunuz?" },
+              {
+                "type": "RadioButtonsGroup",
+                "name": "islem",
+                "label": "Islem Tipi",
+                "required": true,
+                "data-source": [
+                  { "id": "satilik", "title": "Satilik" },
+                  { "id": "kiralik", "title": "Kiralik" }
+                ]
+              },
+              {
+                "type": "Dropdown",
+                "name": "tip",
+                "label": "Emlak Tipi",
+                "required": true,
+                "data-source": [
+                  { "id": "daire", "title": "Daire" },
+                  { "id": "villa", "title": "Villa" },
+                  { "id": "mustakil", "title": "Mustakil" },
+                  { "id": "isyeri", "title": "Isyeri" }
+                ]
+              },
+              {
+                "type": "Dropdown",
+                "name": "bolge",
+                "label": "Bolge",
+                "required": true,
+                "data-source": [
+                  { "id": "kadikoy", "title": "Kadikoy" },
+                  { "id": "besiktas", "title": "Besiktas" },
+                  { "id": "sisli", "title": "Sisli" },
+                  { "id": "atasehir", "title": "Atasehir" }
+                ]
+              },
+              {
+                "type": "Footer",
+                "label": "Devam",
+                "on-click-action": {
+                  "name": "navigate",
+                  "next": { "type": "screen", "name": "DETAY" },
+                  "payload": { "islem": "${form.islem}", "tip": "${form.tip}", "bolge": "${form.bolge}" }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "DETAY",
+          "title": "Detaylar",
+          "data": {
+            "islem": { "type": "string", "__example__": "satilik" },
+            "tip": { "type": "string", "__example__": "daire" },
+            "bolge": { "type": "string", "__example__": "kadikoy" }
+          },
+          "layout": {
+            "type": "SingleColumnLayout",
+            "children": [
+              { "type": "TextHeading", "text": "Detay Bilgiler" },
+              {
+                "type": "Dropdown",
+                "name": "oda",
+                "label": "Oda Sayisi",
+                "required": true,
+                "data-source": [
+                  { "id": "1+1", "title": "1+1" },
+                  { "id": "2+1", "title": "2+1" },
+                  { "id": "3+1", "title": "3+1" },
+                  { "id": "4+1", "title": "4+1" }
+                ]
+              },
+              {
+                "type": "Dropdown",
+                "name": "butce",
+                "label": "Butce",
+                "required": true,
+                "data-source": [
+                  { "id": "2m", "title": "2 Milyon TL'ye kadar" },
+                  { "id": "5m", "title": "5 Milyon TL'ye kadar" },
+                  { "id": "10m", "title": "10 Milyon TL'ye kadar" },
+                  { "id": "unlimited", "title": "Limit Yok" }
+                ]
+              },
+              { "type": "TextInput", "name": "ad", "label": "Ad Soyad", "required": true, "input-type": "text" },
+              { "type": "TextInput", "name": "telefon", "label": "Telefon", "required": true, "input-type": "phone" },
+              { "type": "TextInput", "name": "email", "label": "E-posta", "input-type": "email" },
+              {
+                "type": "Footer",
+                "label": "Talep Olustur",
+                "on-click-action": {
+                  "name": "navigate",
+                  "next": { "type": "screen", "name": "ONAY" },
+                  "payload": {
+                    "islem": "${data.islem}",
+                    "tip": "${data.tip}",
+                    "bolge": "${data.bolge}",
+                    "oda": "${form.oda}",
+                    "butce": "${form.butce}",
+                    "ad": "${form.ad}",
+                    "telefon": "${form.telefon}"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "ONAY",
+          "title": "Talep Onay",
+          "terminal": true,
+          "success": true,
+          "data": {
+            "islem": { "type": "string", "__example__": "satilik" },
+            "tip": { "type": "string", "__example__": "daire" },
+            "bolge": { "type": "string", "__example__": "kadikoy" },
+            "oda": { "type": "string", "__example__": "3+1" },
+            "butce": { "type": "string", "__example__": "5m" },
+            "ad": { "type": "string", "__example__": "Ali" },
+            "telefon": { "type": "string", "__example__": "05551234567" }
+          },
+          "layout": {
+            "type": "SingleColumnLayout",
+            "children": [
+              { "type": "TextHeading", "text": "Talebiniz Alindi!" },
+              { "type": "TextBody", "text": "Sayin ${data.ad}, ${data.bolge} bolgesinde ${data.oda} ${data.tip} talebiniz olusturuldu." },
+              { "type": "TextCaption", "text": "Danismanlarimiz en kisa surede sizinle iletisime gececektir." },
+              {
+                "type": "Footer",
+                "label": "Tamam",
+                "on-click-action": {
+                  "name": "complete",
+                  "payload": { "islem": "${data.islem}", "tip": "${data.tip}", "bolge": "${data.bolge}", "oda": "${data.oda}" }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "endpointUri": null,
+    "isActive": false,
+    "metadata": {}
+  }
+}

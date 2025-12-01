@@ -1,0 +1,137 @@
+{
+  "version": "1.0",
+  "exportedAt": "2025-12-01T09:00:00.000Z",
+  "flow": {
+    "name": "Restoran Rezervasyon Flow",
+    "description": "Masa rezervasyonu demo flow - 3 ekran",
+    "status": "DRAFT",
+    "categories": ["APPOINTMENT_BOOKING"],
+    "flowJson": {
+      "version": "6.0",
+      "screens": [
+        {
+          "id": "REZERVASYON",
+          "title": "Rezervasyon",
+          "layout": {
+            "type": "SingleColumnLayout",
+            "children": [
+              { "type": "TextHeading", "text": "Masa Rezervasyonu" },
+              { "type": "TextBody", "text": "Tarih ve kisi sayisini secin." },
+              { "type": "DatePicker", "name": "tarih", "label": "Rezervasyon Tarihi", "required": true },
+              {
+                "type": "Dropdown",
+                "name": "kisi",
+                "label": "Kisi Sayisi",
+                "required": true,
+                "data-source": [
+                  { "id": "2", "title": "2 Kisi" },
+                  { "id": "4", "title": "4 Kisi" },
+                  { "id": "6", "title": "6 Kisi" },
+                  { "id": "8", "title": "8 Kisi" }
+                ]
+              },
+              {
+                "type": "Dropdown",
+                "name": "saat",
+                "label": "Saat",
+                "required": true,
+                "data-source": [
+                  { "id": "12:00", "title": "12:00 Ogle" },
+                  { "id": "13:00", "title": "13:00 Ogle" },
+                  { "id": "19:00", "title": "19:00 Aksam" },
+                  { "id": "20:00", "title": "20:00 Aksam" },
+                  { "id": "21:00", "title": "21:00 Aksam" }
+                ]
+              },
+              {
+                "type": "Footer",
+                "label": "Devam",
+                "on-click-action": {
+                  "name": "navigate",
+                  "next": { "type": "screen", "name": "DETAY" },
+                  "payload": { "tarih": "${form.tarih}", "kisi": "${form.kisi}", "saat": "${form.saat}" }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "DETAY",
+          "title": "Detaylar",
+          "data": {
+            "tarih": { "type": "string", "__example__": "2025-01-20" },
+            "kisi": { "type": "string", "__example__": "4" },
+            "saat": { "type": "string", "__example__": "19:00" }
+          },
+          "layout": {
+            "type": "SingleColumnLayout",
+            "children": [
+              { "type": "TextHeading", "text": "Iletisim Bilgileri" },
+              { "type": "TextInput", "name": "ad", "label": "Ad Soyad", "required": true, "input-type": "text" },
+              { "type": "TextInput", "name": "telefon", "label": "Telefon", "required": true, "input-type": "phone" },
+              {
+                "type": "Dropdown",
+                "name": "bolum",
+                "label": "Tercih",
+                "data-source": [
+                  { "id": "ic", "title": "Ic Mekan" },
+                  { "id": "bahce", "title": "Bahce" },
+                  { "id": "teras", "title": "Teras" }
+                ]
+              },
+              { "type": "TextArea", "name": "not", "label": "Ozel Istek" },
+              {
+                "type": "Footer",
+                "label": "Onayla",
+                "on-click-action": {
+                  "name": "navigate",
+                  "next": { "type": "screen", "name": "ONAY" },
+                  "payload": {
+                    "tarih": "${data.tarih}",
+                    "kisi": "${data.kisi}",
+                    "saat": "${data.saat}",
+                    "ad": "${form.ad}",
+                    "telefon": "${form.telefon}",
+                    "bolum": "${form.bolum}"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "ONAY",
+          "title": "Onay",
+          "terminal": true,
+          "success": true,
+          "data": {
+            "tarih": { "type": "string", "__example__": "2025-01-20" },
+            "kisi": { "type": "string", "__example__": "4" },
+            "saat": { "type": "string", "__example__": "19:00" },
+            "ad": { "type": "string", "__example__": "Ahmet" },
+            "telefon": { "type": "string", "__example__": "05551234567" },
+            "bolum": { "type": "string", "__example__": "bahce" }
+          },
+          "layout": {
+            "type": "SingleColumnLayout",
+            "children": [
+              { "type": "TextHeading", "text": "Rezervasyonunuz Alindi!" },
+              { "type": "TextBody", "text": "Sayin ${data.ad}, ${data.tarih} ${data.saat} icin ${data.kisi} kisilik rezervasyonunuz olusturuldu." },
+              {
+                "type": "Footer",
+                "label": "Tamam",
+                "on-click-action": {
+                  "name": "complete",
+                  "payload": { "tarih": "${data.tarih}", "saat": "${data.saat}", "kisi": "${data.kisi}", "ad": "${data.ad}" }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "endpointUri": null,
+    "isActive": false,
+    "metadata": {}
+  }
+}

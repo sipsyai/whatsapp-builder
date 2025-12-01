@@ -7,6 +7,8 @@ import { CreateFlowDto } from './dto/create-flow.dto';
 import { UpdateFlowDto } from './dto/update-flow.dto';
 import { CreateFlowFromPlaygroundDto } from './dto/create-flow-from-playground.dto';
 import { ValidateFlowDto } from './dto/validate-flow.dto';
+import { ExportFlowQueryDto, ExportedFlowData } from './dto/export-flow.dto';
+import { ImportFlowBodyDto, ImportFlowResponseDto } from './dto/import-flow.dto';
 import { MetaFlowItem } from '../whatsapp/interfaces/flow.interface';
 
 export interface SyncResult {
@@ -778,6 +780,168 @@ export class FlowsService {
       }
 
       throw error;
+    }
+  }
+
+  /**
+   * Export a Flow to JSON format for backup/sharing
+   */
+  async exportFlow(id: string, options: ExportFlowQueryDto): Promise<ExportedFlowData> {
+    const flow = await this.flowRepo.findOne({
+      where: { id },
+      relations: ['dataSource'],
+    });
+
+    if (!flow) {
+      throw new NotFoundException(`Flow ${id} not found`);
+    }
+
+    this.logger.log(`Exporting flow: ${id}`);
+
+    const exportData: ExportedFlowData = {
+      version: '1.0',
+      exportedAt: new Date().toISOString(),
+      flow: {
+        name: flow.name,
+        description: flow.description,
+        status: flow.status,
+        categories: flow.categories,
+        flowJson: flow.flowJson,
+        endpointUri: flow.endpointUri,
+        isActive: flow.isActive,
+        ...(options.includeMetadata && flow.metadata ? { metadata: flow.metadata } : {}),
+      },
+    };
+
+    // DataSource bilgisini ekle (varsa)
+    if (flow.dataSource) {
+      exportData.dataSource = {
+        id: flow.dataSource.id,
+        name: flow.dataSource.name,
+        type: flow.dataSource.type,
+      };
+    }
+
+    this.logger.log(`Flow exported successfully: ${id}`);
+
+    return exportData;
+  }
+
+  /**
+   * Import a Flow from JSON file
+   */
+  async importFlow(fileBuffer: Buffer, options: ImportFlowBodyDto): Promise<ImportFlowResponseDto> {
+    const warnings: string[] = [];
+
+    // Parse JSON
+    let importData: any;
+    try {
+      importData = JSON.parse(fileBuffer.toString('utf-8'));
+    } catch (error) {
+      throw new BadRequestException('Invalid JSON file');
+    }
+
+    // Validate structure
+    if (!importData.flow) {
+      throw new BadRequestException('Invalid export format: missing "flow" property');
+    }
+
+    const flowData = importData.flow;
+
+    // Validate required fields
+    if (!flowData.name || !flowData.flowJson) {
+      throw new BadRequestException('Invalid export format: missing required flow properties (name, flowJson)');
+    }
+
+    this.logger.log(`Importing flow: ${flowData.name}`);
+
+    // Generate unique name
+    const baseName = options.name || flowData.name;
+    const uniqueName = await this.generateUniqueName(baseName);
+
+    if (uniqueName !== baseName) {
+      warnings.push(`Flow renamed to "${uniqueName}" to avoid duplicate names`);
+    }
+
+    // Normalize flow JSON if needed
+    let normalizedFlowJson = flowData.flowJson;
+    try {
+      normalizedFlowJson = this.validateAndNormalizePlaygroundJson(flowData.flowJson);
+    } catch (error) {
+      this.logger.warn(`Could not normalize flow JSON: ${error.message}`);
+      // Continue with original flowJson if normalization fails
+    }
+
+    // Create flow in local DB (without WhatsApp API by default)
+    const newFlow = this.flowRepo.create({
+      name: uniqueName,
+      description: flowData.description || '',
+      categories: flowData.categories || [WhatsAppFlowCategory.OTHER],
+      flowJson: normalizedFlowJson,
+      status: WhatsAppFlowStatus.DRAFT, // Always start as draft
+      isActive: false, // Don't auto-activate
+      metadata: {
+        ...flowData.metadata,
+        imported_at: new Date().toISOString(),
+        imported_from_version: importData.version,
+      },
+    });
+
+    await this.flowRepo.save(newFlow);
+
+    this.logger.log(`Flow imported to local DB: ${newFlow.id}`);
+
+    // Optionally create in Meta API
+    let whatsappFlowId: string | undefined;
+    if (options.createInMeta) {
+      try {
+        const whatsappResponse = await this.whatsappFlowService.createFlow({
+          name: uniqueName,
+          categories: newFlow.categories,
+          flowJson: normalizedFlowJson,
+          endpointUri: flowData.endpointUri,
+        });
+
+        whatsappFlowId = whatsappResponse.id;
+        newFlow.whatsappFlowId = whatsappFlowId;
+        await this.flowRepo.save(newFlow);
+
+        this.logger.log(`Flow created in Meta API: ${whatsappFlowId}`);
+      } catch (error) {
+        warnings.push(`Failed to create in Meta API: ${error.message}`);
+        this.logger.error(`Failed to create flow in Meta API: ${error.message}`);
+      }
+    }
+
+    return {
+      success: true,
+      message: 'Flow imported successfully',
+      flowId: newFlow.id,
+      flowName: newFlow.name,
+      importedAt: new Date().toISOString(),
+      warnings: warnings.length > 0 ? warnings : undefined,
+      whatsappFlowId,
+    };
+  }
+
+  /**
+   * Generate a unique flow name by appending (Copy), (Copy 2), etc.
+   */
+  private async generateUniqueName(baseName: string): Promise<string> {
+    let name = baseName;
+    let counter = 1;
+
+    while (true) {
+      const existing = await this.flowRepo.findOne({
+        where: { name },
+      });
+
+      if (!existing) {
+        return name;
+      }
+
+      counter++;
+      name = `${baseName} (Copy${counter > 2 ? ' ' + counter : ''})`;
     }
   }
 }

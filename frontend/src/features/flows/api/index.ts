@@ -113,6 +113,22 @@ export type SyncResult = {
   flows: WhatsAppFlow[];
 };
 
+// Import/Export Types
+export interface ImportFlowResponse {
+  success: boolean;
+  message: string;
+  flowId?: string;
+  flowName?: string;
+  importedAt: string;
+  warnings?: string[];
+  whatsappFlowId?: string;
+}
+
+export interface ImportFlowOptions {
+  name?: string;
+  createInMeta?: boolean;
+}
+
 export const flowsApi = {
   // Get all Flows
   async getAll(): Promise<WhatsAppFlow[]> {
@@ -172,4 +188,63 @@ export const flowsApi = {
     const response = await client.post('/api/flows/validate', data);
     return response.data;
   },
+
+  // Export Flow as JSON file
+  async exportFlow(id: string, includeMetadata: boolean = true): Promise<Blob> {
+    const response = await client.get(`/api/flows/${id}/export`, {
+      params: { includeMetadata },
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  // Import Flow from JSON file
+  async importFlow(file: File, options?: ImportFlowOptions): Promise<ImportFlowResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    if (options?.name) {
+      formData.append('name', options.name);
+    }
+    if (options?.createInMeta !== undefined) {
+      formData.append('createInMeta', String(options.createInMeta));
+    }
+
+    // IMPORTANT: Set Content-Type to undefined to let browser set multipart/form-data with boundary
+    const response = await client.post('/api/flows/import', formData, {
+      headers: {
+        'Content-Type': undefined,
+      },
+    });
+    return response.data;
+  },
 };
+
+// Standalone export functions (for direct imports)
+export async function exportFlow(id: string, includeMetadata: boolean = true): Promise<Blob> {
+  const response = await client.get(`/api/flows/${id}/export`, {
+    params: { includeMetadata },
+    responseType: 'blob',
+  });
+  return response.data;
+}
+
+export async function importFlow(file: File, options?: ImportFlowOptions): Promise<ImportFlowResponse> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  if (options?.name) {
+    formData.append('name', options.name);
+  }
+  if (options?.createInMeta !== undefined) {
+    formData.append('createInMeta', String(options.createInMeta));
+  }
+
+  // IMPORTANT: Set Content-Type to undefined to let browser set multipart/form-data with boundary
+  const response = await client.post('/api/flows/import', formData, {
+    headers: {
+      'Content-Type': undefined,
+    },
+  });
+  return response.data;
+}
