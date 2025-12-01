@@ -20,6 +20,8 @@ import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { WebSocketModule } from './modules/websocket/websocket.module';
 import { HealthModule } from './modules/health/health.module';
 import { DataSourcesModule } from './modules/data-sources/data-sources.module';
+import { GoogleOAuthModule } from './modules/google-oauth/google-oauth.module';
+import { CalendarModule } from './modules/calendar/calendar.module';
 
 @Module({
   imports: [
@@ -46,6 +48,8 @@ import { DataSourcesModule } from './modules/data-sources/data-sources.module';
     WebhooksModule,
     HealthModule,
     DataSourcesModule,
+    GoogleOAuthModule,
+    CalendarModule,
   ],
   controllers: [AppController],
   providers: [

@@ -15,6 +15,7 @@ import { WhatsAppModule } from '../whatsapp/whatsapp.module';
 import { MessagesModule } from '../messages/messages.module';
 import { WebSocketModule } from '../websocket/websocket.module';
 import { DataSourcesModule } from '../data-sources/data-sources.module';
+import { GoogleOAuthModule } from '../google-oauth/google-oauth.module';
 import { ChatBot } from '../../entities/chatbot.entity';
 import { ConversationContext } from '../../entities/conversation-context.entity';
 import { Conversation } from '../../entities/conversation.entity';
@@ -36,6 +37,7 @@ import { Message } from '../../entities/message.entity';
     MessagesModule,
     WebSocketModule,
     DataSourcesModule,
+    GoogleOAuthModule,
   ],
   controllers: [ChatBotsController, ChatBotWebhookController, SessionsController],
   providers: [

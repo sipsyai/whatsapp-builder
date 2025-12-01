@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Not, IsNull } from 'typeorm';
 import { WhatsAppFlow, WhatsAppFlowStatus, WhatsAppFlowCategory } from '../../entities/whatsapp-flow.entity';
 import { WhatsAppFlowService } from '../whatsapp/services/whatsapp-flow.service';
 import { CreateFlowDto } from './dto/create-flow.dto';
@@ -318,8 +318,26 @@ export class FlowsService {
   async publish(id: string): Promise<WhatsAppFlow> {
     const flow = await this.findOne(id);
 
+    // If flow doesn't have a WhatsApp ID, create it in Meta API first
     if (!flow.whatsappFlowId) {
-      throw new Error('Flow has no WhatsApp ID');
+      this.logger.log(`Flow ${id} has no WhatsApp ID, creating in Meta API first...`);
+
+      try {
+        const whatsappResponse = await this.whatsappFlowService.createFlow({
+          name: flow.name,
+          categories: flow.categories || ['OTHER'],
+          flowJson: flow.flowJson,
+          endpointUri: flow.endpointUri,
+        });
+
+        flow.whatsappFlowId = whatsappResponse.id;
+        await this.flowRepo.save(flow);
+
+        this.logger.log(`Flow created in Meta API with ID: ${whatsappResponse.id}`);
+      } catch (error) {
+        this.logger.error(`Failed to create flow in Meta API: ${error.message}`);
+        throw new Error(`Failed to create flow in Meta API: ${error.message}`);
+      }
     }
 
     this.logger.log(`Publishing flow: ${id}`);
@@ -418,10 +436,12 @@ export class FlowsService {
    * Get active Flows (for use in ChatBot nodes)
    */
   async getActiveFlows(): Promise<WhatsAppFlow[]> {
+    // Return all published flows that have a WhatsApp Flow ID (synced to Meta)
+    // Removed isActive check - any published flow should be selectable in chatbot
     return this.flowRepo.find({
       where: {
-        isActive: true,
         status: WhatsAppFlowStatus.PUBLISHED,
+        whatsappFlowId: Not(IsNull()),
       },
       order: { name: 'ASC' },
     });

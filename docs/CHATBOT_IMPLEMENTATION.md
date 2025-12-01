@@ -2875,6 +2875,11 @@ if (conditionOp === 'greater' || conditionOp === '>') {
 - Variable Management
 - Module Dependencies
 - Database Migration
+- Custom DTO Validation (IsStringOrNumber validator)
+- Multi-Condition Groups (ConditionGroupDto)
+- LIST/BUTTONS ID-based selection (kritik fix)
+
+**Detayli Backend Dokumantasyonu:** [docs/chatbot-builder/07-backend-execution.md](chatbot-builder/07-backend-execution.md)
 
 ### Frontend Gerekli ⚠️
 - Button/List Node UI iyileştirmeleri
@@ -2896,6 +2901,6 @@ if (conditionOp === 'greater' || conditionOp === '>') {
 
 ---
 
-**Son Güncelleme:** 24 Kasım 2024
+**Son Güncelleme:** 1 Aralık 2024
 **Versiyon:** 1.0
 **Yazar:** Backend Team

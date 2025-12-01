@@ -41,7 +41,40 @@ import { ImportChatbotBodyDto, ImportChatbotResponseDto } from './dto/import-cha
 
 @ApiTags('Chatbots')
 @Controller('api/chatbots')
-@UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+@UsePipes(new ValidationPipe({
+  transform: true,
+  whitelist: true,
+  transformOptions: {
+    enableImplicitConversion: false,  // Keep false to avoid unexpected conversions
+    exposeDefaultValues: true,        // Expose default values in class
+  },
+  exceptionFactory: (errors) => {
+    // Recursive function to flatten nested validation errors
+    const flattenErrors = (err: any, path = ''): any[] => {
+      const currentPath = path ? `${path}.${err.property}` : err.property;
+      const results: any[] = [];
+
+      if (err.constraints) {
+        results.push({
+          path: currentPath,
+          constraints: Object.values(err.constraints),
+          value: err.value,
+        });
+      }
+
+      if (err.children && err.children.length > 0) {
+        for (const child of err.children) {
+          results.push(...flattenErrors(child, currentPath));
+        }
+      }
+
+      return results;
+    };
+
+    const allErrors = errors.flatMap(e => flattenErrors(e));
+    return new BadRequestException({ message: 'Validation failed', errors: allErrors });
+  }
+}))
 export class ChatBotsController {
   constructor(
     private readonly chatbotsService: ChatBotsService,

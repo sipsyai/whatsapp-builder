@@ -138,7 +138,31 @@ WhatsApp Interactive List formatında seçenekler sunar.
 | `contains` | İçerir |
 | `does not contain` | İçermez |
 
-**Önemli**: Condition Node'dan önce en az bir Question Node olmalı ve variable tanımlanmış olmalıdır.
+### Multi-Condition Support (Condition Groups)
+
+Condition node artik coklu kosul gruplarini desteklemektedir. Birden fazla kosulu AND veya OR ile birlestirerek karmasik mantik kurabilirsiniz.
+
+```json
+{
+  "conditionGroup": {
+    "conditions": [
+      { "id": "c1", "variable": "age", "operator": "gt", "value": "18" },
+      { "id": "c2", "variable": "country", "operator": "eq", "value": "TR" }
+    ],
+    "logicalOperator": "AND"
+  }
+}
+```
+
+Detaylar icin [Backend Execution Details](07-backend-execution.md) dokumanina bakin.
+
+**Onemli**: Condition Node'dan once en az bir Question Node olmali ve variable tanimlanmis olmalidir.
+
+### BUTTONS/LIST Selection Davranisi
+
+BUTTONS veya LIST sorularinda kullanici secim yaptiginda, backend **ID** degerini kaydeder (title degil). Bu sayede condition kontrollerinde ID karsilastirmasi yapilabilir.
+
+Ornek: Kullanici "Berber Randevu" butonuna tikladiginda `selected_service` variable'ina `"berber"` (button ID) kaydedilir, `"Berber Randevu"` degil.
 
 ---
 

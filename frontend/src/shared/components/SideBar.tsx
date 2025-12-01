@@ -13,7 +13,9 @@ export const SideBar: React.FC<SideBarProps> = ({ currentView, onNavigate }) => 
         { id: 'chat', label: 'Chat', icon: 'chat' },
         { id: 'users', label: 'Users', icon: 'group' },
         { id: 'flows', label: 'WhatsApp Flows', icon: 'check_box' },
+        { id: 'calendar', label: 'Calendar', icon: 'calendar_month' },
         { id: 'data-sources', label: 'Data Sources', icon: 'database' },
+        { id: 'integrations', label: 'Integrations', icon: 'extension' },
         { id: 'settings', label: 'Settings', icon: 'settings' },
     ];
 

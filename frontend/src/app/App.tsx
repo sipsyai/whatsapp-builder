@@ -11,6 +11,8 @@ import { SessionsListPage, SessionDetailPage } from "../features/sessions/compon
 import { FlowBuilderPage } from "../features/flow-builder/FlowBuilderPage";
 import { FlowPlaygroundPage } from "../features/flow-builder/FlowPlaygroundPage";
 import { DataSourcesPage } from "../features/data-sources";
+import { IntegrationsPage } from "../features/integrations";
+import { CalendarPage } from "../features/calendar";
 import { SideBar } from "../shared/components/SideBar";
 import { LoginPage } from "../features/auth/components/LoginPage";
 import { useAuth } from "../contexts/AuthContext";
@@ -20,7 +22,7 @@ import type { ChatBot } from "../features/chatbots/api";
 import type { WhatsAppFlow } from "../features/flows/api";
 
 // Extend ViewState type locally since we can't easily edit shared types without seeing them
-type ExtendedViewState = ViewState | "chatbots" | "users" | "flows" | "flowBuilder" | "playground" | "sessions" | "sessionDetail" | "data-sources";
+type ExtendedViewState = ViewState | "chatbots" | "users" | "flows" | "flowBuilder" | "playground" | "sessions" | "sessionDetail" | "data-sources" | "integrations" | "calendar";
 
 // Parse URL hash to determine initial view state
 const parseUrlHash = (): { view: ExtendedViewState; sessionId?: string } => {
@@ -44,6 +46,8 @@ const parseUrlHash = (): { view: ExtendedViewState; sessionId?: string } => {
     'settings': 'settings',
     'builder': 'builder',
     'data-sources': 'data-sources',
+    'integrations': 'integrations',
+    'calendar': 'calendar',
   };
 
   return { view: viewMap[hash] || "chatbots" };
@@ -360,6 +364,8 @@ const App = () => {
           />}
           {view === "settings" && <WhatsappConfigPage />}
           {view === "data-sources" && <DataSourcesPage />}
+          {view === "integrations" && <IntegrationsPage />}
+          {view === "calendar" && <CalendarPage />}
         </div>
       </div>
     </ReactFlowProvider>

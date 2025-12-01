@@ -19,6 +19,7 @@ import { SessionHistoryService } from './session-history.service';
 import { SessionGateway } from '../../websocket/session.gateway';
 import { RestApiExecutorService } from './rest-api-executor.service';
 import { DataSourcesService } from '../../data-sources/data-sources.service';
+import { GoogleOAuthService } from '../../google-oauth/google-oauth.service';
 
 @Injectable()
 export class ChatBotExecutionService {
@@ -44,6 +45,7 @@ export class ChatBotExecutionService {
     private readonly restApiExecutor: RestApiExecutorService,
     private readonly dataSourcesService: DataSourcesService,
     private readonly configService: ConfigService,
+    private readonly googleOAuthService: GoogleOAuthService,
   ) {}
 
   /**
@@ -83,12 +85,29 @@ export class ChatBotExecutionService {
 
     this.logger.log(`Found chatbot ${chatbot.id} with START node ${startNode.id}`);
 
+    // Prepare initial variables with OAuth tokens if available
+    const initialVariables: Record<string, any> = {};
+
+    // Try to inject Google OAuth token if chatbot has an owner
+    if (chatbot.userId) {
+      try {
+        const googleAccessToken = await this.googleOAuthService.getValidAccessToken(chatbot.userId);
+        if (googleAccessToken) {
+          initialVariables['google_access_token'] = googleAccessToken;
+          this.logger.log(`Injected Google OAuth token for chatbot owner ${chatbot.userId}`);
+        }
+      } catch (error) {
+        this.logger.debug(`No Google OAuth token available for user ${chatbot.userId}: ${error.message}`);
+        // Not an error - user may not have connected Google Calendar
+      }
+    }
+
     // Create conversation context
     const context = this.contextRepo.create({
       conversationId,
       chatbotId: chatbot.id,
       currentNodeId: startNode.id,
-      variables: {},
+      variables: initialVariables,
       nodeHistory: [],
       isActive: true,
       status: 'running',
@@ -1053,6 +1072,10 @@ export class ChatBotExecutionService {
       throw new Error('REST API URL is required');
     }
 
+    // Refresh Google OAuth token if needed before API call
+    // This ensures the token is fresh for long-running chatbot sessions
+    await this.refreshGoogleTokenIfNeeded(context);
+
     const result = await this.restApiExecutor.execute(
       {
         url: apiUrl,
@@ -1283,10 +1306,21 @@ export class ChatBotExecutionService {
     }
 
     // Save user response to variables
-    context.variables[variable] = userMessage;
+    // For LIST questions, save the row ID instead of the display text
+    // For BUTTONS questions, save the button ID instead of the display text
+    const questionType = currentNode.data?.questionType;
+    let valueToSave = userMessage;
+
+    if (questionType === QuestionType.LIST && listRowId) {
+      valueToSave = listRowId;
+    } else if (questionType === QuestionType.BUTTONS && buttonId) {
+      valueToSave = buttonId;
+    }
+
+    context.variables[variable] = valueToSave;
     delete context.variables['__awaiting_variable__'];
 
-    this.logger.log(`Saved response to variable ${variable}: ${userMessage}`);
+    this.logger.log(`Saved response to variable ${variable}: ${valueToSave}`);
 
     // Add current node to history
     context.nodeHistory.push(context.currentNodeId);
@@ -1294,8 +1328,7 @@ export class ChatBotExecutionService {
     // Determine which edge to follow based on question type
     let sourceHandle: string | undefined;
 
-    const questionType = currentNode.data?.questionType;
-
+    // questionType already declared above, reuse it
     if (questionType === QuestionType.BUTTONS) {
       if (buttonId) {
         // User clicked a button - use the button ID
@@ -2016,5 +2049,39 @@ export class ChatBotExecutionService {
       await this.contextRepo.save(context);
     }
   }
+
+  /**
+   * Refresh Google OAuth token if needed and update context variables
+   * This ensures the token is always fresh for API calls
+   */
+  private async refreshGoogleTokenIfNeeded(context: ConversationContext): Promise<void> {
+    // Only refresh if we have a google_access_token variable
+    if (!context.variables['google_access_token']) {
+      return;
+    }
+
+    // Get chatbot to find owner
+    const chatbot = context.chatbot || await this.chatbotRepo.findOne({
+      where: { id: context.chatbotId },
+    });
+
+    if (!chatbot?.userId) {
+      return;
+    }
+
+    try {
+      // getValidAccessToken will refresh the token if expired
+      const freshToken = await this.googleOAuthService.getValidAccessToken(chatbot.userId);
+      if (freshToken && freshToken !== context.variables['google_access_token']) {
+        context.variables['google_access_token'] = freshToken;
+        await this.contextRepo.save(context);
+        this.logger.debug(`Refreshed Google OAuth token for context ${context.id}`);
+      }
+    } catch (error) {
+      this.logger.warn(`Failed to refresh Google OAuth token: ${error.message}`);
+      // Remove the stale token to prevent API errors
+      delete context.variables['google_access_token'];
+      await this.contextRepo.save(context);
+    }
+  }
 }
-// trigger recompile Wed Nov 26 15:11:12 UTC 2025

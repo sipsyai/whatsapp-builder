@@ -11,6 +11,11 @@ export default () => ({
     encryptionPrivateKey: process.env.WHATSAPP_PRIVATE_KEY,
     encryptionPublicKey: process.env.WHATSAPP_PUBLIC_KEY,
   },
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID || '',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+    redirectUri: process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/api/google-oauth/callback',
+  },
   app: {
     port: parseInt(process.env.PORT || '3000', 10),
     environment: process.env.NODE_ENV || 'development',

@@ -36,10 +36,10 @@ export class InteractiveMessageService {
         text: dto.bodyText,
       },
       action: {
-        buttons: dto.buttons.map((button) => ({
+        buttons: dto.buttons.map((button, index) => ({
           type: 'reply',
           reply: {
-            id: button.id,
+            id: button.id ?? `btn_${index}`,
             title: button.title,
           },
         })),
@@ -101,10 +101,10 @@ export class InteractiveMessageService {
       },
       action: {
         button: dto.listButtonText,
-        sections: dto.sections.map((section) => ({
+        sections: dto.sections.map((section, sectionIndex) => ({
           title: section.title,
-          rows: section.rows.map((row) => ({
-            id: row.id,
+          rows: section.rows.map((row, rowIndex) => ({
+            id: row.id ?? `row_${sectionIndex}_${rowIndex}`,
             title: row.title,
             ...(row.description && { description: row.description }),
           })),

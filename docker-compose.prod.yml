@@ -77,6 +77,11 @@ services:
       WHATSAPP_FLOW_PRIVATE_KEY: ${WHATSAPP_FLOW_PRIVATE_KEY:-}
       STRAPI_BASE_URL: ${STRAPI_BASE_URL:-}
       STRAPI_API_TOKEN: ${STRAPI_API_TOKEN:-}
+
+      # Google OAuth
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-}
     depends_on:
       postgres:
         condition: service_healthy

@@ -9,3 +9,14 @@ export {
   DataSourceConnection,
   HttpMethod,
 } from './data-source-connection.entity';
+export { UserOAuthToken, OAuthProvider } from './user-oauth-token.entity';
+export { Calendar } from './calendar.entity';
+export {
+  CalendarShare,
+  CalendarPermission,
+  InviteStatus,
+} from './calendar-share.entity';
+export {
+  Appointment,
+  AppointmentStatus,
+} from './appointment.entity';

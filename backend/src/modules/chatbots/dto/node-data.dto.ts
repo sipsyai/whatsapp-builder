@@ -5,6 +5,7 @@ import {
   IsEnum,
   IsBoolean,
   ValidateNested,
+  IsIn,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -23,6 +24,37 @@ export enum QuestionType {
   TEXT = 'text',
   BUTTONS = 'buttons',
   LIST = 'list',
+}
+
+// Condition Group DTOs for multi-condition support
+export class ConditionDto {
+  @ApiProperty({ description: 'Unique condition identifier', example: 'cond_1' })
+  @IsString()
+  id: string;
+
+  @ApiProperty({ description: 'Variable name for condition', example: 'user_age' })
+  @IsString()
+  variable: string;
+
+  @ApiProperty({ description: 'Condition operator', example: 'eq' })
+  @IsString()
+  operator: string;
+
+  @ApiProperty({ description: 'Value to compare against', example: '18' })
+  @IsString()
+  value: string;
+}
+
+export class ConditionGroupDto {
+  @ApiProperty({ description: 'Array of conditions', type: [ConditionDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ConditionDto)
+  conditions: ConditionDto[];
+
+  @ApiProperty({ description: 'Logical operator between conditions', enum: ['AND', 'OR'] })
+  @IsIn(['AND', 'OR'])
+  logicalOperator: 'AND' | 'OR';
 }
 
 export class NodeDataDto {
@@ -65,6 +97,12 @@ export class NodeDataDto {
   @IsOptional()
   @IsString()
   conditionVal?: string;
+
+  @ApiPropertyOptional({ description: 'Condition group for multi-condition support', type: ConditionGroupDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ConditionGroupDto)
+  conditionGroup?: ConditionGroupDto;
 
   @ApiPropertyOptional({ description: 'Type of message (text, image, document)', example: 'text' })
   @IsOptional()
