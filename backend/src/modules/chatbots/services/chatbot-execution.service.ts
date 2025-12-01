@@ -229,6 +229,9 @@ export class ChatBotExecutionService {
       case NodeDataType.REST_API:
         await this.processRestApiNode(context, currentNode);
         break;
+      case NodeDataType.GOOGLE_CALENDAR:
+        await this.processGoogleCalendarNode(context, currentNode);
+        break;
       default:
         this.logger.error(`Unknown node type: ${nodeType}`);
         throw new Error(`Unknown node type: ${nodeType}`);
@@ -616,6 +619,86 @@ export class ChatBotExecutionService {
   }
 
   /**
+   * Evaluate a single condition against context variables
+   */
+  private evaluateSingleCondition(
+    variables: Record<string, any>,
+    conditionVar: string,
+    conditionOp: string,
+    conditionVal: string,
+  ): boolean {
+    const varValue = variables[conditionVar];
+
+    switch (conditionOp) {
+      case '==':
+      case 'eq':
+      case 'equals':
+        return String(varValue) === String(conditionVal);
+      case '!=':
+      case 'neq':
+      case 'not_equals':
+        return String(varValue) !== String(conditionVal);
+      case 'contains':
+        return String(varValue).toLowerCase().includes(String(conditionVal).toLowerCase());
+      case 'not_contains':
+        return !String(varValue).toLowerCase().includes(String(conditionVal).toLowerCase());
+      case '>':
+      case 'gt':
+      case 'greater':
+        return Number(varValue) > Number(conditionVal);
+      case '<':
+      case 'lt':
+      case 'less':
+        return Number(varValue) < Number(conditionVal);
+      case '>=':
+      case 'gte':
+      case 'greater_or_equal':
+        return Number(varValue) >= Number(conditionVal);
+      case '<=':
+      case 'lte':
+      case 'less_or_equal':
+        return Number(varValue) <= Number(conditionVal);
+      case 'is_empty':
+        return varValue === undefined || varValue === null || varValue === '';
+      case 'is_not_empty':
+        return varValue !== undefined && varValue !== null && varValue !== '';
+      default:
+        this.logger.error(`Unknown condition operator: ${conditionOp}`);
+        return false;
+    }
+  }
+
+  /**
+   * Evaluate a condition group with multiple conditions and AND/OR logic
+   */
+  private evaluateConditionGroup(
+    variables: Record<string, any>,
+    conditionGroup: { conditions: Array<{ variable: string; operator: string; value: string }>; logicalOperator: 'AND' | 'OR' },
+  ): boolean {
+    const { conditions, logicalOperator } = conditionGroup;
+
+    if (!conditions || conditions.length === 0) {
+      this.logger.warn('Condition group has no conditions, defaulting to false');
+      return false;
+    }
+
+    const results = conditions.map((condition) =>
+      this.evaluateSingleCondition(
+        variables,
+        condition.variable,
+        condition.operator,
+        condition.value,
+      ),
+    );
+
+    if (logicalOperator === 'AND') {
+      return results.every((result) => result);
+    } else {
+      return results.some((result) => result);
+    }
+  }
+
+  /**
    * Process CONDITION node - evaluate condition and route accordingly
    */
   private async processConditionNode(
@@ -624,61 +707,36 @@ export class ChatBotExecutionService {
   ): Promise<void> {
     this.logger.log(`Processing CONDITION node ${node.id}`);
 
-    const conditionVar = node.data?.conditionVar;
-    const conditionOp = node.data?.conditionOp;
-    const conditionVal = node.data?.conditionVal;
-
-    // Get variable value
-    const varValue = context.variables[conditionVar];
-
-    // Evaluate condition
     let conditionResult = false;
+    const conditionGroup = node.data?.conditionGroup;
 
-    switch (conditionOp) {
-      case '==':
-      case 'eq':
-      case 'equals':
-        conditionResult = String(varValue) === String(conditionVal);
-        break;
-      case '!=':
-      case 'neq':
-      case 'not_equals':
-        conditionResult = String(varValue) !== String(conditionVal);
-        break;
-      case 'contains':
-        conditionResult = String(varValue).toLowerCase().includes(String(conditionVal).toLowerCase());
-        break;
-      case 'not_contains':
-        conditionResult = !String(varValue).toLowerCase().includes(String(conditionVal).toLowerCase());
-        break;
-      case '>':
-      case 'gt':
-      case 'greater':
-        conditionResult = Number(varValue) > Number(conditionVal);
-        break;
-      case '<':
-      case 'lt':
-      case 'less':
-        conditionResult = Number(varValue) < Number(conditionVal);
-        break;
-      case '>=':
-      case 'gte':
-      case 'greater_or_equal':
-        conditionResult = Number(varValue) >= Number(conditionVal);
-        break;
-      case '<=':
-      case 'lte':
-      case 'less_or_equal':
-        conditionResult = Number(varValue) <= Number(conditionVal);
-        break;
-      default:
-        this.logger.error(`Unknown condition operator: ${conditionOp}`);
-        conditionResult = false;
+    // Check if using condition group (multi-condition) or single condition
+    if (conditionGroup && conditionGroup.conditions?.length > 0) {
+      // Multi-condition evaluation with AND/OR logic
+      conditionResult = this.evaluateConditionGroup(context.variables, conditionGroup);
+      this.logger.log(
+        `Condition group evaluation (${conditionGroup.logicalOperator}): ${conditionGroup.conditions.length} conditions = ${conditionResult}`,
+      );
+    } else {
+      // Legacy single condition evaluation
+      const conditionVar = node.data?.conditionVar;
+      const conditionOp = node.data?.conditionOp;
+      const conditionVal = node.data?.conditionVal;
+
+      if (conditionVar && conditionOp) {
+        conditionResult = this.evaluateSingleCondition(
+          context.variables,
+          conditionVar,
+          conditionOp,
+          conditionVal,
+        );
+        this.logger.log(
+          `Condition evaluation: ${conditionVar} ${conditionOp} ${conditionVal} = ${conditionResult}`,
+        );
+      } else {
+        this.logger.warn('No valid condition configured, defaulting to false');
+      }
     }
-
-    this.logger.log(
-      `Condition evaluation: ${conditionVar} ${conditionOp} ${conditionVal} = ${conditionResult}`,
-    );
 
     // Find next node based on condition result
     const sourceHandle = conditionResult ? 'true' : 'false';
@@ -1148,6 +1206,327 @@ export class ChatBotExecutionService {
     await this.contextRepo.save(context);
 
     // Continue to next node
+    await this.executeCurrentNode(context.id);
+  }
+
+  /**
+   * Process GOOGLE_CALENDAR node - fetch calendar data based on action type
+   * Supports: get_today_events, get_tomorrow_events, get_events, check_availability
+   *
+   * User Selection:
+   * - calendarUserSource: 'owner' | 'static' | 'variable'
+   *   - 'owner': Use chatbot owner's calendar (default, backward compatible)
+   *   - 'static': Use specific user ID from calendarUserId
+   *   - 'variable': Get user ID from variable specified in calendarUserVariable
+   */
+  private async processGoogleCalendarNode(
+    context: ConversationContext,
+    node: any,
+  ): Promise<void> {
+    this.logger.log(`Processing GOOGLE_CALENDAR node ${node.id}`);
+
+    const {
+      // Action type - defaults to check_availability for backward compatibility
+      calendarAction = 'check_availability',
+
+      // User/Calendar Owner Selection
+      calendarUserSource = 'owner',  // 'owner' | 'static' | 'variable'
+      calendarUserId,                // if 'static' - specific user ID
+      calendarUserVariable,          // if 'variable' - variable name containing user ID
+
+      // For get_events action - date range (with calendar prefix for frontend compatibility)
+      calendarDateSource: dateSource,
+      calendarDateVariable: dateVariable,
+      calendarStaticDate: staticDate,
+      calendarEndDateSource: endDateSource,
+      calendarEndDateVariable: endDateVariable,
+      calendarStaticEndDate: staticEndDate,
+
+      // For check_availability action (with calendar prefix for frontend compatibility)
+      calendarWorkingHoursStart: workStart = '09:00',
+      calendarWorkingHoursEnd: workEnd = '18:00',
+      calendarSlotDuration: slotDuration = 60,
+      calendarOutputFormat: outputFormat = 'full',
+
+      // Common (with calendar prefix for frontend compatibility)
+      calendarOutputVariable: outputVariable,
+      calendarMaxResults: maxResults = 50,
+    } = node.data || {};
+
+    // Get chatbot for owner reference
+    const chatbot = context.chatbot || await this.chatbotRepo.findOne({
+      where: { id: context.chatbotId },
+    });
+
+    // Determine which user's calendar to read based on calendarUserSource
+    let targetUserId: string | undefined;
+
+    switch (calendarUserSource) {
+      case 'owner':
+        // Use chatbot owner's calendar (default/backward compatible behavior)
+        targetUserId = chatbot?.userId;
+        break;
+
+      case 'static':
+        // Use specific user ID from node config
+        targetUserId = calendarUserId;
+        break;
+
+      case 'variable':
+        // Get user ID from variable
+        if (calendarUserVariable) {
+          targetUserId = context.variables[calendarUserVariable];
+        }
+        break;
+
+      default:
+        // Fallback to owner for unknown source types
+        targetUserId = chatbot?.userId;
+        this.logger.warn(`Unknown calendarUserSource: ${calendarUserSource}, falling back to owner`);
+    }
+
+    // Validate that we have a target user
+    if (!targetUserId) {
+      const errorMessage = calendarUserSource === 'owner'
+        ? 'Calendar not configured - chatbot has no owner'
+        : calendarUserSource === 'static'
+          ? 'Calendar user ID not specified in node configuration'
+          : `Calendar user variable '${calendarUserVariable}' is empty or not set`;
+
+      this.logger.warn(`No calendar user specified: ${errorMessage}`);
+      if (outputVariable) {
+        context.variables[outputVariable] = {
+          error: true,
+          message: errorMessage,
+          code: 'NO_USER',
+          source: calendarUserSource,
+        };
+      }
+      await this.moveToNextNode(context, node);
+      return;
+    }
+
+    this.logger.log(`Processing calendar action: ${calendarAction} for user ${targetUserId} (source: ${calendarUserSource})`);
+
+    try {
+      let result: any;
+
+      switch (calendarAction) {
+        case 'get_today_events':
+          result = await this.googleOAuthService.getTodayEvents(targetUserId);
+          this.logger.log(`Fetched ${result.events?.length || 0} events for today`);
+          break;
+
+        case 'get_tomorrow_events':
+          result = await this.googleOAuthService.getTomorrowEvents(targetUserId);
+          this.logger.log(`Fetched ${result.events?.length || 0} events for tomorrow`);
+          break;
+
+        case 'get_events':
+          // Get date range from variables or static values
+          const startDate = this.resolveDateValue(context.variables, dateSource, dateVariable, staticDate);
+          const endDate = this.resolveDateValue(context.variables, endDateSource, endDateVariable, staticEndDate);
+
+          if (!startDate) {
+            this.logger.warn('Start date not specified for get_events action');
+            if (outputVariable) {
+              context.variables[outputVariable] = {
+                error: true,
+                message: 'Start date is required for get_events action',
+                code: 'MISSING_DATE',
+              };
+            }
+            await this.moveToNextNode(context, node);
+            return;
+          }
+
+          // Validate date format
+          if (!this.isValidDateFormat(startDate)) {
+            this.logger.warn(`Invalid start date format: ${startDate}`);
+            if (outputVariable) {
+              context.variables[outputVariable] = {
+                error: true,
+                message: `Invalid start date format: ${startDate}. Expected YYYY-MM-DD`,
+                code: 'INVALID_DATE',
+              };
+            }
+            await this.moveToNextNode(context, node);
+            return;
+          }
+
+          // Build time range
+          const timeMin = new Date(`${startDate}T00:00:00`).toISOString();
+          let timeMax: string;
+
+          if (endDate && this.isValidDateFormat(endDate)) {
+            timeMax = new Date(`${endDate}T23:59:59`).toISOString();
+          } else {
+            // Default to end of start date if no end date specified
+            timeMax = new Date(`${startDate}T23:59:59`).toISOString();
+          }
+
+          result = await this.googleOAuthService.getCalendarEvents(
+            targetUserId,
+            timeMin,
+            timeMax,
+            maxResults,
+          );
+          this.logger.log(`Fetched ${result.events?.length || 0} events from ${startDate} to ${endDate || startDate}`);
+          break;
+
+        case 'check_availability':
+        default:
+          // Original availability checking logic
+          const targetDate = this.resolveDateValue(context.variables, dateSource, dateVariable, staticDate)
+            || new Date().toISOString().split('T')[0];
+
+          if (!this.isValidDateFormat(targetDate)) {
+            this.logger.warn(`Invalid date format: ${targetDate}`);
+            if (outputVariable) {
+              context.variables[outputVariable] = {
+                error: true,
+                message: `Invalid date format: ${targetDate}. Expected YYYY-MM-DD`,
+                code: 'INVALID_DATE',
+              };
+            }
+            await this.moveToNextNode(context, node);
+            return;
+          }
+
+          this.logger.log(`Fetching availability for ${targetDate}`);
+
+          if (outputFormat === 'slots_only') {
+            result = await this.googleOAuthService.getAvailableSlotsOnly(
+              targetUserId,
+              targetDate,
+              workStart,
+              workEnd,
+              slotDuration,
+            );
+            this.logger.log(`Found ${result.length} available slots for ${targetDate}`);
+          } else {
+            result = await this.googleOAuthService.getAvailableSlots(
+              targetUserId,
+              targetDate,
+              workStart,
+              workEnd,
+              slotDuration,
+            );
+            this.logger.log(
+              `Availability for ${targetDate}: ${result.availableSlots}/${result.totalSlots} slots available`,
+            );
+          }
+          break;
+      }
+
+      // Store result in output variable
+      if (outputVariable) {
+        context.variables[outputVariable] = result;
+      }
+    } catch (error) {
+      this.logger.error(`Failed to execute calendar action '${calendarAction}' for user ${targetUserId}: ${error.message}`);
+
+      // Store error in output variable so flow can handle it
+      if (outputVariable) {
+        context.variables[outputVariable] = {
+          error: true,
+          message: error.message || `Failed to execute calendar action: ${calendarAction}`,
+          code: error.name === 'UnauthorizedException' ? 'NOT_CONNECTED' : 'FETCH_ERROR',
+          action: calendarAction,
+          userId: targetUserId,
+          userSource: calendarUserSource,
+        };
+      }
+    }
+
+    // Move to next node
+    await this.moveToNextNode(context, node);
+  }
+
+  /**
+   * Resolve a date value from variable or static source
+   */
+  private resolveDateValue(
+    variables: Record<string, any>,
+    source?: string,
+    variableName?: string,
+    staticValue?: string,
+  ): string | null {
+    if (source === 'variable' && variableName) {
+      const value = variables[variableName];
+      return value ? String(value) : null;
+    }
+    if (source === 'static' && staticValue) {
+      return staticValue;
+    }
+    // Fallback: check if staticValue exists even without source specified
+    if (staticValue) {
+      return staticValue;
+    }
+    return null;
+  }
+
+  /**
+   * Validate date format (YYYY-MM-DD)
+   */
+  private isValidDateFormat(date: string): boolean {
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    return dateRegex.test(date);
+  }
+
+  /**
+   * Helper method to move to the next node after processing
+   */
+  private async moveToNextNode(
+    context: ConversationContext,
+    node: any,
+  ): Promise<void> {
+    // Add current node to history
+    context.nodeHistory.push(node.id);
+
+    // Find next node
+    const nextNode = this.findNextNode(context.chatbot, node.id);
+
+    if (!nextNode) {
+      this.logger.log(`No next node after ${node.data?.type || node.type}. ChatBot ended.`);
+      const previousStatus = context.status;
+      context.isActive = false;
+      context.status = 'completed';
+      context.completedAt = new Date();
+      context.completionReason = 'flow_completed';
+      await this.contextRepo.save(context);
+
+      // Emit session:status-changed event
+      this.sessionGateway.emitSessionStatusChanged({
+        sessionId: context.id,
+        previousStatus,
+        newStatus: 'completed',
+        currentNodeId: context.currentNodeId,
+        updatedAt: new Date(),
+      });
+
+      // Emit session:completed event
+      const duration = context.completedAt.getTime() - context.createdAt.getTime();
+      const totalNodes = context.nodeHistory.length;
+      this.sessionGateway.emitSessionCompleted({
+        sessionId: context.id,
+        conversationId: context.conversationId,
+        completedAt: context.completedAt,
+        completionReason: 'flow_completed',
+        totalNodes,
+        totalMessages: 0,
+        duration,
+      });
+
+      return;
+    }
+
+    // Update context to next node
+    context.currentNodeId = nextNode.id;
+    context.status = 'running';
+    await this.contextRepo.save(context);
+
+    // Execute next node recursively
     await this.executeCurrentNode(context.id);
   }
 

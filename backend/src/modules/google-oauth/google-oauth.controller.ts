@@ -13,11 +13,12 @@ import { GoogleOAuthService } from './google-oauth.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { CurrentUserData } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
-import { CalendarEventsQueryDto } from './dto';
+import { CalendarEventsQueryDto, AvailabilityQueryDto } from './dto';
 import type {
   OAuthStatusResponse,
   AuthUrlResponse,
   CalendarEventsResponse,
+  AvailabilityResponse,
 } from './dto';
 import { ConfigService } from '@nestjs/config';
 
@@ -149,5 +150,45 @@ export class GoogleOAuthController {
   @ApiResponse({ status: 200, description: 'Returns tomorrow\'s events' })
   async getTomorrowEvents(@CurrentUser() user: CurrentUserData): Promise<CalendarEventsResponse> {
     return this.googleOAuthService.getTomorrowEvents(user.userId);
+  }
+
+  @Get('calendar/availability')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get available time slots for a date',
+    description: 'Returns available and busy time slots based on Google Calendar events. Useful for appointment booking in chatbots.',
+  })
+  @ApiResponse({ status: 200, description: 'Returns availability information' })
+  async getAvailability(
+    @CurrentUser() user: CurrentUserData,
+    @Query() query: AvailabilityQueryDto,
+  ): Promise<AvailabilityResponse> {
+    return this.googleOAuthService.getAvailableSlots(
+      user.userId,
+      query.date,
+      query.workStart || '09:00',
+      query.workEnd || '18:00',
+      query.slotDuration ? parseInt(query.slotDuration, 10) : 60,
+    );
+  }
+
+  @Get('calendar/availability/slots')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get only available time slots (WhatsApp-friendly format)',
+    description: 'Returns only available slots in a format suitable for WhatsApp interactive messages.',
+  })
+  @ApiResponse({ status: 200, description: 'Returns available slots only' })
+  async getAvailableSlotsOnly(
+    @CurrentUser() user: CurrentUserData,
+    @Query() query: AvailabilityQueryDto,
+  ): Promise<Array<{ id: string; title: string; enabled: boolean }>> {
+    return this.googleOAuthService.getAvailableSlotsOnly(
+      user.userId,
+      query.date,
+      query.workStart || '09:00',
+      query.workEnd || '18:00',
+      query.slotDuration ? parseInt(query.slotDuration, 10) : 60,
+    );
   }
 }

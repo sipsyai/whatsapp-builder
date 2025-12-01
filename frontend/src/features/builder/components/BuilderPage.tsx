@@ -12,11 +12,12 @@ import {
     type Connection,
 } from "@xyflow/react";
 import { GoogleGenAI } from "@google/genai";
-import { StartNode, MessageNode, QuestionNode, ConditionNode, WhatsAppFlowNode, RestApiNode } from "../../nodes";
+import { StartNode, MessageNode, QuestionNode, ConditionNode, WhatsAppFlowNode, RestApiNode, GoogleCalendarNode } from "../../nodes";
 import { DeletableEdge } from "../../edges";
 import { QuestionTypeModal } from "./QuestionTypeModal";
 import { ConfigMessage, ConfigQuestion, ConfigCondition, ConfigWhatsAppFlow } from "./ConfigModals";
 import { ConfigRestApi } from "./ConfigRestApi";
+import { ConfigGoogleCalendar } from "./ConfigGoogleCalendar";
 import { FlowTester } from "./FlowTester";
 import type { NodeDataType } from "../../../shared/types";
 import type { ChatBot } from "../../chatbots/api";
@@ -31,6 +32,7 @@ const nodeTypes = {
     condition: ConditionNode,
     whatsapp_flow: WhatsAppFlowNode,
     rest_api: RestApiNode,
+    google_calendar: GoogleCalendarNode,
 };
 
 const edgeTypes = {
@@ -616,6 +618,16 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
                                 <span className="material-symbols-outlined">add</span>
                             </button>
                         </div>
+
+                        <div className="flex items-center gap-2">
+                            <div className="flex-1 p-3 bg-[#23482f] rounded-lg cursor-grab border border-transparent shadow-sm flex items-center gap-3" onDragStart={(event) => event.dataTransfer.setData('application/reactflow', 'google_calendar')} draggable>
+                                <span className="material-symbols-outlined text-emerald-500">calendar_month</span>
+                                <span className="text-white font-medium">Google Calendar</span>
+                            </div>
+                            <button onClick={() => addNode('google_calendar')} className="p-3 bg-[#23482f] rounded-lg border border-transparent shadow-sm hover:bg-[#1a3523] text-primary">
+                                <span className="material-symbols-outlined">add</span>
+                            </button>
+                        </div>
                     </div>
 
                     <div className="mt-8 p-4 bg-blue-900/20 rounded-lg">
@@ -679,6 +691,9 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
             )}
             {configNode && configNode.type === 'rest_api' && (
                 <ConfigRestApi data={configNode.data} onClose={() => setConfigNode(null)} onSave={updateNodeData} />
+            )}
+            {configNode && configNode.type === 'google_calendar' && (
+                <ConfigGoogleCalendar data={configNode.data} onClose={() => setConfigNode(null)} onSave={updateNodeData} />
             )}
 
             {showAIModal && (

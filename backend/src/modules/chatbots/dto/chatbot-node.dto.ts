@@ -11,6 +11,7 @@ export enum NodeType {
   CONDITION = 'condition',
   WHATSAPP_FLOW = 'whatsapp_flow',
   REST_API = 'rest_api',
+  GOOGLE_CALENDAR = 'google_calendar',
 }
 
 export class ChatBotNodeDto {

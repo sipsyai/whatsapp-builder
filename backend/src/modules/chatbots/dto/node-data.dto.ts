@@ -18,6 +18,7 @@ export enum NodeDataType {
   CONDITION = 'condition',
   WHATSAPP_FLOW = 'whatsapp_flow',
   REST_API = 'rest_api',
+  GOOGLE_CALENDAR = 'google_calendar',
 }
 
 export enum QuestionType {

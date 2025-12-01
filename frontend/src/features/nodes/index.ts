@@ -4,3 +4,4 @@ export { QuestionNode } from './QuestionNode';
 export { ConditionNode } from './ConditionNode';
 export { WhatsAppFlowNode } from './WhatsAppFlowNode/WhatsAppFlowNode';
 export { RestApiNode } from './RestApiNode/RestApiNode';
+export { GoogleCalendarNode } from './GoogleCalendarNode/GoogleCalendarNode';

@@ -1,5 +1,5 @@
 export type ViewState = "landing" | "builder" | "chat" | "settings";
-export type NodeDataType = "start" | "message" | "question" | "condition" | "whatsapp_flow" | "rest_api";
+export type NodeDataType = "start" | "message" | "question" | "condition" | "whatsapp_flow" | "rest_api" | "google_calendar";
 
 export interface ButtonItem {
   id: string;      // "btn-0", "btn-1", "btn-2"
@@ -80,6 +80,24 @@ export interface NodeData {
     apiResponsePath?: string;
     apiErrorVariable?: string;
     apiTimeout?: number;
+
+    // Google Calendar Fields
+    calendarAction?: 'get_today_events' | 'get_tomorrow_events' | 'get_events' | 'check_availability';
+    calendarDateSource?: 'variable' | 'static';
+    calendarDateVariable?: string;
+    calendarStaticDate?: string;
+    calendarEndDateSource?: 'variable' | 'static';
+    calendarEndDateVariable?: string;
+    calendarStaticEndDate?: string;
+    calendarMaxResults?: number;
+    calendarWorkingHoursStart?: string;
+    calendarWorkingHoursEnd?: string;
+    calendarSlotDuration?: number;
+    calendarOutputVariable?: string;
+    calendarOutputFormat?: 'full' | 'slots_only';
+    calendarUserSource?: 'owner' | 'static' | 'variable';
+    calendarUserId?: string;
+    calendarUserVariable?: string;
 
     // Methods to trigger modal or actions from within node component
     onConfig?: () => void;

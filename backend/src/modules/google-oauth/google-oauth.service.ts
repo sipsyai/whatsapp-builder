@@ -11,6 +11,8 @@ import {
   CalendarEvent,
   OAuthStatusResponse,
   CalendarEventsResponse,
+  TimeSlot,
+  AvailabilityResponse,
 } from './dto';
 
 interface GoogleTokenResponse {
@@ -491,5 +493,138 @@ export class GoogleOAuthService {
       return { type: 'invite', inviteToken: state.substring(7) };
     }
     return { type: 'user', userId: state };
+  }
+
+  /**
+   * Get available time slots for a specific date
+   * Checks Google Calendar for busy slots and returns availability
+   */
+  async getAvailableSlots(
+    userId: string,
+    date: string,
+    workStart: string = '09:00',
+    workEnd: string = '18:00',
+    slotDurationMinutes: number = 60,
+  ): Promise<AvailabilityResponse> {
+    // Parse working hours
+    const [workStartHour, workStartMin] = workStart.split(':').map(Number);
+    const [workEndHour, workEndMin] = workEnd.split(':').map(Number);
+
+    // Generate all possible time slots
+    const allSlots: TimeSlot[] = [];
+    let currentHour = workStartHour;
+    let currentMin = workStartMin;
+
+    while (
+      currentHour < workEndHour ||
+      (currentHour === workEndHour && currentMin < workEndMin)
+    ) {
+      const timeStr = `${String(currentHour).padStart(2, '0')}:${String(currentMin).padStart(2, '0')}`;
+      allSlots.push({
+        id: timeStr,
+        time: timeStr,
+        available: true, // Will be updated based on calendar events
+      });
+
+      // Move to next slot
+      currentMin += slotDurationMinutes;
+      if (currentMin >= 60) {
+        currentHour += Math.floor(currentMin / 60);
+        currentMin = currentMin % 60;
+      }
+    }
+
+    // Fetch Google Calendar events for the date
+    const startOfDay = new Date(`${date}T00:00:00`);
+    const endOfDay = new Date(`${date}T23:59:59`);
+
+    let busyTimes: Array<{ start: Date; end: Date }> = [];
+
+    try {
+      const calendarEvents = await this.getCalendarEvents(
+        userId,
+        startOfDay.toISOString(),
+        endOfDay.toISOString(),
+      );
+
+      // Extract busy times from events
+      busyTimes = calendarEvents.events
+        .filter((event) => event.status !== 'cancelled')
+        .map((event) => {
+          const eventStart = event.start.dateTime
+            ? new Date(event.start.dateTime)
+            : new Date(`${event.start.date}T00:00:00`);
+          const eventEnd = event.end.dateTime
+            ? new Date(event.end.dateTime)
+            : new Date(`${event.end.date}T23:59:59`);
+          return { start: eventStart, end: eventEnd };
+        });
+
+      this.logger.debug(`Found ${busyTimes.length} busy time blocks for ${date}`);
+    } catch (error) {
+      this.logger.warn(`Could not fetch calendar events for availability: ${error.message}`);
+      // Continue with all slots available if calendar fetch fails
+    }
+
+    // Mark slots as unavailable if they overlap with busy times
+    for (const slot of allSlots) {
+      const [slotHour, slotMin] = slot.time.split(':').map(Number);
+      const slotStart = new Date(`${date}T${slot.time}:00`);
+      const slotEnd = new Date(slotStart.getTime() + slotDurationMinutes * 60 * 1000);
+
+      // Check if slot overlaps with any busy time
+      for (const busy of busyTimes) {
+        // Overlap occurs if: slot starts before busy ends AND slot ends after busy starts
+        if (slotStart < busy.end && slotEnd > busy.start) {
+          slot.available = false;
+          break;
+        }
+      }
+    }
+
+    const availableCount = allSlots.filter((s) => s.available).length;
+    const busyCount = allSlots.filter((s) => !s.available).length;
+
+    return {
+      date,
+      workingHours: {
+        start: workStart,
+        end: workEnd,
+      },
+      slotDuration: slotDurationMinutes,
+      slots: allSlots,
+      totalSlots: allSlots.length,
+      availableSlots: availableCount,
+      busySlots: busyCount,
+    };
+  }
+
+  /**
+   * Get only available slots (filtered) for a specific date
+   * Useful for chatbot flows to show only selectable options
+   */
+  async getAvailableSlotsOnly(
+    userId: string,
+    date: string,
+    workStart: string = '09:00',
+    workEnd: string = '18:00',
+    slotDurationMinutes: number = 60,
+  ): Promise<Array<{ id: string; title: string; enabled: boolean }>> {
+    const availability = await this.getAvailableSlots(
+      userId,
+      date,
+      workStart,
+      workEnd,
+      slotDurationMinutes,
+    );
+
+    // Return only available slots in WhatsApp-friendly format
+    return availability.slots
+      .filter((slot) => slot.available)
+      .map((slot) => ({
+        id: slot.id,
+        title: slot.time,
+        enabled: true,
+      }));
   }
 }

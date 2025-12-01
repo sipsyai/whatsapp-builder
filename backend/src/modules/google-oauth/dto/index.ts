@@ -69,3 +69,43 @@ export interface CalendarEventsResponse {
   events: CalendarEvent[];
   nextPageToken?: string;
 }
+
+export class AvailabilityQueryDto {
+  @ApiProperty({ description: 'Date to check availability (YYYY-MM-DD)', example: '2025-01-15' })
+  @IsString()
+  date: string;
+
+  @ApiPropertyOptional({ description: 'Working hours start time (HH:MM)', example: '09:00', default: '09:00' })
+  @IsOptional()
+  @IsString()
+  workStart?: string;
+
+  @ApiPropertyOptional({ description: 'Working hours end time (HH:MM)', example: '18:00', default: '18:00' })
+  @IsOptional()
+  @IsString()
+  workEnd?: string;
+
+  @ApiPropertyOptional({ description: 'Slot duration in minutes', example: '60', default: '60' })
+  @IsOptional()
+  @IsString()
+  slotDuration?: string;
+}
+
+export interface TimeSlot {
+  id: string;
+  time: string;
+  available: boolean;
+}
+
+export interface AvailabilityResponse {
+  date: string;
+  workingHours: {
+    start: string;
+    end: string;
+  };
+  slotDuration: number;
+  slots: TimeSlot[];
+  totalSlots: number;
+  availableSlots: number;
+  busySlots: number;
+}
