@@ -1,0 +1,187 @@
+{
+  "name": "Demo Showcase Bot",
+  "description": "5 farklı sektör için demo chatbot showcase - Ana giriş botu",
+  "isActive": true,
+  "nodes": [
+    {
+      "id": "start_1",
+      "type": "start",
+      "position": { "x": 400, "y": 50 },
+      "data": {
+        "type": "start",
+        "label": "Başlangıç"
+      }
+    },
+    {
+      "id": "welcome_msg",
+      "type": "message",
+      "position": { "x": 400, "y": 150 },
+      "data": {
+        "type": "message",
+        "label": "Hoşgeldiniz",
+        "content": "Merhaba! 👋\n\nWhatsApp Chatbot Demo Sistemine hoş geldiniz.\n\nBu demo ile farklı sektörler için hazırladığımız chatbot örneklerini deneyimleyebilirsiniz.",
+        "messageType": "text"
+      }
+    },
+    {
+      "id": "demo_button",
+      "type": "question",
+      "position": { "x": 400, "y": 300 },
+      "data": {
+        "type": "question",
+        "label": "Demo Seçimi",
+        "content": "Chatbot demo örneklerimizi görmek ister misiniz?",
+        "questionType": "buttons",
+        "variable": "demo_choice",
+        "headerText": "Demo Merkezi",
+        "footerText": "Bir seçenek seçin",
+        "buttons": [
+          { "id": "btn_demo", "title": "Demoları Gör" },
+          { "id": "btn_info", "title": "Bilgi Al" },
+          { "id": "btn_contact", "title": "İletişim" }
+        ]
+      }
+    },
+    {
+      "id": "demo_list",
+      "type": "question",
+      "position": { "x": 150, "y": 480 },
+      "data": {
+        "type": "question",
+        "label": "Demo Listesi",
+        "content": "Aşağıdaki sektörlerden birini seçerek chatbot demosunu başlatabilirsiniz:",
+        "questionType": "list",
+        "variable": "selected_demo",
+        "listButtonText": "Demoları Görüntüle",
+        "headerText": "Chatbot Demoları",
+        "footerText": "5 farklı sektör örneği",
+        "listSections": [
+          {
+            "title": "Hizmet Sektörü",
+            "rows": [
+              {
+                "id": "demo_berber",
+                "title": "Berber Randevu",
+                "description": "Berber seçimi ve randevu alma"
+              },
+              {
+                "id": "demo_restoran",
+                "title": "Restoran Rezervasyon",
+                "description": "Masa rezervasyonu ve sipariş"
+              }
+            ]
+          },
+          {
+            "title": "Sağlık & E-Ticaret",
+            "rows": [
+              {
+                "id": "demo_klinik",
+                "title": "Klinik Randevu",
+                "description": "Doktor seçimi ve randevu"
+              },
+              {
+                "id": "demo_eticaret",
+                "title": "E-Ticaret Sipariş",
+                "description": "Ürün seçimi ve sipariş"
+              }
+            ]
+          },
+          {
+            "title": "Gayrimenkul",
+            "rows": [
+              {
+                "id": "demo_emlak",
+                "title": "Emlak Danışmanlık",
+                "description": "Ev arama ve görüşme talebi"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "info_msg",
+      "type": "message",
+      "position": { "x": 400, "y": 480 },
+      "data": {
+        "type": "message",
+        "label": "Bilgi Mesajı",
+        "content": "WhatsApp Chatbot Builder ile:\n\n✅ 7/24 otomatik müşteri hizmeti\n✅ Randevu ve rezervasyon yönetimi\n✅ Sipariş takibi\n✅ Form ve anket toplama\n✅ WhatsApp Flow entegrasyonu\n\nsağlayabilirsiniz.",
+        "messageType": "text"
+      }
+    },
+    {
+      "id": "contact_msg",
+      "type": "message",
+      "position": { "x": 650, "y": 480 },
+      "data": {
+        "type": "message",
+        "label": "İletişim",
+        "content": "Bizimle iletişime geçmek için:\n\n📧 demo@chatbot.com\n📞 +90 555 123 4567\n🌐 www.chatbot-demo.com",
+        "messageType": "text"
+      }
+    },
+    {
+      "id": "condition_demo",
+      "type": "condition",
+      "position": { "x": 150, "y": 650 },
+      "data": {
+        "type": "condition",
+        "label": "Demo Seçim Kontrolü",
+        "conditionVar": "selected_demo",
+        "conditionOp": "eq",
+        "conditionVal": "demo_berber"
+      }
+    },
+    {
+      "id": "berber_flow",
+      "type": "whatsapp_flow",
+      "position": { "x": -100, "y": 800 },
+      "data": {
+        "type": "whatsapp_flow",
+        "label": "Berber Randevu Flow",
+        "whatsappFlowId": "BERBER_FLOW_ID",
+        "flowMode": "data_exchange",
+        "flowCta": "Randevu Al",
+        "flowBodyText": "Berber seçimi yapın ve uygun saati belirleyin",
+        "flowHeaderText": "Berber Randevu",
+        "flowFooterText": "2 dakika sürer",
+        "flowInitialScreen": "BERBER_SECIM",
+        "flowOutputVariable": "berber_randevu_data"
+      }
+    },
+    {
+      "id": "other_demo_redirect",
+      "type": "message",
+      "position": { "x": 150, "y": 800 },
+      "data": {
+        "type": "message",
+        "label": "Diğer Demo",
+        "content": "Seçtiğiniz demo: {{selected_demo}}\n\nBu demo için ilgili chatbot başlatılıyor...",
+        "messageType": "text"
+      }
+    },
+    {
+      "id": "berber_success_msg",
+      "type": "message",
+      "position": { "x": -100, "y": 950 },
+      "data": {
+        "type": "message",
+        "label": "Randevu Onay",
+        "content": "Randevunuz başarıyla oluşturuldu! ✅\n\n👤 Berber: {{berber_randevu_data.berber_name}}\n📅 Tarih: {{berber_randevu_data.appointment_date}}\n⏰ Saat: {{berber_randevu_data.appointment_time}}\n💇 Hizmet: {{berber_randevu_data.service}}\n\nRandevu numaranız: #{{berber_randevu_data.appointment_id}}\n\nRandevunuza 15 dakika önce gelmenizi rica ederiz.",
+        "messageType": "text"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "start_1", "target": "welcome_msg" },
+    { "id": "e2", "source": "welcome_msg", "target": "demo_button" },
+    { "id": "e3", "source": "demo_button", "target": "demo_list", "sourceHandle": "btn_demo" },
+    { "id": "e4", "source": "demo_button", "target": "info_msg", "sourceHandle": "btn_info" },
+    { "id": "e5", "source": "demo_button", "target": "contact_msg", "sourceHandle": "btn_contact" },
+    { "id": "e6", "source": "demo_list", "target": "condition_demo" },
+    { "id": "e7", "source": "condition_demo", "target": "berber_flow", "sourceHandle": "true" },
+    { "id": "e8", "source": "condition_demo", "target": "other_demo_redirect", "sourceHandle": "false" },
+    { "id": "e9", "source": "berber_flow", "target": "berber_success_msg" }
+  ]
+}

@@ -1,0 +1,360 @@
+{
+  "version": "1.0",
+  "exportedAt": "2025-12-01T07:45:00.000Z",
+  "chatbot": {
+    "name": "Multi-Sektor Demo Chatbot",
+    "description": "5 farkli sektor icin WhatsApp Flow entegrasyonlu demo chatbot - Berber, Restoran, Klinik, E-Ticaret, Emlak",
+    "nodes": [
+      {
+        "id": "start_1",
+        "type": "start",
+        "position": { "x": 400, "y": 50 },
+        "data": {
+          "type": "start",
+          "label": "Baslangic"
+        }
+      },
+      {
+        "id": "welcome_msg",
+        "type": "message",
+        "position": { "x": 400, "y": 150 },
+        "data": {
+          "type": "message",
+          "label": "Hosgeldiniz Mesaji",
+          "content": "Merhaba!\n\nWhatsApp Chatbot Builder Demo Sistemine hos geldiniz.\n\nFarkli sektorler icin hazirladigimiz interaktif chatbot orneklerini deneyimleyebilirsiniz."
+        }
+      },
+      {
+        "id": "demo_intro_btn",
+        "type": "question",
+        "position": { "x": 400, "y": 300 },
+        "data": {
+          "type": "question",
+          "label": "Demo Giris",
+          "content": "Demo orneklerimizi incelemek ister misiniz?",
+          "questionType": "buttons",
+          "variable": "intro_choice",
+          "headerText": "Demo Merkezi",
+          "footerText": "Secim yapin",
+          "buttons": [
+            { "id": "btn_demolar", "title": "Demolari Gor" },
+            { "id": "btn_hakkinda", "title": "Hakkinda" }
+          ]
+        }
+      },
+      {
+        "id": "hakkinda_msg",
+        "type": "message",
+        "position": { "x": 650, "y": 450 },
+        "data": {
+          "type": "message",
+          "label": "Hakkinda",
+          "content": "WhatsApp Chatbot Builder ile:\n\n- 7/24 otomatik musteri hizmeti\n- Randevu ve rezervasyon yonetimi\n- Siparis takibi ve onay\n- Interaktif form toplama\n- WhatsApp Flow entegrasyonu\n\nsaglayabilirsiniz."
+        }
+      },
+      {
+        "id": "demo_list",
+        "type": "question",
+        "position": { "x": 400, "y": 450 },
+        "data": {
+          "type": "question",
+          "label": "Demo Listesi",
+          "content": "Asagidaki sektorlerden birini secerek interaktif demo akisini baslatin:",
+          "questionType": "list",
+          "variable": "selected_demo",
+          "listButtonText": "Demolari Goruntule",
+          "headerText": "Sektor Demolari",
+          "footerText": "5 farkli sektor ornegi",
+          "listSections": [
+            {
+              "title": "Hizmet Sektoru",
+              "rows": [
+                {
+                  "id": "demo_berber",
+                  "title": "Berber Randevu",
+                  "description": "Berber secimi ve randevu alma"
+                },
+                {
+                  "id": "demo_restoran",
+                  "title": "Restoran Rezervasyon",
+                  "description": "Masa rezervasyonu yapma"
+                }
+              ]
+            },
+            {
+              "title": "Saglik Sektoru",
+              "rows": [
+                {
+                  "id": "demo_klinik",
+                  "title": "Klinik Randevu",
+                  "description": "Doktor secimi ve randevu"
+                }
+              ]
+            },
+            {
+              "title": "Ticaret Gayrimenkul",
+              "rows": [
+                {
+                  "id": "demo_eticaret",
+                  "title": "E-Ticaret Siparis",
+                  "description": "Urun secimi ve siparis"
+                },
+                {
+                  "id": "demo_emlak",
+                  "title": "Emlak Danismanlik",
+                  "description": "Ev arama ve gorusme talebi"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": "cond_berber",
+        "type": "condition",
+        "position": { "x": 100, "y": 650 },
+        "data": {
+          "type": "condition",
+          "label": "Berber Kontrolu",
+          "conditionVar": "selected_demo",
+          "conditionOp": "eq",
+          "conditionVal": "demo_berber"
+        }
+      },
+      {
+        "id": "cond_restoran",
+        "type": "condition",
+        "position": { "x": 300, "y": 800 },
+        "data": {
+          "type": "condition",
+          "label": "Restoran Kontrolu",
+          "conditionVar": "selected_demo",
+          "conditionOp": "eq",
+          "conditionVal": "demo_restoran"
+        }
+      },
+      {
+        "id": "cond_klinik",
+        "type": "condition",
+        "position": { "x": 500, "y": 950 },
+        "data": {
+          "type": "condition",
+          "label": "Klinik Kontrolu",
+          "conditionVar": "selected_demo",
+          "conditionOp": "eq",
+          "conditionVal": "demo_klinik"
+        }
+      },
+      {
+        "id": "cond_eticaret",
+        "type": "condition",
+        "position": { "x": 700, "y": 1100 },
+        "data": {
+          "type": "condition",
+          "label": "E-Ticaret Kontrolu",
+          "conditionVar": "selected_demo",
+          "conditionOp": "eq",
+          "conditionVal": "demo_eticaret"
+        }
+      },
+      {
+        "id": "cond_emlak",
+        "type": "condition",
+        "position": { "x": 900, "y": 1250 },
+        "data": {
+          "type": "condition",
+          "label": "Emlak Kontrolu",
+          "conditionVar": "selected_demo",
+          "conditionOp": "eq",
+          "conditionVal": "demo_emlak"
+        }
+      },
+      {
+        "id": "flow_berber",
+        "type": "whatsapp_flow",
+        "position": { "x": -150, "y": 750 },
+        "data": {
+          "type": "whatsapp_flow",
+          "label": "Berber Randevu Flow",
+          "whatsappFlowId": "1179065296990986",
+          "flowMode": "navigate",
+          "flowCta": "Randevu Al",
+          "flowBodyText": "Berberinizi secin ve uygun randevu saatini belirleyin."
+        }
+      },
+      {
+        "id": "flow_restoran",
+        "type": "whatsapp_flow",
+        "position": { "x": 50, "y": 900 },
+        "data": {
+          "type": "whatsapp_flow",
+          "label": "Restoran Rezervasyon Flow",
+          "whatsappFlowId": "1179065296990986",
+          "flowMode": "navigate",
+          "flowCta": "Rezervasyon Yap",
+          "flowBodyText": "Tarih, saat ve kisi sayisini secin."
+        }
+      },
+      {
+        "id": "flow_klinik",
+        "type": "whatsapp_flow",
+        "position": { "x": 250, "y": 1050 },
+        "data": {
+          "type": "whatsapp_flow",
+          "label": "Klinik Randevu Flow",
+          "whatsappFlowId": "1179065296990986",
+          "flowMode": "navigate",
+          "flowCta": "Randevu Olustur",
+          "flowBodyText": "Bolum ve doktor secimi yaparak randevunuzu olusturun."
+        }
+      },
+      {
+        "id": "flow_eticaret",
+        "type": "whatsapp_flow",
+        "position": { "x": 450, "y": 1200 },
+        "data": {
+          "type": "whatsapp_flow",
+          "label": "E-Ticaret Siparis Flow",
+          "whatsappFlowId": "1179065296990986",
+          "flowMode": "navigate",
+          "flowCta": "Siparis Ver",
+          "flowBodyText": "Urun secin, adet belirleyin ve siparisinizi tamamlayin."
+        }
+      },
+      {
+        "id": "flow_emlak",
+        "type": "whatsapp_flow",
+        "position": { "x": 650, "y": 1350 },
+        "data": {
+          "type": "whatsapp_flow",
+          "label": "Emlak Danismanlik Flow",
+          "whatsappFlowId": "1179065296990986",
+          "flowMode": "navigate",
+          "flowCta": "Ilan Ara",
+          "flowBodyText": "Arama kriterlerinizi girin ve size uygun ilanlari bulalim."
+        }
+      },
+      {
+        "id": "msg_berber_onay",
+        "type": "message",
+        "position": { "x": -150, "y": 900 },
+        "data": {
+          "type": "message",
+          "label": "Berber Randevu Onay",
+          "content": "Randevunuz basariyla olusturuldu!\n\nRandevunuza 10 dakika once gelmenizi rica ederiz."
+        }
+      },
+      {
+        "id": "msg_restoran_onay",
+        "type": "message",
+        "position": { "x": 50, "y": 1050 },
+        "data": {
+          "type": "message",
+          "label": "Restoran Rezervasyon Onay",
+          "content": "Rezervasyonunuz onaylandi!\n\nIptal icin en az 2 saat once bilgi veriniz."
+        }
+      },
+      {
+        "id": "msg_klinik_onay",
+        "type": "message",
+        "position": { "x": 250, "y": 1200 },
+        "data": {
+          "type": "message",
+          "label": "Klinik Randevu Onay",
+          "content": "Randevunuz olusturuldu!\n\nLutfen kimlik belgenizi ve varsa onceki raporlarinizi getirin."
+        }
+      },
+      {
+        "id": "msg_eticaret_onay",
+        "type": "message",
+        "position": { "x": 450, "y": 1350 },
+        "data": {
+          "type": "message",
+          "label": "E-Ticaret Siparis Onay",
+          "content": "Siparisini alindi!\n\nSiparisiniz hazirlaniyor, kargoya verildiginde bilgilendirileceksiniz."
+        }
+      },
+      {
+        "id": "msg_emlak_onay",
+        "type": "message",
+        "position": { "x": 650, "y": 1500 },
+        "data": {
+          "type": "message",
+          "label": "Emlak Talep Onay",
+          "content": "Talebiniz alindi!\n\nDanismanlarimiz size uygun ilanlari belirleyip en kisa surede donecektir."
+        }
+      },
+      {
+        "id": "msg_unknown_demo",
+        "type": "message",
+        "position": { "x": 1100, "y": 1350 },
+        "data": {
+          "type": "message",
+          "label": "Bilinmeyen Demo",
+          "content": "Sectiginiz demo bulunamadi.\n\nLutfen tekrar deneyin veya ana menuye donun."
+        }
+      },
+      {
+        "id": "end_question",
+        "type": "question",
+        "position": { "x": 400, "y": 1600 },
+        "data": {
+          "type": "question",
+          "label": "Devam Sorusu",
+          "content": "Baska bir demo denemek ister misiniz?",
+          "questionType": "buttons",
+          "variable": "continue_choice",
+          "buttons": [
+            { "id": "btn_evet", "title": "Evet, Baska Demo" },
+            { "id": "btn_hayir", "title": "Hayir, Tesekkurler" }
+          ]
+        }
+      },
+      {
+        "id": "msg_goodbye",
+        "type": "message",
+        "position": { "x": 600, "y": 1750 },
+        "data": {
+          "type": "message",
+          "label": "Veda Mesaji",
+          "content": "Demo sistemimizi kullandiginiz icin tesekkur ederiz!\n\nSorulariniz icin bizimle iletisime gecebilirsiniz.\n\nIyi gunler dileriz!"
+        }
+      }
+    ],
+    "edges": [
+      { "source": "start_1", "target": "welcome_msg" },
+      { "source": "welcome_msg", "target": "demo_intro_btn" },
+      { "source": "demo_intro_btn", "target": "demo_list", "sourceHandle": "btn_demolar" },
+      { "source": "demo_intro_btn", "target": "hakkinda_msg", "sourceHandle": "btn_hakkinda" },
+      { "source": "hakkinda_msg", "target": "demo_list" },
+      { "source": "demo_list", "target": "cond_berber" },
+      { "source": "cond_berber", "target": "flow_berber", "sourceHandle": "true" },
+      { "source": "cond_berber", "target": "cond_restoran", "sourceHandle": "false" },
+      { "source": "cond_restoran", "target": "flow_restoran", "sourceHandle": "true" },
+      { "source": "cond_restoran", "target": "cond_klinik", "sourceHandle": "false" },
+      { "source": "cond_klinik", "target": "flow_klinik", "sourceHandle": "true" },
+      { "source": "cond_klinik", "target": "cond_eticaret", "sourceHandle": "false" },
+      { "source": "cond_eticaret", "target": "flow_eticaret", "sourceHandle": "true" },
+      { "source": "cond_eticaret", "target": "cond_emlak", "sourceHandle": "false" },
+      { "source": "cond_emlak", "target": "flow_emlak", "sourceHandle": "true" },
+      { "source": "cond_emlak", "target": "msg_unknown_demo", "sourceHandle": "false" },
+      { "source": "flow_berber", "target": "msg_berber_onay" },
+      { "source": "flow_restoran", "target": "msg_restoran_onay" },
+      { "source": "flow_klinik", "target": "msg_klinik_onay" },
+      { "source": "flow_eticaret", "target": "msg_eticaret_onay" },
+      { "source": "flow_emlak", "target": "msg_emlak_onay" },
+      { "source": "msg_berber_onay", "target": "end_question" },
+      { "source": "msg_restoran_onay", "target": "end_question" },
+      { "source": "msg_klinik_onay", "target": "end_question" },
+      { "source": "msg_eticaret_onay", "target": "end_question" },
+      { "source": "msg_emlak_onay", "target": "end_question" },
+      { "source": "msg_unknown_demo", "target": "end_question" },
+      { "source": "end_question", "target": "demo_list", "sourceHandle": "btn_evet" },
+      { "source": "end_question", "target": "msg_goodbye", "sourceHandle": "btn_hayir" }
+    ],
+    "isActive": true,
+    "status": "active",
+    "metadata": null
+  },
+  "whatsappFlows": []
+}

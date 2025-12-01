@@ -111,7 +111,13 @@ export const importChatbot = async (file: File, options?: { name?: string; setAc
     if (options?.name) formData.append('name', options.name);
     if (options?.setActive) formData.append('setActive', 'true');
 
-    // Don't set Content-Type header manually - axios will set it automatically with the correct boundary
-    const response = await client.post('/api/chatbots/import', formData);
+    // IMPORTANT: Set Content-Type to undefined to let axios/browser set it automatically
+    // with the correct multipart/form-data boundary. The default 'application/json' header
+    // from client.ts must be overridden for file uploads to work properly.
+    const response = await client.post('/api/chatbots/import', formData, {
+        headers: {
+            'Content-Type': undefined,
+        },
+    });
     return response.data;
 };

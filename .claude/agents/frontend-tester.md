@@ -95,23 +95,33 @@ Form validasyon testlerini çalıştır
 
 ---
 
+## Test Ortamı
+
+**Production URL (Varsayılan):** `https://whatsapp.sipsy.ai`
+
+Testler varsayılan olarak production ortamında çalışır. Lokal test için:
+- Frontend: `http://localhost:5173`
+- Backend: `http://localhost:3001`
+
+---
+
 ## Test Edilebilecek Sayfalar
 
-| # | Sayfa | URL Hash | Öncelik |
-|---|-------|----------|---------|
-| 1 | Login | / | P0 |
-| 2 | ChatBots List | #chatbots | P1 |
-| 3 | ChatBot Builder | #builder | P0 |
-| 4 | WhatsApp Flows | #flows | P1 |
-| 5 | Flow Builder | #flowBuilder | P1 |
-| 6 | Flow Playground | #playground | P2 |
-| 7 | Sessions List | #sessions | P1 |
-| 8 | Session Detail | #sessions/:id | P2 |
-| 9 | Users | #users | P2 |
-| 10 | WhatsApp Settings | #settings | P1 |
-| 11 | Data Sources | #data-sources | P1 |
-| 12 | Chat | #chat | P2 |
-| 13 | Landing Page | #landing | P3 |
+| # | Sayfa | URL | Öncelik |
+|---|-------|-----|---------|
+| 1 | Login | https://whatsapp.sipsy.ai/ | P0 |
+| 2 | ChatBots List | https://whatsapp.sipsy.ai/#chatbots | P1 |
+| 3 | ChatBot Builder | https://whatsapp.sipsy.ai/#builder | P0 |
+| 4 | WhatsApp Flows | https://whatsapp.sipsy.ai/#flows | P1 |
+| 5 | Flow Builder | https://whatsapp.sipsy.ai/#flowBuilder | P1 |
+| 6 | Flow Playground | https://whatsapp.sipsy.ai/#playground | P2 |
+| 7 | Sessions List | https://whatsapp.sipsy.ai/#sessions | P1 |
+| 8 | Session Detail | https://whatsapp.sipsy.ai/#sessions/:id | P2 |
+| 9 | Users | https://whatsapp.sipsy.ai/#users | P2 |
+| 10 | WhatsApp Settings | https://whatsapp.sipsy.ai/#settings | P1 |
+| 11 | Data Sources | https://whatsapp.sipsy.ai/#data-sources | P1 |
+| 12 | Chat | https://whatsapp.sipsy.ai/#chat | P2 |
+| 13 | Landing Page | https://whatsapp.sipsy.ai/#landing | P3 |
 | 14 | Sidebar Navigation | (tüm sayfalar) | P3 |
 
 ---

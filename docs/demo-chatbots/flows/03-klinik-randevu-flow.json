@@ -1,0 +1,252 @@
+{
+  "version": "6.0",
+  "data_api_version": "3.0",
+  "routing_model": {},
+  "screens": [
+    {
+      "id": "BOLUM_SECIM",
+      "title": "Bolum Secimi",
+      "terminal": false,
+      "data": {},
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Poliklinik Secimi"
+          },
+          {
+            "type": "TextBody",
+            "text": "Saglik Merkezi'ne hos geldiniz. Hangi bolumden randevu almak istiyorsunuz?"
+          },
+          {
+            "type": "RadioButtonsGroup",
+            "name": "department",
+            "label": "Bolum",
+            "required": true,
+            "data-source": [
+              { "id": "dahiliye", "title": "Dahiliye (Ic Hastaliklari)" },
+              { "id": "kardiyoloji", "title": "Kardiyoloji (Kalp)" },
+              { "id": "ortopedi", "title": "Ortopedi (Kemik/Eklem)" },
+              { "id": "goz", "title": "Goz Hastaliklari" },
+              { "id": "kbb", "title": "KBB (Kulak-Burun-Bogaz)" },
+              { "id": "dermatoloji", "title": "Dermatoloji (Cildiye)" }
+            ]
+          },
+          {
+            "type": "Footer",
+            "label": "Doktor Sec",
+            "on-click-action": {
+              "name": "navigate",
+              "next": { "type": "screen", "name": "DOKTOR_SECIM" },
+              "payload": {
+                "department": "${form.department}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "DOKTOR_SECIM",
+      "title": "Doktor Secimi",
+      "terminal": false,
+      "data": {
+        "department": { "type": "string", "__example__": "dahiliye" }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Doktorunuzu Secin"
+          },
+          {
+            "type": "TextBody",
+            "text": "Sectiginiz bolum: ${data.department}\n\nAlaninda uzman doktorlarimizdan birini secin."
+          },
+          {
+            "type": "RadioButtonsGroup",
+            "name": "doctor_id",
+            "label": "Doktor",
+            "required": true,
+            "data-source": [
+              { "id": "dr_ayse", "title": "Dr. Ayse Yilmaz - 20 yil deneyim" },
+              { "id": "dr_mehmet", "title": "Dr. Mehmet Kaya - 15 yil deneyim" },
+              { "id": "dr_fatma", "title": "Dr. Fatma Demir - 12 yil deneyim" },
+              { "id": "dr_ali", "title": "Dr. Ali Ozturk - 10 yil deneyim" }
+            ]
+          },
+          {
+            "type": "Footer",
+            "label": "Tarih Sec",
+            "on-click-action": {
+              "name": "navigate",
+              "next": { "type": "screen", "name": "RANDEVU_DETAY" },
+              "payload": {
+                "department": "${data.department}",
+                "doctor_id": "${form.doctor_id}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "RANDEVU_DETAY",
+      "title": "Randevu Detaylari",
+      "terminal": false,
+      "data": {
+        "department": { "type": "string", "__example__": "dahiliye" },
+        "doctor_id": { "type": "string", "__example__": "dr_ayse" }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Randevu Bilgileri"
+          },
+          {
+            "type": "DatePicker",
+            "name": "appointment_date",
+            "label": "Randevu Tarihi",
+            "required": true,
+            "min-date": "1733011200000",
+            "max-date": "1764547200000",
+            "helper-text": "Hafta ici gunlerde randevu verilmektedir"
+          },
+          {
+            "type": "Dropdown",
+            "name": "appointment_time",
+            "label": "Randevu Saati",
+            "required": true,
+            "data-source": [
+              { "id": "09:00", "title": "09:00" },
+              { "id": "09:30", "title": "09:30" },
+              { "id": "10:00", "title": "10:00" },
+              { "id": "10:30", "title": "10:30" },
+              { "id": "11:00", "title": "11:00" },
+              { "id": "11:30", "title": "11:30" },
+              { "id": "14:00", "title": "14:00" },
+              { "id": "14:30", "title": "14:30" },
+              { "id": "15:00", "title": "15:00" },
+              { "id": "15:30", "title": "15:30" },
+              { "id": "16:00", "title": "16:00" },
+              { "id": "16:30", "title": "16:30" }
+            ]
+          },
+          {
+            "type": "TextInput",
+            "name": "patient_name",
+            "label": "Hasta Adi Soyadi",
+            "input-type": "text",
+            "required": true
+          },
+          {
+            "type": "TextInput",
+            "name": "tc_no",
+            "label": "TC Kimlik No",
+            "input-type": "text",
+            "required": true,
+            "helper-text": "11 haneli TC kimlik numaraniz"
+          },
+          {
+            "type": "TextInput",
+            "name": "patient_phone",
+            "label": "Telefon Numarasi",
+            "input-type": "phone",
+            "required": true
+          },
+          {
+            "type": "TextArea",
+            "name": "symptoms",
+            "label": "Sikayetleriniz (Opsiyonel)",
+            "required": false,
+            "helper-text": "Doktorunuzun on bilgi edinmesi icin"
+          },
+          {
+            "type": "Footer",
+            "label": "Randevuyu Olustur",
+            "on-click-action": {
+              "name": "navigate",
+              "next": { "type": "screen", "name": "RANDEVU_ONAY" },
+              "payload": {
+                "department": "${data.department}",
+                "doctor_id": "${data.doctor_id}",
+                "appointment_date": "${form.appointment_date}",
+                "appointment_time": "${form.appointment_time}",
+                "patient_name": "${form.patient_name}",
+                "tc_no": "${form.tc_no}",
+                "patient_phone": "${form.patient_phone}",
+                "symptoms": "${form.symptoms}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "RANDEVU_ONAY",
+      "title": "Randevu Onaylandi",
+      "terminal": true,
+      "success": true,
+      "data": {
+        "department": { "type": "string", "__example__": "dahiliye" },
+        "doctor_id": { "type": "string", "__example__": "dr_ayse" },
+        "appointment_date": { "type": "string", "__example__": "2025-01-18" },
+        "appointment_time": { "type": "string", "__example__": "10:00" },
+        "patient_name": { "type": "string", "__example__": "Mehmet Yilmaz" },
+        "tc_no": { "type": "string", "__example__": "12345678901" },
+        "patient_phone": { "type": "string", "__example__": "+905551234567" },
+        "symptoms": { "type": "string", "__example__": "" }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Randevunuz Olusturuldu"
+          },
+          {
+            "type": "TextBody",
+            "text": "Sayin ${data.patient_name}, randevunuz basariyla kayit altina alindi."
+          },
+          {
+            "type": "TextSubheading",
+            "text": "Randevu Bilgileri"
+          },
+          {
+            "type": "TextBody",
+            "text": "Bolum: ${data.department}\nDoktor: ${data.doctor_id}\nTarih: ${data.appointment_date}\nSaat: ${data.appointment_time}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "Lutfen randevu saatinizden 15 dakika once kayit bankomuza basin. Kimlik belgenizi ve varsa onceki raporlarinizi getirmeyi unutmayin."
+          },
+          {
+            "type": "Footer",
+            "label": "Tamam",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {
+                "department": "${data.department}",
+                "doctor_id": "${data.doctor_id}",
+                "doctor_name": "${data.doctor_id}",
+                "date": "${data.appointment_date}",
+                "time": "${data.appointment_time}",
+                "patient_name": "${data.patient_name}",
+                "tc_no": "${data.tc_no}",
+                "patient_phone": "${data.patient_phone}",
+                "symptoms": "${data.symptoms}",
+                "appointment_id": "KLN-2025-001",
+                "clinic_name": "Saglik Merkezi",
+                "status": "confirmed"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

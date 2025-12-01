@@ -1,0 +1,249 @@
+{
+  "version": "6.0",
+  "data_api_version": "3.0",
+  "routing_model": {},
+  "screens": [
+    {
+      "id": "KATEGORI_SECIM",
+      "title": "Kategori Secimi",
+      "terminal": false,
+      "data": {},
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Hizli Alisveris"
+          },
+          {
+            "type": "TextBody",
+            "text": "TeknoShop'a hos geldiniz! Siparis vermek icin kategori secin."
+          },
+          {
+            "type": "RadioButtonsGroup",
+            "name": "category",
+            "label": "Kategori",
+            "required": true,
+            "data-source": [
+              { "id": "telefon", "title": "Cep Telefonu" },
+              { "id": "bilgisayar", "title": "Bilgisayar & Tablet" },
+              { "id": "aksesuar", "title": "Aksesuar" },
+              { "id": "ev_elektronik", "title": "Ev Elektronigi" }
+            ]
+          },
+          {
+            "type": "Footer",
+            "label": "Urunleri Gor",
+            "on-click-action": {
+              "name": "navigate",
+              "next": { "type": "screen", "name": "URUN_SECIM" },
+              "payload": {
+                "category": "${form.category}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "URUN_SECIM",
+      "title": "Urun Secimi",
+      "terminal": false,
+      "data": {
+        "category": { "type": "string", "__example__": "telefon" }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Urun Secin"
+          },
+          {
+            "type": "TextBody",
+            "text": "Kategori: ${data.category}\n\nPopuler urunlerimiz:"
+          },
+          {
+            "type": "RadioButtonsGroup",
+            "name": "product_id",
+            "label": "Urun",
+            "required": true,
+            "data-source": [
+              { "id": "iphone15", "title": "iPhone 15 - 64.999 TL" },
+              { "id": "samsung_s24", "title": "Samsung S24 - 54.999 TL" },
+              { "id": "xiaomi_14", "title": "Xiaomi 14 - 34.999 TL" },
+              { "id": "oppo_reno", "title": "Oppo Reno 11 - 24.999 TL" }
+            ]
+          },
+          {
+            "type": "Dropdown",
+            "name": "quantity",
+            "label": "Adet",
+            "required": true,
+            "data-source": [
+              { "id": "1", "title": "1 Adet" },
+              { "id": "2", "title": "2 Adet" },
+              { "id": "3", "title": "3 Adet" },
+              { "id": "4", "title": "4 Adet" },
+              { "id": "5", "title": "5 Adet" }
+            ]
+          },
+          {
+            "type": "Footer",
+            "label": "Sepete Ekle",
+            "on-click-action": {
+              "name": "navigate",
+              "next": { "type": "screen", "name": "TESLIMAT_BILGI" },
+              "payload": {
+                "category": "${data.category}",
+                "product_id": "${form.product_id}",
+                "quantity": "${form.quantity}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "TESLIMAT_BILGI",
+      "title": "Teslimat Bilgileri",
+      "terminal": false,
+      "data": {
+        "category": { "type": "string", "__example__": "telefon" },
+        "product_id": { "type": "string", "__example__": "iphone15" },
+        "quantity": { "type": "string", "__example__": "1" }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Teslimat Bilgileri"
+          },
+          {
+            "type": "TextBody",
+            "text": "Urun: ${data.product_id}\nAdet: ${data.quantity}\n\nTeslimat adresinizi girin:"
+          },
+          {
+            "type": "TextInput",
+            "name": "customer_name",
+            "label": "Ad Soyad",
+            "input-type": "text",
+            "required": true
+          },
+          {
+            "type": "TextInput",
+            "name": "customer_phone",
+            "label": "Telefon",
+            "input-type": "phone",
+            "required": true,
+            "helper-text": "Kurye iletisimi icin"
+          },
+          {
+            "type": "TextInput",
+            "name": "city",
+            "label": "Il",
+            "input-type": "text",
+            "required": true
+          },
+          {
+            "type": "TextInput",
+            "name": "district",
+            "label": "Ilce",
+            "input-type": "text",
+            "required": true
+          },
+          {
+            "type": "TextArea",
+            "name": "address",
+            "label": "Acik Adres",
+            "required": true,
+            "helper-text": "Mahalle, sokak, bina no, daire no"
+          },
+          {
+            "type": "Footer",
+            "label": "Siparisi Tamamla",
+            "on-click-action": {
+              "name": "navigate",
+              "next": { "type": "screen", "name": "SIPARIS_ONAY" },
+              "payload": {
+                "category": "${data.category}",
+                "product_id": "${data.product_id}",
+                "quantity": "${data.quantity}",
+                "customer_name": "${form.customer_name}",
+                "customer_phone": "${form.customer_phone}",
+                "city": "${form.city}",
+                "district": "${form.district}",
+                "address": "${form.address}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "SIPARIS_ONAY",
+      "title": "Siparis Onaylandi",
+      "terminal": true,
+      "success": true,
+      "data": {
+        "category": { "type": "string", "__example__": "telefon" },
+        "product_id": { "type": "string", "__example__": "iphone15" },
+        "quantity": { "type": "string", "__example__": "1" },
+        "customer_name": { "type": "string", "__example__": "Ali Veli" },
+        "customer_phone": { "type": "string", "__example__": "+905551234567" },
+        "city": { "type": "string", "__example__": "Istanbul" },
+        "district": { "type": "string", "__example__": "Kadikoy" },
+        "address": { "type": "string", "__example__": "Caferaga Mah. Moda Cad. No:15 D:4" }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Siparisini Alindi!"
+          },
+          {
+            "type": "TextBody",
+            "text": "Sayin ${data.customer_name}, siparisini basariyla olusturduk."
+          },
+          {
+            "type": "TextSubheading",
+            "text": "Siparis Detaylari"
+          },
+          {
+            "type": "TextBody",
+            "text": "Urun: ${data.product_id}\nAdet: ${data.quantity}\n\nTeslimat: ${data.district}/${data.city}\nTahmini Teslimat: 2-3 Is Gunu"
+          },
+          {
+            "type": "TextCaption",
+            "text": "Odeme kapida nakit veya kredi karti ile yapilabilir. Kargoya verildiginde SMS ile bilgilendirileceksiniz."
+          },
+          {
+            "type": "Footer",
+            "label": "Tamam",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {
+                "category": "${data.category}",
+                "product_id": "${data.product_id}",
+                "product_name": "${data.product_id}",
+                "quantity": "${data.quantity}",
+                "customer_name": "${data.customer_name}",
+                "customer_phone": "${data.customer_phone}",
+                "city": "${data.city}",
+                "district": "${data.district}",
+                "address": "${data.address}",
+                "full_address": "${data.address}, ${data.district}/${data.city}",
+                "total_price": "64999",
+                "order_id": "ORD-2025-001",
+                "payment_method": "kapida_odeme",
+                "status": "confirmed"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

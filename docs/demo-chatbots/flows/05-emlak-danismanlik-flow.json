@@ -1,0 +1,302 @@
+{
+  "version": "6.0",
+  "data_api_version": "3.0",
+  "routing_model": {},
+  "screens": [
+    {
+      "id": "ARAMA_KRITERLERI",
+      "title": "Arama Kriterleri",
+      "terminal": false,
+      "data": {},
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Ev Arama"
+          },
+          {
+            "type": "TextBody",
+            "text": "Hayalinizdeki evi bulmak icin arama kriterlerinizi belirleyin."
+          },
+          {
+            "type": "RadioButtonsGroup",
+            "name": "property_type",
+            "label": "Emlak Tipi",
+            "required": true,
+            "data-source": [
+              { "id": "daire", "title": "Daire" },
+              { "id": "mustakil", "title": "Mustakil Ev" },
+              { "id": "villa", "title": "Villa" },
+              { "id": "residence", "title": "Residence" }
+            ]
+          },
+          {
+            "type": "RadioButtonsGroup",
+            "name": "transaction_type",
+            "label": "Islem Tipi",
+            "required": true,
+            "data-source": [
+              { "id": "satilik", "title": "Satilik" },
+              { "id": "kiralik", "title": "Kiralik" }
+            ]
+          },
+          {
+            "type": "Footer",
+            "label": "Devam Et",
+            "on-click-action": {
+              "name": "navigate",
+              "next": { "type": "screen", "name": "KONUM_BUTCE" },
+              "payload": {
+                "property_type": "${form.property_type}",
+                "transaction_type": "${form.transaction_type}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "KONUM_BUTCE",
+      "title": "Konum ve Butce",
+      "terminal": false,
+      "data": {
+        "property_type": { "type": "string", "__example__": "daire" },
+        "transaction_type": { "type": "string", "__example__": "satilik" }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Konum ve Butce"
+          },
+          {
+            "type": "TextBody",
+            "text": "Tercih ettiginiz konum ve butce araligini belirtin."
+          },
+          {
+            "type": "Dropdown",
+            "name": "city",
+            "label": "Il",
+            "required": true,
+            "data-source": [
+              { "id": "istanbul", "title": "Istanbul" },
+              { "id": "ankara", "title": "Ankara" },
+              { "id": "izmir", "title": "Izmir" },
+              { "id": "antalya", "title": "Antalya" },
+              { "id": "bursa", "title": "Bursa" }
+            ]
+          },
+          {
+            "type": "TextInput",
+            "name": "district_preference",
+            "label": "Ilce Tercihi (Opsiyonel)",
+            "input-type": "text",
+            "required": false,
+            "helper-text": "Ornek: Kadikoy, Besiktas"
+          },
+          {
+            "type": "Dropdown",
+            "name": "room_count",
+            "label": "Oda Sayisi",
+            "required": true,
+            "data-source": [
+              { "id": "1+0", "title": "Stidyo (1+0)" },
+              { "id": "1+1", "title": "1+1" },
+              { "id": "2+1", "title": "2+1" },
+              { "id": "3+1", "title": "3+1" },
+              { "id": "4+1", "title": "4+1" },
+              { "id": "5+", "title": "5+ Oda" }
+            ]
+          },
+          {
+            "type": "Dropdown",
+            "name": "budget",
+            "label": "Butce Araligi",
+            "required": true,
+            "data-source": [
+              { "id": "0-2m", "title": "0 - 2.000.000 TL" },
+              { "id": "2m-4m", "title": "2.000.000 - 4.000.000 TL" },
+              { "id": "4m-6m", "title": "4.000.000 - 6.000.000 TL" },
+              { "id": "6m-10m", "title": "6.000.000 - 10.000.000 TL" },
+              { "id": "10m+", "title": "10.000.000 TL ve uzeri" }
+            ]
+          },
+          {
+            "type": "Footer",
+            "label": "Devam Et",
+            "on-click-action": {
+              "name": "navigate",
+              "next": { "type": "screen", "name": "ILETISIM_BILGI" },
+              "payload": {
+                "property_type": "${data.property_type}",
+                "transaction_type": "${data.transaction_type}",
+                "city": "${form.city}",
+                "district_preference": "${form.district_preference}",
+                "room_count": "${form.room_count}",
+                "budget": "${form.budget}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ILETISIM_BILGI",
+      "title": "Iletisim Bilgileri",
+      "terminal": false,
+      "data": {
+        "property_type": { "type": "string", "__example__": "daire" },
+        "transaction_type": { "type": "string", "__example__": "satilik" },
+        "city": { "type": "string", "__example__": "istanbul" },
+        "district_preference": { "type": "string", "__example__": "Kadikoy" },
+        "room_count": { "type": "string", "__example__": "3+1" },
+        "budget": { "type": "string", "__example__": "4m-6m" }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Iletisim Bilgileri"
+          },
+          {
+            "type": "TextBody",
+            "text": "Size uygun ilanlari paylasabilmemiz icin iletisim bilgilerinizi girin."
+          },
+          {
+            "type": "TextInput",
+            "name": "customer_name",
+            "label": "Ad Soyad",
+            "input-type": "text",
+            "required": true
+          },
+          {
+            "type": "TextInput",
+            "name": "customer_phone",
+            "label": "Telefon",
+            "input-type": "phone",
+            "required": true
+          },
+          {
+            "type": "TextInput",
+            "name": "customer_email",
+            "label": "E-posta (Opsiyonel)",
+            "input-type": "email",
+            "required": false,
+            "helper-text": "Ilan bildirimleri icin"
+          },
+          {
+            "type": "TextArea",
+            "name": "additional_notes",
+            "label": "Ek Notlar (Opsiyonel)",
+            "required": false,
+            "helper-text": "Ozel istekleriniz: asansor, otopark, site ici vb."
+          },
+          {
+            "type": "Dropdown",
+            "name": "contact_time",
+            "label": "Aranmak Icin Uygun Saat",
+            "required": true,
+            "data-source": [
+              { "id": "sabah", "title": "Sabah (09:00-12:00)" },
+              { "id": "oglen", "title": "Oglen (12:00-14:00)" },
+              { "id": "ogle_sonrasi", "title": "Ogle Sonrasi (14:00-18:00)" },
+              { "id": "aksam", "title": "Aksam (18:00-20:00)" },
+              { "id": "her_zaman", "title": "Her Zaman Uygun" }
+            ]
+          },
+          {
+            "type": "Footer",
+            "label": "Talep Olustur",
+            "on-click-action": {
+              "name": "navigate",
+              "next": { "type": "screen", "name": "TALEP_ONAY" },
+              "payload": {
+                "property_type": "${data.property_type}",
+                "transaction_type": "${data.transaction_type}",
+                "city": "${data.city}",
+                "district_preference": "${data.district_preference}",
+                "room_count": "${data.room_count}",
+                "budget": "${data.budget}",
+                "customer_name": "${form.customer_name}",
+                "customer_phone": "${form.customer_phone}",
+                "customer_email": "${form.customer_email}",
+                "additional_notes": "${form.additional_notes}",
+                "contact_time": "${form.contact_time}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "TALEP_ONAY",
+      "title": "Talebiniz Alindi",
+      "terminal": true,
+      "success": true,
+      "data": {
+        "property_type": { "type": "string", "__example__": "daire" },
+        "transaction_type": { "type": "string", "__example__": "satilik" },
+        "city": { "type": "string", "__example__": "istanbul" },
+        "district_preference": { "type": "string", "__example__": "Kadikoy" },
+        "room_count": { "type": "string", "__example__": "3+1" },
+        "budget": { "type": "string", "__example__": "4m-6m" },
+        "customer_name": { "type": "string", "__example__": "Ahmet Yilmaz" },
+        "customer_phone": { "type": "string", "__example__": "+905551234567" },
+        "customer_email": { "type": "string", "__example__": "ahmet@email.com" },
+        "additional_notes": { "type": "string", "__example__": "Site ici, asansorlu olsun" },
+        "contact_time": { "type": "string", "__example__": "ogle_sonrasi" }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Talebiniz Alindi!"
+          },
+          {
+            "type": "TextBody",
+            "text": "Sayin ${data.customer_name}, emlak arama talebiniz basariyla olusturuldu."
+          },
+          {
+            "type": "TextSubheading",
+            "text": "Arama Kriterleriniz"
+          },
+          {
+            "type": "TextBody",
+            "text": "Tip: ${data.property_type} (${data.transaction_type})\nKonum: ${data.city}\nOda: ${data.room_count}\nButce: ${data.budget}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "Uzman gayrimenkul danismanlarimiz kriterlerinize uygun ilanlari belirleyip sizinle iletisime gececektir. Genellikle 24 saat icinde geri donus yapilmaktadir."
+          },
+          {
+            "type": "Footer",
+            "label": "Tamam",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {
+                "property_type": "${data.property_type}",
+                "transaction_type": "${data.transaction_type}",
+                "location": "${data.city}",
+                "district": "${data.district_preference}",
+                "room_count": "${data.room_count}",
+                "budget": "${data.budget}",
+                "customer_name": "${data.customer_name}",
+                "customer_phone": "${data.customer_phone}",
+                "customer_email": "${data.customer_email}",
+                "additional_notes": "${data.additional_notes}",
+                "contact_time": "${data.contact_time}",
+                "request_id": "EML-2025-001",
+                "agency_name": "Guven Emlak",
+                "status": "pending_review"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

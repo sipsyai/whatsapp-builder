@@ -103,8 +103,18 @@ export class ChatBotsController {
       throw new BadRequestException('No file uploaded');
     }
 
-    // Validate file type
-    if (file.mimetype !== 'application/json') {
+    // Validate file type - accept multiple MIME types for JSON files
+    // Different browsers/tools may send different MIME types for JSON files
+    const validMimeTypes = [
+      'application/json',
+      'text/plain',
+      'text/json',
+      'application/octet-stream',
+    ];
+    const isValidMimeType = validMimeTypes.includes(file.mimetype);
+    const hasJsonExtension = file.originalname?.toLowerCase().endsWith('.json');
+
+    if (!isValidMimeType && !hasJsonExtension) {
       throw new BadRequestException('File must be a JSON file');
     }
 

@@ -1,0 +1,155 @@
+{
+  "name": "Berber Randevu Sistemi",
+  "description": "Berber randevu alma chatbot örneği - WhatsApp Flow ile berber ve saat seçimi",
+  "isActive": true,
+  "nodes": [
+    {
+      "id": "start_1",
+      "type": "start",
+      "position": { "x": 400, "y": 50 },
+      "data": {
+        "type": "start",
+        "label": "Başlangıç"
+      }
+    },
+    {
+      "id": "welcome_msg",
+      "type": "message",
+      "position": { "x": 400, "y": 150 },
+      "data": {
+        "type": "message",
+        "label": "Hoşgeldiniz",
+        "content": "Merhaba! ✂️\n\nPrestij Kuaför'e hoş geldiniz.\n\nSize en iyi hizmeti sunmak için buradayız. Randevu almak veya hizmetlerimiz hakkında bilgi almak için devam edin.",
+        "messageType": "text"
+      }
+    },
+    {
+      "id": "main_menu",
+      "type": "question",
+      "position": { "x": 400, "y": 300 },
+      "data": {
+        "type": "question",
+        "label": "Ana Menü",
+        "content": "Size nasıl yardımcı olabilirim?",
+        "questionType": "buttons",
+        "variable": "menu_choice",
+        "headerText": "Prestij Kuaför",
+        "footerText": "Bir seçenek seçin",
+        "buttons": [
+          { "id": "btn_randevu", "title": "Randevu Al" },
+          { "id": "btn_hizmetler", "title": "Hizmetlerimiz" },
+          { "id": "btn_iletisim", "title": "İletişim" }
+        ]
+      }
+    },
+    {
+      "id": "hizmet_listesi",
+      "type": "question",
+      "position": { "x": 150, "y": 480 },
+      "data": {
+        "type": "question",
+        "label": "Hizmet Listesi",
+        "content": "Sunduğumuz hizmetler ve fiyatlarımız:",
+        "questionType": "list",
+        "variable": "selected_service_info",
+        "listButtonText": "Hizmetleri Gör",
+        "headerText": "Hizmetlerimiz",
+        "footerText": "Detay için seçin",
+        "listSections": [
+          {
+            "title": "Saç Hizmetleri",
+            "rows": [
+              { "id": "sac_kesim", "title": "Saç Kesimi", "description": "Erkek saç kesimi - 150 TL" },
+              { "id": "sac_yikama", "title": "Saç Yıkama", "description": "Şampuan ve bakım - 50 TL" },
+              { "id": "sac_sekil", "title": "Saç Şekillendirme", "description": "Fön ve şekil - 100 TL" }
+            ]
+          },
+          {
+            "title": "Sakal Hizmetleri",
+            "rows": [
+              { "id": "sakal_tiras", "title": "Sakal Tıraşı", "description": "Klasik ustura tıraşı - 100 TL" },
+              { "id": "sakal_trim", "title": "Sakal Düzeltme", "description": "Sakal şekillendirme - 75 TL" }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "randevu_flow",
+      "type": "whatsapp_flow",
+      "position": { "x": 400, "y": 480 },
+      "data": {
+        "type": "whatsapp_flow",
+        "label": "Randevu Flow",
+        "whatsappFlowId": "BERBER_RANDEVU_FLOW_ID",
+        "flowMode": "data_exchange",
+        "flowCta": "Randevu Oluştur",
+        "flowBodyText": "Berberinizi seçin ve uygun saati belirleyin",
+        "flowHeaderText": "Online Randevu",
+        "flowFooterText": "Sadece 2 adım",
+        "flowInitialScreen": "BERBER_SECIM",
+        "flowOutputVariable": "randevu_data"
+      }
+    },
+    {
+      "id": "iletisim_msg",
+      "type": "message",
+      "position": { "x": 650, "y": 480 },
+      "data": {
+        "type": "message",
+        "label": "İletişim Bilgileri",
+        "content": "📍 Adres: Atatürk Cad. No:123, Kadıköy/İstanbul\n\n📞 Telefon: +90 216 123 4567\n\n⏰ Çalışma Saatleri:\nPazartesi-Cumartesi: 09:00 - 21:00\nPazar: Kapalı\n\n🌐 Instagram: @prestijkuafor",
+        "messageType": "text"
+      }
+    },
+    {
+      "id": "randevu_onay",
+      "type": "message",
+      "position": { "x": 400, "y": 650 },
+      "data": {
+        "type": "message",
+        "label": "Randevu Onayı",
+        "content": "Randevunuz başarıyla oluşturuldu! ✅\n\n👤 Berber: {{randevu_data.berber_name}}\n💇 Hizmet: {{randevu_data.service}}\n📅 Tarih: {{randevu_data.date}}\n⏰ Saat: {{randevu_data.time}}\n\n🎫 Randevu No: #{{randevu_data.appointment_id}}\n\n📌 Lütfen randevunuza 10 dakika önce gelin.\n\nRandevunuzu iptal etmek için 'İPTAL' yazın.",
+        "messageType": "text"
+      }
+    },
+    {
+      "id": "hizmet_detay",
+      "type": "message",
+      "position": { "x": 150, "y": 650 },
+      "data": {
+        "type": "message",
+        "label": "Hizmet Detayı",
+        "content": "Seçtiğiniz hizmet: {{selected_service_info}}\n\nBu hizmet için randevu almak ister misiniz?",
+        "messageType": "text"
+      }
+    },
+    {
+      "id": "randevu_sor",
+      "type": "question",
+      "position": { "x": 150, "y": 780 },
+      "data": {
+        "type": "question",
+        "label": "Randevu Sor",
+        "content": "Bu hizmet için randevu almak ister misiniz?",
+        "questionType": "buttons",
+        "variable": "randevu_istegi",
+        "buttons": [
+          { "id": "btn_evet", "title": "Evet, Randevu Al" },
+          { "id": "btn_hayir", "title": "Hayır, Teşekkürler" }
+        ]
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "start_1", "target": "welcome_msg" },
+    { "id": "e2", "source": "welcome_msg", "target": "main_menu" },
+    { "id": "e3", "source": "main_menu", "target": "randevu_flow", "sourceHandle": "btn_randevu" },
+    { "id": "e4", "source": "main_menu", "target": "hizmet_listesi", "sourceHandle": "btn_hizmetler" },
+    { "id": "e5", "source": "main_menu", "target": "iletisim_msg", "sourceHandle": "btn_iletisim" },
+    { "id": "e6", "source": "randevu_flow", "target": "randevu_onay" },
+    { "id": "e7", "source": "hizmet_listesi", "target": "hizmet_detay" },
+    { "id": "e8", "source": "hizmet_detay", "target": "randevu_sor" },
+    { "id": "e9", "source": "randevu_sor", "target": "randevu_flow", "sourceHandle": "btn_evet" }
+  ]
+}

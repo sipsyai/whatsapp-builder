@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { getChatBots, softDeleteChatBot, toggleActiveChatBot, exportChatbot, importChatbot, type ChatBot, ChatBotStatus } from '../api';
 
 interface ChatBotsListPageProps {
@@ -123,15 +123,28 @@ export const ChatBotsListPage: React.FC<ChatBotsListPageProps> = ({ onNavigate, 
         fileInputRef.current?.click();
     };
 
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+    // Use ref to store loadChatBots to avoid stale closure in processImportFile
+    const loadChatBotsRef = useRef(loadChatBots);
+    useEffect(() => {
+        loadChatBotsRef.current = loadChatBots;
+    });
+
+    // Track if import is being processed to prevent double execution
+    const isProcessingRef = useRef(false);
+
+    // File processing logic - uses ref to always call latest loadChatBots
+    const processImportFile = useCallback(async (file: File) => {
+        // Prevent double execution from both native and React events
+        if (isProcessingRef.current) {
+            return;
+        }
 
         if (!file.name.endsWith('.json')) {
             setToast({ message: 'Please select a JSON file', type: 'error' });
             return;
         }
 
+        isProcessingRef.current = true;
         setImporting(true);
         try {
             const result = await importChatbot(file);
@@ -140,7 +153,8 @@ export const ChatBotsListPage: React.FC<ChatBotsListPageProps> = ({ onNavigate, 
                     message: `Chatbot "${result.chatbotName}" imported successfully`,
                     type: 'success'
                 });
-                loadChatBots(); // Refresh list
+                // Use ref to get the latest loadChatBots with current state
+                loadChatBotsRef.current();
             } else {
                 setToast({ message: result.message, type: 'error' });
             }
@@ -148,8 +162,36 @@ export const ChatBotsListPage: React.FC<ChatBotsListPageProps> = ({ onNavigate, 
             setToast({ message: error.response?.data?.message || 'Failed to import chatbot', type: 'error' });
         } finally {
             setImporting(false);
+            isProcessingRef.current = false;
             if (fileInputRef.current) fileInputRef.current.value = '';
         }
+    }, []);
+
+    // Native change event listener for Playwright compatibility
+    // Playwright's browser_file_upload doesn't always trigger React's synthetic onChange
+    // This listener catches native DOM events that React might miss
+    useEffect(() => {
+        const input = fileInputRef.current;
+        if (!input) return;
+
+        const handleNativeChange = (e: Event) => {
+            const target = e.target as HTMLInputElement;
+            const file = target.files?.[0];
+            if (file) {
+                processImportFile(file);
+            }
+        };
+
+        input.addEventListener('change', handleNativeChange);
+        return () => input.removeEventListener('change', handleNativeChange);
+    }, [processImportFile]);
+
+    // React synthetic event handler - kept for standard browser compatibility
+    // The isProcessingRef guard prevents double execution if native event also fires
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        await processImportFile(file);
     };
 
     if (loading) {

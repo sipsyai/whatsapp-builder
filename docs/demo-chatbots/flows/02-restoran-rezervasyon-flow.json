@@ -1,0 +1,217 @@
+{
+  "version": "6.0",
+  "data_api_version": "3.0",
+  "routing_model": {},
+  "screens": [
+    {
+      "id": "REZERVASYON_BILGI",
+      "title": "Rezervasyon Bilgileri",
+      "terminal": false,
+      "data": {},
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Masa Rezervasyonu"
+          },
+          {
+            "type": "TextBody",
+            "text": "Lezzet Duragi Restoran'a hos geldiniz. Rezervasyon bilgilerinizi girin."
+          },
+          {
+            "type": "DatePicker",
+            "name": "reservation_date",
+            "label": "Rezervasyon Tarihi",
+            "required": true,
+            "min-date": "1733011200000",
+            "max-date": "1764547200000",
+            "helper-text": "Her gun acigiz"
+          },
+          {
+            "type": "Dropdown",
+            "name": "reservation_time",
+            "label": "Rezervasyon Saati",
+            "required": true,
+            "data-source": [
+              { "id": "12:00", "title": "12:00 - Ogle" },
+              { "id": "12:30", "title": "12:30 - Ogle" },
+              { "id": "13:00", "title": "13:00 - Ogle" },
+              { "id": "13:30", "title": "13:30 - Ogle" },
+              { "id": "18:00", "title": "18:00 - Aksam" },
+              { "id": "18:30", "title": "18:30 - Aksam" },
+              { "id": "19:00", "title": "19:00 - Aksam" },
+              { "id": "19:30", "title": "19:30 - Aksam" },
+              { "id": "20:00", "title": "20:00 - Aksam" },
+              { "id": "20:30", "title": "20:30 - Aksam" },
+              { "id": "21:00", "title": "21:00 - Aksam" }
+            ]
+          },
+          {
+            "type": "Dropdown",
+            "name": "guest_count",
+            "label": "Kisi Sayisi",
+            "required": true,
+            "data-source": [
+              { "id": "1", "title": "1 Kisi" },
+              { "id": "2", "title": "2 Kisi" },
+              { "id": "3", "title": "3 Kisi" },
+              { "id": "4", "title": "4 Kisi" },
+              { "id": "5", "title": "5 Kisi" },
+              { "id": "6", "title": "6 Kisi" },
+              { "id": "7-8", "title": "7-8 Kisi" },
+              { "id": "9-10", "title": "9-10 Kisi" },
+              { "id": "10+", "title": "10+ Kisi (Grup)" }
+            ]
+          },
+          {
+            "type": "Footer",
+            "label": "Devam Et",
+            "on-click-action": {
+              "name": "navigate",
+              "next": { "type": "screen", "name": "MASA_TERCIHI" },
+              "payload": {
+                "reservation_date": "${form.reservation_date}",
+                "reservation_time": "${form.reservation_time}",
+                "guest_count": "${form.guest_count}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "MASA_TERCIHI",
+      "title": "Masa Tercihi",
+      "terminal": false,
+      "data": {
+        "reservation_date": { "type": "string", "__example__": "2025-01-20" },
+        "reservation_time": { "type": "string", "__example__": "19:00" },
+        "guest_count": { "type": "string", "__example__": "4" }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Masa Tercihiniz"
+          },
+          {
+            "type": "TextBody",
+            "text": "Tercih ettiginiz oturma alani ve ozel isteklerinizi belirtin."
+          },
+          {
+            "type": "RadioButtonsGroup",
+            "name": "table_preference",
+            "label": "Masa Bolumu",
+            "required": true,
+            "data-source": [
+              { "id": "ic_mekan", "title": "Ic Mekan" },
+              { "id": "bahce", "title": "Bahce/Teras" },
+              { "id": "pencere_kenari", "title": "Pencere Kenari" },
+              { "id": "farketmez", "title": "Farketmez" }
+            ]
+          },
+          {
+            "type": "TextInput",
+            "name": "customer_name",
+            "label": "Ad Soyad",
+            "input-type": "text",
+            "required": true
+          },
+          {
+            "type": "TextInput",
+            "name": "customer_phone",
+            "label": "Telefon",
+            "input-type": "phone",
+            "required": true,
+            "helper-text": "Onay ve hatirlatma icin"
+          },
+          {
+            "type": "TextArea",
+            "name": "special_requests",
+            "label": "Ozel Istekler (Opsiyonel)",
+            "required": false,
+            "helper-text": "Dogumsunu, yildonumu, diyet vb."
+          },
+          {
+            "type": "Footer",
+            "label": "Rezervasyonu Tamamla",
+            "on-click-action": {
+              "name": "navigate",
+              "next": { "type": "screen", "name": "REZERVASYON_ONAY" },
+              "payload": {
+                "reservation_date": "${data.reservation_date}",
+                "reservation_time": "${data.reservation_time}",
+                "guest_count": "${data.guest_count}",
+                "table_preference": "${form.table_preference}",
+                "customer_name": "${form.customer_name}",
+                "customer_phone": "${form.customer_phone}",
+                "special_requests": "${form.special_requests}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "REZERVASYON_ONAY",
+      "title": "Rezervasyon Onaylandi",
+      "terminal": true,
+      "success": true,
+      "data": {
+        "reservation_date": { "type": "string", "__example__": "2025-01-20" },
+        "reservation_time": { "type": "string", "__example__": "19:00" },
+        "guest_count": { "type": "string", "__example__": "4" },
+        "table_preference": { "type": "string", "__example__": "bahce" },
+        "customer_name": { "type": "string", "__example__": "Ayse Demir" },
+        "customer_phone": { "type": "string", "__example__": "+905559876543" },
+        "special_requests": { "type": "string", "__example__": "" }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Rezervasyonunuz Onaylandi!"
+          },
+          {
+            "type": "TextBody",
+            "text": "Sayin ${data.customer_name}, masaniz ayrildi."
+          },
+          {
+            "type": "TextSubheading",
+            "text": "Rezervasyon Detaylari"
+          },
+          {
+            "type": "TextBody",
+            "text": "Tarih: ${data.reservation_date}\nSaat: ${data.reservation_time}\nKisi: ${data.guest_count}\nMasa: ${data.table_preference}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "Rezervasyonunuza 15 dakika gecikme durumunda masaniz iptal edilebilir. Iptal icin en az 2 saat once bilgi veriniz."
+          },
+          {
+            "type": "Footer",
+            "label": "Tamam",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {
+                "date": "${data.reservation_date}",
+                "time": "${data.reservation_time}",
+                "guest_count": "${data.guest_count}",
+                "table_preference": "${data.table_preference}",
+                "customer_name": "${data.customer_name}",
+                "customer_phone": "${data.customer_phone}",
+                "special_requests": "${data.special_requests}",
+                "reservation_id": "RES-2025-001",
+                "restaurant_name": "Lezzet Duragi",
+                "status": "confirmed"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot Builder Documentation</title>
+    <style>
+        :root {
+            --primary-color: #10b981;
+            --primary-dark: #059669;
+            --bg-dark: #0d1f12;
+            --bg-sidebar: #1a2e1a;
+            --text-color: #e5e7eb;
+            --text-muted: #9ca3af;
+            --border-color: #374151;
+            --code-bg: #1f2937;
+            --warning-bg: #fef3c7;
+            --warning-text: #92400e;
+            --error-bg: #fee2e2;
+            --error-text: #dc2626;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            padding: 20px;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .sidebar-header .logo {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .sidebar-header h1 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .nav-section {
+            margin-bottom: 24px;
+        }
+
+        .nav-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-item {
+            display: block;
+            padding: 10px 12px;
+            color: var(--text-color);
+            text-decoration: none;
+            border-radius: 6px;
+            margin-bottom: 4px;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .nav-item:hover {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--primary-color);
+        }
+
+        .nav-item.active {
+            background-color: rgba(16, 185, 129, 0.2);
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        .nav-item .icon {
+            margin-right: 8px;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            padding: 40px 60px;
+            max-width: 900px;
+        }
+
+        .section {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: #fff;
+        }
+
+        h2 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-top: 48px;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--primary-color);
+            color: #fff;
+        }
+
+        h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-top: 32px;
+            margin-bottom: 12px;
+            color: var(--primary-color);
+        }
+
+        h4 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 24px;
+            margin-bottom: 8px;
+        }
+
+        p {
+            margin-bottom: 16px;
+            color: var(--text-color);
+        }
+
+        .lead {
+            font-size: 18px;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            border: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: var(--bg-sidebar);
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        tr:hover {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Code */
+        code {
+            background-color: var(--code-bg);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 13px;
+            color: var(--primary-color);
+        }
+
+        pre {
+            background-color: var(--code-bg);
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 16px 0;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+        }
+
+        /* Images */
+        .image-container {
+            margin: 24px 0;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .image-container img {
+            width: 100%;
+            display: block;
+        }
+
+        .image-caption {
+            padding: 12px 16px;
+            background-color: var(--bg-sidebar);
+            font-size: 13px;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 16px 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .alert-warning {
+            background-color: rgba(251, 191, 36, 0.1);
+            border-left: 4px solid #fbbf24;
+        }
+
+        .alert-error {
+            background-color: rgba(239, 68, 68, 0.1);
+            border-left: 4px solid #ef4444;
+        }
+
+        .alert-info {
+            background-color: rgba(59, 130, 246, 0.1);
+            border-left: 4px solid #3b82f6;
+        }
+
+        .alert-success {
+            background-color: rgba(16, 185, 129, 0.1);
+            border-left: 4px solid var(--primary-color);
+        }
+
+        /* Feature Cards */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin: 24px 0;
+        }
+
+        .feature-card {
+            background-color: var(--bg-sidebar);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.2s;
+        }
+
+        .feature-card:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+
+        .feature-card .icon {
+            font-size: 24px;
+            margin-bottom: 12px;
+        }
+
+        .feature-card h4 {
+            margin: 0 0 8px 0;
+            font-size: 16px;
+        }
+
+        .feature-card p {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        /* Node Colors */
+        .node-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        .node-message { background-color: #3b82f6; }
+        .node-question { background-color: #f97316; }
+        .node-condition { background-color: #8b5cf6; }
+        .node-whatsapp { background-color: #10b981; }
+        .node-restapi { background-color: #06b6d4; }
+        .node-start { background-color: #22c55e; }
+
+        /* Lists */
+        ul, ol {
+            margin: 16px 0;
+            padding-left: 24px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        /* Horizontal Rule */
+        hr {
+            border: none;
+            border-top: 1px solid var(--border-color);
+            margin: 32px 0;
+        }
+
+        /* Quick Navigation */
+        .quick-nav {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 24px 0;
+        }
+
+        .quick-nav a {
+            padding: 8px 16px;
+            background-color: var(--bg-sidebar);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-color);
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .quick-nav a:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                z-index: 100;
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">CB</div>
+                <h1>Chatbot Builder</h1>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Getting Started</div>
+                <a href="#home" class="nav-item active" data-section="home">
+                    <span class="icon">&#128218;</span> Overview
+                </a>
+                <a href="#getting-started" class="nav-item" data-section="getting-started">
+                    <span class="icon">&#128640;</span> Getting Started
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Node Types</div>
+                <a href="#node-types" class="nav-item" data-section="node-types">
+                    <span class="icon">&#128203;</span> All Node Types
+                </a>
+                <a href="#message-node" class="nav-item" data-section="message-node">
+                    <span class="icon">&#128172;</span> Message Node
+                </a>
+                <a href="#question-node" class="nav-item" data-section="question-node">
+                    <span class="icon">&#10067;</span> Question Node
+                </a>
+                <a href="#condition-node" class="nav-item" data-section="condition-node">
+                    <span class="icon">&#128256;</span> Condition Node
+                </a>
+                <a href="#restapi-node" class="nav-item" data-section="restapi-node">
+                    <span class="icon">&#128279;</span> REST API Node
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Interface</div>
+                <a href="#builder-interface" class="nav-item" data-section="builder-interface">
+                    <span class="icon">&#127912;</span> Builder Interface
+                </a>
+                <a href="#flow-config" class="nav-item" data-section="flow-config">
+                    <span class="icon">&#9881;</span> Flow Configuration
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Features</div>
+                <a href="#testing" class="nav-item" data-section="testing">
+                    <span class="icon">&#128300;</span> Testing & Validation
+                </a>
+                <a href="#ai-features" class="nav-item" data-section="ai-features">
+                    <span class="icon">&#10024;</span> AI Features
+                </a>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Home Section -->
+            <section id="home" class="section active">
+                <h1>Chatbot Builder Documentation</h1>
+                <p class="lead">WhatsApp Builder platformunun gorsel chatbot tasarim araci olan Chatbot Builder icin kapsamli kullanim kilavuzu.</p>
+
+                <div class="image-container">
+                    <img src="images/09-main-sidebar-menu.png" alt="Chatbot Builder Ana Ekran">
+                    <div class="image-caption">Chatbot Builder Ana Ekrani</div>
+                </div>
+
+                <h2>Overview</h2>
+                <p>Chatbot Builder, WhatsApp chatbot akislarini surukle-birak yontemiyle tasarlamaniza olanak taniyan guclu bir gorsel aractir. React Flow tabanli canvas uzerinde node'lari baglayarak karmasik konusma akislari olusturabilirsiniz.</p>
+
+                <h3>Features at a Glance</h3>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="icon">&#127912;</div>
+                        <h4>Visual Flow Builder</h4>
+                        <p>Surukle-birak ile akis tasarimi</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">&#128203;</div>
+                        <h4>6 Node Types</h4>
+                        <p>Message, Question, Condition, WhatsApp Flow, REST API</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">&#9989;</div>
+                        <h4>Real-time Validation</h4>
+                        <p>Anlik hata ve uyari kontrolu</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">&#128300;</div>
+                        <h4>Test Mode</h4>
+                        <p>Akisi simule etme</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">&#10024;</div>
+                        <h4>AI Build</h4>
+                        <p>Yapay zeka ile otomatik akis olusturma</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="icon">&#128256;</div>
+                        <h4>Auto Layout</h4>
+                        <p>Otomatik node duzenleme</p>
+                    </div>
+                </div>
+
+                <h2>Quick Start</h2>
+                <ol>
+                    <li><strong>My Chatbots</strong> sayfasindan yeni chatbot olusturun veya mevcut birini yukleyin</li>
+                    <li><strong>Builder</strong> sayfasinda node'lari sidebar'dan canvas'a ekleyin</li>
+                    <li>Node'lari birbirine baglayarak akis olusturun</li>
+                    <li>Her node'u <strong>settings</strong> butonu ile yapilandirin</li>
+                    <li><strong>Validate</strong> ile akisi kontrol edin</li>
+                    <li><strong>Update Flow</strong> ile kaydedin</li>
+                </ol>
+            </section>
+
+            <!-- Getting Started Section -->
+            <section id="getting-started" class="section">
+                <h1>Getting Started</h1>
+                <p class="lead">Bu bolumde Chatbot Builder'i kullanmaya baslamak icin gereken temel adimlari ogreneceksiniz.</p>
+
+                <h2>My Chatbots Sayfasi</h2>
+                <p>Uygulamaya giris yaptiginizda <strong>My Chatbots</strong> sayfasi karsiniza cikar. Bu sayfa mevcut chatbot'larinizi listeler ve yeni chatbot olusturmaniza olanak tanir.</p>
+
+                <div class="image-container">
+                    <img src="images/01-chatbots-list.png" alt="My Chatbots Listesi">
+                    <div class="image-caption">My Chatbots Listesi</div>
+                </div>
+
+                <h3>Sayfa Bilesenleri</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Bilesen</th>
+                            <th>Aciklama</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Import</strong></td><td>JSON formatinda chatbot ice aktarma</td></tr>
+                        <tr><td><strong>Create New ChatBot</strong></td><td>Yeni bos chatbot olusturma</td></tr>
+                        <tr><td><strong>Search</strong></td><td>Isim veya aciklamaya gore arama</td></tr>
+                        <tr><td><strong>Filter</strong></td><td>All ChatBots / Active Only / Archived Only</td></tr>
+                        <tr><td><strong>Statistics</strong></td><td>Total ChatBots, Total Nodes, Total Connections</td></tr>
+                    </tbody>
+                </table>
+
+                <h3>Chatbot Karti</h3>
+                <p>Her chatbot kartinda su bilgiler ve islemler bulunur:</p>
+                <ul>
+                    <li><strong>Status Badge:</strong> Active/Archived durumu</li>
+                    <li><strong>Edit Button:</strong> Chatbot bilgilerini duzenleme</li>
+                    <li><strong>Download Button:</strong> JSON olarak disa aktarma</li>
+                    <li><strong>Delete Button:</strong> Chatbot'u silme</li>
+                    <li><strong>Node/Edge Count:</strong> Akistaki node ve baglanti sayisi</li>
+                    <li><strong>Load ChatBot:</strong> Builder'da acma</li>
+                </ul>
+
+                <h2>Sidebar Menusu</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Menu</th>
+                            <th>Aciklama</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>My Chatbots</strong></td><td>Chatbot listesi ve yonetimi</td></tr>
+                        <tr><td><strong>Builder</strong></td><td>Gorsel akis tasarimcisi</td></tr>
+                        <tr><td><strong>Sessions</strong></td><td>Kullanici oturumlari</td></tr>
+                        <tr><td><strong>Chat</strong></td><td>Canli sohbet onizleme</td></tr>
+                        <tr><td><strong>Users</strong></td><td>Kullanici yonetimi</td></tr>
+                        <tr><td><strong>WhatsApp Flows</strong></td><td>WhatsApp Flow yonetimi</td></tr>
+                        <tr><td><strong>Data Sources</strong></td><td>Harici veri kaynaklari</td></tr>
+                        <tr><td><strong>Settings</strong></td><td>WhatsApp yapilandirmasi</td></tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Node Types Section -->
+            <section id="node-types" class="section">
+                <h1>Node Types</h1>
+                <p class="lead">Chatbot Builder'da kullanabileceginiz 6 farkli node tipi bulunmaktadir.</p>
+
+                <div class="image-container">
+                    <img src="images/04-sidebar-nodes.png" alt="Sidebar Nodes">
+                    <div class="image-caption">Sidebar'daki Node Listesi</div>
+                </div>
+
+                <h2>Node Tipleri</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Node</th>
+                            <th>Tip</th>
+                            <th>Renk</th>
+                            <th>Amac</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="node-badge node-start">Start</span></td>
+                            <td><code>start</code></td>
+                            <td>Yesil</td>
+                            <td>Flow'un baslangic noktasi</td>
+                        </tr>
+                        <tr>
+                            <td><span class="node-badge node-message">Message</span></td>
+                            <td><code>message</code></td>
+                            <td>Mavi</td>
+                            <td>Kullaniciya mesaj gonderme</td>
+                        </tr>
+                        <tr>
+                            <td><span class="node-badge node-question">Question</span></td>
+                            <td><code>question</code></td>
+                            <td>Turuncu</td>
+                            <td>Kullanicidan girdi alma</td>
+                        </tr>
+                        <tr>
+                            <td><span class="node-badge node-condition">Condition</span></td>
+                            <td><code>condition</code></td>
+                            <td>Mor</td>
+                            <td>Kosullu dallanma</td>
+                        </tr>
+                        <tr>
+                            <td><span class="node-badge node-whatsapp">WhatsApp Flow</span></td>
+                            <td><code>whatsapp_flow</code></td>
+                            <td>Yesil</td>
+                            <td>WhatsApp Flow tetikleme</td>
+                        </tr>
+                        <tr>
+                            <td><span class="node-badge node-restapi">REST API</span></td>
+                            <td><code>rest_api</code></td>
+                            <td>Cyan</td>
+                            <td>Harici API cagirma</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="image-container">
+                    <img src="images/14-canvas-all-nodes.png" alt="Canvas All Nodes">
+                    <div class="image-caption">Canvas Uzerinde Tum Node Tipleri</div>
+                </div>
+            </section>
+
+            <!-- Message Node Section -->
+            <section id="message-node" class="section">
+                <h1>Message Node</h1>
+                <p class="lead">Kullaniciya metin mesaji gonderir.</p>
+
+                <table>
+                    <tbody>
+                        <tr><td><strong>Type</strong></td><td><code>message</code></td></tr>
+                        <tr><td><strong>Renk</strong></td><td><span class="node-badge node-message">Mavi</span></td></tr>
+                        <tr><td><strong>Handles</strong></td><td>Giris (sol) + Cikis (sag)</td></tr>
+                        <tr><td><strong>Icon</strong></td><td>&#128172; chat</td></tr>
+                    </tbody>
+                </table>
+
+                <h2>Yapilandirma</h2>
+                <div class="image-container">
+                    <img src="images/06-message-config-modal.png" alt="Message Config Modal">
+                    <div class="image-caption">Message Node Yapilandirma Modali</div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Alan</th>
+                            <th>Tip</th>
+                            <th>Zorunlu</th>
+                            <th>Aciklama</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Content</strong></td>
+                            <td>Textarea</td>
+                            <td>Evet</td>
+                            <td>Gonderilecek mesaj metni</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="alert alert-info">
+                    <strong>Variable Kullanimi:</strong> Mesaj icinde <code>{{variable_name}}</code> formatinda degiskenler kullanabilirsiniz.
+                </div>
+            </section>
+
+            <!-- Question Node Section -->
+            <section id="question-node" class="section">
+                <h1>Question Node</h1>
+                <p class="lead">Kullanicidan girdi alir. Uc farkli alt tipi vardir: Question (Text), Buttons ve List.</p>
+
+                <table>
+                    <tbody>
+                        <tr><td><strong>Type</strong></td><td><code>question</code></td></tr>
+                        <tr><td><strong>Renk</strong></td><td><span class="node-badge node-question">Turuncu</span></td></tr>
+                        <tr><td><strong>Handles</strong></td><td>Giris (sol) + Dinamik cikislar</td></tr>
+                    </tbody>
+                </table>
+
+                <h2>Question Type Secimi</h2>
+                <p>Question Node eklerken once soru tipini secmeniz gerekir:</p>
+                <div class="image-container">
+                    <img src="images/07-question-type-modal.png" alt="Question Type Modal">
+                    <div class="image-caption">Question Type Secim Modali</div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tip</th>
+                            <th>Icon</th>
+                            <th>Aciklama</th>
+                            <th>Max Secenek</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Question</strong></td><td>&#10067; help</td><td>Serbest metin girdisi</td><td>-</td></tr>
+                        <tr><td><strong>Buttons</strong></td><td>&#9899; radio_button</td><td>Buton secenekleri (WhatsApp Interactive Buttons)</td><td>3</td></tr>
+                        <tr><td><strong>List</strong></td><td>&#128203; list_alt</td><td>Liste secenekleri (WhatsApp Interactive List)</td><td>10</td></tr>
+                    </tbody>
+                </table>
+
+                <hr>
+
+                <!-- Question (Text) -->
+                <h2>1. Question (Text)</h2>
+                <p>Kullanicidan serbest metin girdisi alir. En basit soru tipidir.</p>
+
+                <div class="alert alert-info">
+                    <strong>Kullanim Alani:</strong> Isim, e-posta, adres, acik uclu sorular gibi serbest metin girdileri icin idealdir.
+                </div>
+
+                <div class="image-container">
+                    <img src="images/18-text-question-config.png" alt="Text Question Config">
+                    <div class="image-caption">Text Question Yapilandirmasi</div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Alan</th>
+                            <th>Zorunlu</th>
+                            <th>Aciklama</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Body Text</strong></td><td>Evet</td><td>Kullaniciya gosterilecek soru metni</td></tr>
+                        <tr><td><strong>Variable Name</strong></td><td>Evet</td><td>Kullanicinin cevabini kaydetmek icin degisken adi</td></tr>
+                    </tbody>
+                </table>
+
+                <h4>Handles</h4>
+                <ul>
+                    <li><strong>Giris (sol):</strong> Onceki node'dan baglanti</li>
+                    <li><strong>Cikis (sag):</strong> Tek cikis - kullanici cevap verdikten sonra</li>
+                </ul>
+
+                <hr>
+
+                <!-- Buttons Question -->
+                <h2>2. Buttons Question</h2>
+                <p>WhatsApp Interactive Buttons formatinda secenekler sunar. Maksimum 3 buton eklenebilir (WhatsApp limiti).</p>
+
+                <div class="alert alert-info">
+                    <strong>Kullanim Alani:</strong> Evet/Hayir, secim sorulari, onay islemleri icin idealdir.
+                </div>
+
+                <div class="image-container">
+                    <img src="images/08-buttons-question-config.png" alt="Buttons Config">
+                    <div class="image-caption">Buttons Question Yapilandirmasi</div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Alan</th>
+                            <th>Zorunlu</th>
+                            <th>Aciklama</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Header Text</strong></td><td>Hayir</td><td>Ust kisimda gosterilecek baslik</td></tr>
+                        <tr><td><strong>Body Text</strong></td><td>Evet</td><td>Ana soru metni</td></tr>
+                        <tr><td><strong>Footer Text</strong></td><td>Hayir</td><td>Alt kisimda gosterilecek bilgi</td></tr>
+                        <tr><td><strong>Buttons</strong></td><td>Evet</td><td>Buton listesi (max 3, her biri max 20 karakter)</td></tr>
+                        <tr><td><strong>Variable Name</strong></td><td>Evet</td><td>Secilen butonu kaydetmek icin degisken</td></tr>
+                    </tbody>
+                </table>
+
+                <h4>Buton Islemleri</h4>
+                <ul>
+                    <li><strong>Buton Ekleme:</strong> "New Button Label" alanina metin yazin ve <strong>Add</strong>'e tiklayin</li>
+                    <li><strong>Buton Silme:</strong> Buton yanindaki &#128465; ikonuna tiklayin</li>
+                    <li><strong>Limit:</strong> Maksimum 3 buton, her biri max 20 karakter</li>
+                </ul>
+
+                <h4>Handles (Dinamik)</h4>
+                <ul>
+                    <li><strong>Giris (sol):</strong> Onceki node'dan baglanti</li>
+                    <li><strong>Her buton icin ayri cikis:</strong> "Yes" butonu -> "Yes" handle</li>
+                    <li><strong>Default:</strong> Eslesmeme durumu icin varsayilan cikis</li>
+                </ul>
+
+                <hr>
+
+                <!-- List Question -->
+                <h2>3. List Question</h2>
+                <p>WhatsApp Interactive List formatinda secenekler sunar. Maksimum 10 satir (row) eklenebilir ve bunlar bolumler (sections) altinda gruplanabilir.</p>
+
+                <div class="alert alert-info">
+                    <strong>Kullanim Alani:</strong> Menu secimi, kategori listesi, cok secenekli sorular icin idealdir.
+                </div>
+
+                <div class="image-container">
+                    <img src="images/19-list-question-config.png" alt="List Config">
+                    <div class="image-caption">List Question Yapilandirmasi</div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Alan</th>
+                            <th>Zorunlu</th>
+                            <th>Aciklama</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Header Text</strong></td><td>Hayir</td><td>Ust kisimda gosterilecek baslik</td></tr>
+                        <tr><td><strong>Body Text</strong></td><td>Evet</td><td>Ana soru metni</td></tr>
+                        <tr><td><strong>Footer Text</strong></td><td>Hayir</td><td>Alt kisimda gosterilecek bilgi</td></tr>
+                        <tr><td><strong>List Button Label</strong></td><td>Evet</td><td>Listeyi acmak icin buton metni (orn: "Main Menu")</td></tr>
+                        <tr><td><strong>List Mode</strong></td><td>Evet</td><td>Static (sabit) veya Dynamic (API'den)</td></tr>
+                        <tr><td><strong>List Sections</strong></td><td>Evet</td><td>Bolum ve satir tanimlari (max 10 satir toplam)</td></tr>
+                        <tr><td><strong>Variable Name</strong></td><td>Evet</td><td>Secilen ogeydi kaydetmek icin degisken</td></tr>
+                    </tbody>
+                </table>
+
+                <h4>Section ve Row Yapisi</h4>
+                <ul>
+                    <li><strong>Section Title:</strong> Bolum basligi (opsiyonel, max 24 karakter)</li>
+                    <li><strong>Row Title:</strong> Secenek basligi (zorunlu, max 24 karakter)</li>
+                    <li><strong>Row Description:</strong> Secenek aciklamasi (opsiyonel, max 72 karakter)</li>
+                    <li><strong>+ Add Section:</strong> Yeni bolum ekle</li>
+                    <li><strong>+ Add Row:</strong> Bolume yeni satir ekle</li>
+                </ul>
+
+                <h4>List Mode</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mod</th>
+                            <th>Aciklama</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Static</strong></td><td>Secenekler manuel olarak tanimlanir</td></tr>
+                        <tr><td><strong>Dynamic</strong></td><td>Secenekler API'den veya degiskenlerden gelir</td></tr>
+                    </tbody>
+                </table>
+
+                <h4>Handles (Dinamik)</h4>
+                <ul>
+                    <li><strong>Giris (sol):</strong> Onceki node'dan baglanti</li>
+                    <li><strong>Her row icin ayri cikis:</strong> "Option 1" -> "Option 1" handle</li>
+                    <li><strong>Default:</strong> Eslesmeme durumu icin varsayilan cikis</li>
+                </ul>
+
+                <hr>
+
+                <h2>Question Node Karsilastirmasi</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Ozellik</th>
+                            <th>Question (Text)</th>
+                            <th>Buttons</th>
+                            <th>List</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Girdi Tipi</strong></td><td>Serbest metin</td><td>Buton secimi</td><td>Liste secimi</td></tr>
+                        <tr><td><strong>Max Secenek</strong></td><td>-</td><td>3</td><td>10</td></tr>
+                        <tr><td><strong>Dinamik Handle</strong></td><td>Hayir</td><td>Evet</td><td>Evet</td></tr>
+                        <tr><td><strong>WhatsApp Format</strong></td><td>Text mesaj</td><td>Interactive Buttons</td><td>Interactive List</td></tr>
+                        <tr><td><strong>Ideal Kullanim</strong></td><td>Acik uclu sorular</td><td>2-3 secenekli sorular</td><td>Menu, kategori listesi</td></tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Condition Node Section -->
+            <section id="condition-node" class="section">
+                <h1>Condition Node</h1>
+                <p class="lead">Kosullu dallanma saglar. Bir degiskenin degerine gore akisi yonlendirir.</p>
+
+                <table>
+                    <tbody>
+                        <tr><td><strong>Type</strong></td><td><code>condition</code></td></tr>
+                        <tr><td><strong>Renk</strong></td><td><span class="node-badge node-condition">Mor</span></td></tr>
+                        <tr><td><strong>Handles</strong></td><td>Giris (sol) + True/False cikislari</td></tr>
+                    </tbody>
+                </table>
+
+                <h2>Yapilandirma</h2>
+                <div class="image-container">
+                    <img src="images/10-condition-config-modal.png" alt="Condition Config Modal">
+                    <div class="image-caption">Condition Node Yapilandirmasi</div>
+                </div>
+
+                <h3>Kullanilabilir Operatorler</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Operator</th>
+                            <th>Sembol</th>
+                            <th>Aciklama</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Equal To</td><td><code>==</code></td><td>Degerler esitse true</td></tr>
+                        <tr><td>Not Equal To</td><td><code>!=</code></td><td>Degerler farkliysa true</td></tr>
+                        <tr><td>Greater Than</td><td><code>&gt;</code></td><td>Sol deger buyukse true</td></tr>
+                        <tr><td>Less Than</td><td><code>&lt;</code></td><td>Sol deger kucukse true</td></tr>
+                        <tr><td>Contains</td><td>-</td><td>Metin iceriyorsa true</td></tr>
+                        <tr><td>Does Not Contain</td><td>-</td><td>Metin icermiyorsa true</td></tr>
+                    </tbody>
+                </table>
+
+                <div class="alert alert-warning">
+                    <strong>Onemli:</strong> Condition Node'dan once en az bir Question Node olmali ve variable tanimlanmis olmalidir.
+                </div>
+            </section>
+
+            <!-- REST API Node Section -->
+            <section id="restapi-node" class="section">
+                <h1>REST API Node</h1>
+                <p class="lead">Harici API'lere HTTP istekleri gonderir.</p>
+
+                <table>
+                    <tbody>
+                        <tr><td><strong>Type</strong></td><td><code>rest_api</code></td></tr>
+                        <tr><td><strong>Renk</strong></td><td><span class="node-badge node-restapi">Cyan</span></td></tr>
+                        <tr><td><strong>Handles</strong></td><td>Giris (sol) + Success/Error cikislari</td></tr>
+                    </tbody>
+                </table>
+
+                <h2>Request Tab</h2>
+                <div class="image-container">
+                    <img src="images/11-rest-api-config-modal.png" alt="REST API Request">
+                    <div class="image-caption">REST API Request Yapilandirmasi</div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Alan</th>
+                            <th>Aciklama</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Label</strong></td><td>Node etiketi</td></tr>
+                        <tr><td><strong>HTTP Method</strong></td><td>GET, POST, PUT, DELETE</td></tr>
+                        <tr><td><strong>URL</strong></td><td>API endpoint (<code>{{variable}}</code> destegi)</td></tr>
+                        <tr><td><strong>Timeout</strong></td><td>Zaman asimi (varsayilan: 30000ms)</td></tr>
+                    </tbody>
+                </table>
+
+                <h2>Headers Tab</h2>
+                <div class="image-container">
+                    <img src="images/12-rest-api-headers-tab.png" alt="REST API Headers">
+                    <div class="image-caption">REST API Headers Yapilandirmasi</div>
+                </div>
+
+                <h2>Response Tab</h2>
+                <div class="image-container">
+                    <img src="images/13-rest-api-response-tab.png" alt="REST API Response">
+                    <div class="image-caption">REST API Response Yapilandirmasi</div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Alan</th>
+                            <th>Aciklama</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Output Variable</strong></td><td>Basarili yanit degiskeni</td></tr>
+                        <tr><td><strong>JSON Path</strong></td><td>Veri cikarma yolu (orn: <code>data.items[0].name</code>)</td></tr>
+                        <tr><td><strong>Error Variable</strong></td><td>Hata mesaji degiskeni</td></tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Builder Interface Section -->
+            <section id="builder-interface" class="section">
+                <h1>Builder Interface</h1>
+                <p class="lead">Chatbot Builder arayuzu uc ana bolumden olusur: Header Toolbar, Sidebar ve Canvas.</p>
+
+                <div class="image-container">
+                    <img src="images/09-main-sidebar-menu.png" alt="Builder Interface">
+                    <div class="image-caption">Builder Arayuzu Genel Gorunum</div>
+                </div>
+
+                <h2>Header Toolbar</h2>
+                <div class="image-container">
+                    <img src="images/03-header-toolbar.png" alt="Header Toolbar">
+                    <div class="image-caption">Header Toolbar Butonlari</div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Buton</th>
+                            <th>Renk</th>
+                            <th>Aciklama</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>+ New Flow</strong></td><td>Gri</td><td>Yeni bos akis olusturur</td></tr>
+                        <tr><td><strong>Preview</strong></td><td>Gri</td><td>Chat sayfasinda onizleme</td></tr>
+                        <tr><td><strong>Test Mode</strong></td><td>Kirmizi</td><td>Flow simulasyonu baslatir</td></tr>
+                        <tr><td><strong>Validate</strong></td><td>Yesil</td><td>Akis dogrulamasi yapar</td></tr>
+                        <tr><td><strong>Auto Layout</strong></td><td>Mor</td><td>Node'lari otomatik duzenler</td></tr>
+                        <tr><td><strong>AI Build</strong></td><td>Mavi</td><td>AI ile akis olusturur</td></tr>
+                        <tr><td><strong>Update Flow</strong></td><td>Yesil</td><td>Degisiklikleri kaydeder</td></tr>
+                    </tbody>
+                </table>
+
+                <h2>Canvas</h2>
+                <div class="image-container">
+                    <img src="images/05-canvas-nodes.png" alt="Canvas">
+                    <div class="image-caption">Canvas Uzerinde Node'lar</div>
+                </div>
+
+                <h3>Control Panel</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Buton</th>
+                            <th>Islev</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>+ Zoom In</strong></td><td>Yakinlastir</td></tr>
+                        <tr><td><strong>- Zoom Out</strong></td><td>Uzaklastir</td></tr>
+                        <tr><td><strong>Fit View</strong></td><td>Tum node'lari goster</td></tr>
+                        <tr><td><strong>Toggle Interactivity</strong></td><td>Etkilesimi ac/kapat</td></tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- Flow Configuration Section -->
+            <section id="flow-config" class="section">
+                <h1>Flow Configuration</h1>
+                <p class="lead">Node yapilandirma modallari ve akis ayarlari.</p>
+
+                <h2>Node Yapilandirma</h2>
+                <p>Her node'un <strong>&#9881; Settings</strong> butonuna tiklayarak yapilandirma modalini acabilirsiniz.</p>
+
+                <h3>Modal Islemleri</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Buton</th>
+                            <th>Islev</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Cancel</strong></td><td>Degisiklikleri iptal et</td></tr>
+                        <tr><td><strong>Save</strong></td><td>Degisiklikleri kaydet</td></tr>
+                    </tbody>
+                </table>
+
+                <div class="alert alert-info">
+                    <strong>Not:</strong> Save butonu, tum zorunlu alanlar doldurulana kadar devre disi kalabilir.
+                </div>
+            </section>
+
+            <!-- Testing Section -->
+            <section id="testing" class="section">
+                <h1>Testing & Validation</h1>
+                <p class="lead">Akislarinizi test etmek ve dogrulamak icin guclu araclar.</p>
+
+                <h2>Test Mode</h2>
+                <div class="image-container">
+                    <img src="images/15-test-mode.png" alt="Test Mode">
+                    <div class="image-caption">Test Mode Paneli</div>
+                </div>
+
+                <h3>Test Mode Ozellikleri</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Ozellik</th>
+                            <th>Aciklama</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Step-by-Step Execution</strong></td><td>Akisi adim adim izleyin</td></tr>
+                        <tr><td><strong>Message Preview</strong></td><td>Bot mesajlarini goruntuleyinr</td></tr>
+                        <tr><td><strong>User Input Simulation</strong></td><td>Kullanici girdilerini simule edin</td></tr>
+                        <tr><td><strong>Variable Tracking</strong></td><td>Degisken degerlerini izleyin</td></tr>
+                    </tbody>
+                </table>
+
+                <hr>
+
+                <h2>Validation</h2>
+                <div class="image-container">
+                    <img src="images/16-validation-panel.png" alt="Validation Panel">
+                    <div class="image-caption">Validation Paneli - Hatalar ve Uyarilar</div>
+                </div>
+
+                <h3>Hatalar (Errors)</h3>
+                <div class="alert alert-error">
+                    Hatalar, akisin calismasini engelleyen kritik sorunlardir. Akis kaydedilemez.
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Hata</th>
+                            <th>Cozum</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Condition node must have a "true" output</td><td>True handle'ini bir node'a baglayin</td></tr>
+                        <tr><td>Question node must have a variable name</td><td>Variable Name alanini doldurun</td></tr>
+                        <tr><td>Button X cannot be empty</td><td>Buton metnini girin</td></tr>
+                    </tbody>
+                </table>
+
+                <h3>Uyarilar (Warnings)</h3>
+                <div class="alert alert-warning">
+                    Uyarilar, potansiyel sorunlardir. Akis kaydedilebilir ama dikkat edilmesi onerilir.
+                </div>
+            </section>
+
+            <!-- AI Features Section -->
+            <section id="ai-features" class="section">
+                <h1>AI Features</h1>
+                <p class="lead">Yapay zeka destekli ozelliklerle akis tasarimini hizlandirin.</p>
+
+                <h2>AI Build</h2>
+                <div class="image-container">
+                    <img src="images/17-ai-build-modal.png" alt="AI Build Modal">
+                    <div class="image-caption">AI Build Modali</div>
+                </div>
+
+                <h3>Kullanim</h3>
+                <ol>
+                    <li>Header toolbar'daki <strong>&#10024; AI Build</strong> butonuna tiklayin</li>
+                    <li>Akisinizi dogal dilde aciklayin</li>
+                    <li><strong>Generate</strong> butonuna tiklayin</li>
+                    <li>AI, aciklamaniza gore node'lar ve baglantilar olusturur</li>
+                </ol>
+
+                <h3>Etkili Prompt Yazma</h3>
+                <div class="alert alert-success">
+                    <strong>Iyi Ornek:</strong><br>
+                    Musteri hizmetleri chatbot'u olustur:<br>
+                    1. Hos geldiniz mesaji gonder<br>
+                    2. "Siparis Takibi", "Iade Talebi" seceneklerini sun<br>
+                    3. Siparis Takibi secilirse siparis numarasi sor
+                </div>
+
+                <hr>
+
+                <h2>Auto Layout</h2>
+                <p>Auto Layout ozelligi, canvas'taki node'lari otomatik olarak duzenler.</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Ozellik</th>
+                            <th>Aciklama</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Algoritma</strong></td><td>dagre (directed graph)</td></tr>
+                        <tr><td><strong>Yon</strong></td><td>Sol &#8594; Sag</td></tr>
+                        <tr><td><strong>Spacing</strong></td><td>Otomatik node araligi</td></tr>
+                    </tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // Navigation handling
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+
+                // Remove active class from all nav items and sections
+                document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                document.querySelectorAll('.section').forEach(section => section.classList.remove('active'));
+
+                // Add active class to clicked item
+                this.classList.add('active');
+
+                // Show corresponding section
+                const sectionId = this.getAttribute('data-section');
+                document.getElementById(sectionId).classList.add('active');
+
+                // Scroll to top
+                window.scrollTo(0, 0);
+            });
+        });
+    </script>
+</body>
+</html>

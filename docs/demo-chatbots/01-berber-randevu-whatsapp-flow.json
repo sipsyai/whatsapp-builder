@@ -1,0 +1,226 @@
+{
+  "version": "7.2",
+  "data_api_version": "3.0",
+  "routing_model": {},
+  "screens": [
+    {
+      "id": "BERBER_SECIM",
+      "title": "Berber Seçimi",
+      "terminal": false,
+      "data": {},
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Berberinizi Seçin"
+          },
+          {
+            "type": "TextBody",
+            "text": "Deneyimli berberlerimizden birini seçerek randevunuza başlayın."
+          },
+          {
+            "type": "RadioButtonsGroup",
+            "name": "berber_id",
+            "label": "Berber",
+            "required": true,
+            "data-source": [
+              { "id": "berber_ahmet", "title": "Ahmet Usta - 15 yıl deneyim" },
+              { "id": "berber_mehmet", "title": "Mehmet Usta - 10 yıl deneyim" },
+              { "id": "berber_can", "title": "Can Usta - 8 yıl deneyim" },
+              { "id": "berber_emre", "title": "Emre Usta - 5 yıl deneyim" }
+            ]
+          },
+          {
+            "type": "Dropdown",
+            "name": "service",
+            "label": "Hizmet Türü",
+            "required": true,
+            "data-source": [
+              { "id": "sac_kesim", "title": "Saç Kesimi - 150 TL" },
+              { "id": "sac_sakal", "title": "Saç + Sakal - 220 TL" },
+              { "id": "sakal_tiras", "title": "Sakal Tıraşı - 100 TL" },
+              { "id": "komple_bakim", "title": "Komple Bakım - 300 TL" },
+              { "id": "cocuk_kesim", "title": "Çocuk Kesimi - 100 TL" }
+            ]
+          },
+          {
+            "type": "Footer",
+            "label": "Devam Et",
+            "on-click-action": {
+              "name": "navigate",
+              "next": { "type": "screen", "name": "TARIH_SAAT_SECIM" },
+              "payload": {
+                "berber_id": "${form.berber_id}",
+                "service": "${form.service}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "TARIH_SAAT_SECIM",
+      "title": "Tarih ve Saat",
+      "terminal": false,
+      "data": {
+        "berber_id": {
+          "type": "string",
+          "__example__": "berber_ahmet"
+        },
+        "service": {
+          "type": "string",
+          "__example__": "sac_kesim"
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Tarih ve Saat Seçin"
+          },
+          {
+            "type": "TextBody",
+            "text": "Randevunuz için uygun tarih ve saati belirleyin."
+          },
+          {
+            "type": "DatePicker",
+            "name": "appointment_date",
+            "label": "Randevu Tarihi",
+            "required": true,
+            "min-date": "1735689600000",
+            "max-date": "1767225600000",
+            "helper-text": "Pazartesi-Cumartesi arası seçim yapabilirsiniz"
+          },
+          {
+            "type": "Dropdown",
+            "name": "appointment_time",
+            "label": "Randevu Saati",
+            "required": true,
+            "data-source": [
+              { "id": "09:00", "title": "09:00" },
+              { "id": "09:30", "title": "09:30" },
+              { "id": "10:00", "title": "10:00" },
+              { "id": "10:30", "title": "10:30" },
+              { "id": "11:00", "title": "11:00" },
+              { "id": "11:30", "title": "11:30" },
+              { "id": "12:00", "title": "12:00" },
+              { "id": "14:00", "title": "14:00" },
+              { "id": "14:30", "title": "14:30" },
+              { "id": "15:00", "title": "15:00" },
+              { "id": "15:30", "title": "15:30" },
+              { "id": "16:00", "title": "16:00" },
+              { "id": "16:30", "title": "16:30" },
+              { "id": "17:00", "title": "17:00" },
+              { "id": "17:30", "title": "17:30" },
+              { "id": "18:00", "title": "18:00" },
+              { "id": "18:30", "title": "18:30" },
+              { "id": "19:00", "title": "19:00" },
+              { "id": "19:30", "title": "19:30" },
+              { "id": "20:00", "title": "20:00" }
+            ]
+          },
+          {
+            "type": "TextInput",
+            "name": "customer_name",
+            "label": "Adınız Soyadınız",
+            "input-type": "text",
+            "required": true
+          },
+          {
+            "type": "TextInput",
+            "name": "customer_phone",
+            "label": "Telefon Numaranız",
+            "input-type": "phone",
+            "required": true,
+            "helper-text": "Randevu hatırlatması için"
+          },
+          {
+            "type": "TextArea",
+            "name": "notes",
+            "label": "Notlar (Opsiyonel)",
+            "required": false,
+            "helper-text": "Özel isteklerinizi belirtebilirsiniz"
+          },
+          {
+            "type": "Footer",
+            "label": "Randevuyu Onayla",
+            "on-click-action": {
+              "name": "navigate",
+              "next": { "type": "screen", "name": "ONAY_EKRANI" },
+              "payload": {
+                "berber_id": "${data.berber_id}",
+                "service": "${data.service}",
+                "appointment_date": "${form.appointment_date}",
+                "appointment_time": "${form.appointment_time}",
+                "customer_name": "${form.customer_name}",
+                "customer_phone": "${form.customer_phone}",
+                "notes": "${form.notes}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ONAY_EKRANI",
+      "title": "Randevu Onayı",
+      "terminal": true,
+      "success": true,
+      "data": {
+        "berber_id": { "type": "string", "__example__": "berber_ahmet" },
+        "service": { "type": "string", "__example__": "sac_kesim" },
+        "appointment_date": { "type": "string", "__example__": "2025-01-15" },
+        "appointment_time": { "type": "string", "__example__": "10:00" },
+        "customer_name": { "type": "string", "__example__": "Ali Yılmaz" },
+        "customer_phone": { "type": "string", "__example__": "+905551234567" },
+        "notes": { "type": "string", "__example__": "Saç üst kısa olsun" }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Randevunuz Onaylandı!"
+          },
+          {
+            "type": "TextBody",
+            "text": "Sayın ${data.customer_name}, randevunuz başarıyla oluşturuldu."
+          },
+          {
+            "type": "TextSubheading",
+            "text": "Randevu Detayları"
+          },
+          {
+            "type": "TextBody",
+            "text": "Tarih: ${data.appointment_date}\nSaat: ${data.appointment_time}\nHizmet: ${data.service}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "Randevunuza 10 dakika önce gelmenizi rica ederiz. İptal için 24 saat önceden haber veriniz."
+          },
+          {
+            "type": "Footer",
+            "label": "Tamam",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {
+                "berber_id": "${data.berber_id}",
+                "berber_name": "${data.berber_id}",
+                "service": "${data.service}",
+                "date": "${data.appointment_date}",
+                "time": "${data.appointment_time}",
+                "customer_name": "${data.customer_name}",
+                "customer_phone": "${data.customer_phone}",
+                "notes": "${data.notes}",
+                "appointment_id": "BRB-2025-001",
+                "status": "confirmed"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
