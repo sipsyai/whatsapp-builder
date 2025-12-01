@@ -37,6 +37,7 @@ Invoke any agent by name in Claude Code chat:
 |-------|-------------|----------|
 | **react-expert** | React development expert | Components, hooks, state management, performance |
 | **reactflow-expert** | ReactFlow integration expert | Node-based UIs, custom nodes/edges, interactions |
+| **frontend-tester** | Playwright MCP testing expert | UI testing, E2E tests, test reports, automation |
 
 ### Integration & Communication
 
@@ -91,6 +92,25 @@ Expert in building WhatsApp Flows with screens, components, and endpoint integra
 @whatsapp-flow-builder-expert design a multi-screen appointment booking flow
 ```
 
+### frontend-tester (NEW)
+
+Frontend testing expert using Playwright MCP.
+
+**Capabilities:**
+- Systematic UI testing for all 14 pages
+- Playwright MCP tool orchestration
+- Standard test report generation
+- Priority-based testing (P0-P3)
+- Screenshot capture for failures
+- Test data management
+
+**Example Usage:**
+```
+@frontend-tester run login page tests
+@frontend-tester run all critical tests (P0)
+@frontend-tester generate test report for ChatBots page
+```
+
 ### project-architect
 
 Comprehensive WhatsApp Builder architecture expert.
@@ -124,8 +144,9 @@ All agent files are located in `.claude/agents/`:
 ```
 .claude/agents/
 ├── README.md (this file)
-├── chatbot-builder-expert.md      # NEW - Chatbot flow builder
-├── whatsapp-flow-builder-expert.md # NEW - WhatsApp Flow builder
+├── chatbot-builder-expert.md      # Chatbot flow builder
+├── whatsapp-flow-builder-expert.md # WhatsApp Flow builder
+├── frontend-tester.md             # NEW - Playwright MCP testing
 ├── bullmq-expert.md
 ├── nestjs-expert.md
 ├── postgresql-expert.md

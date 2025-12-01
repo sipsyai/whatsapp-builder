@@ -19,6 +19,7 @@ Skills are organized reference documentation that Claude Code uses automatically
 |-------|-------------|--------|
 | **chatbot-flow-development** | Complete chatbot & WhatsApp Flow guide | Node types, edge routing, variables, screens, components, actions, examples |
 | **project-architect** | WhatsApp Builder architecture | Module structure, tech stack, relationships, feature planning |
+| **frontend-tester** | Frontend testing with Playwright MCP | UI tests, page validation, test reports, automation |
 
 ### Technology Stack
 
@@ -66,6 +67,34 @@ Complete guide for building chatbots and WhatsApp Flows.
 - REST API integration patterns
 - Best practices and validation
 
+### frontend-tester (NEW)
+
+Frontend testing skill using Playwright MCP.
+
+**Reference Files:**
+| File | Content |
+|------|---------|
+| `01-login-tests.md` | Login page test scenarios |
+| `02-chatbots-tests.md` | ChatBots list test scenarios |
+| `03-builder-tests.md` | ChatBot Builder test scenarios |
+| `04-flows-tests.md` | WhatsApp Flows test scenarios |
+| `05-flow-builder-tests.md` | Flow Builder test scenarios |
+| `06-playground-tests.md` | Flow Playground test scenarios |
+| `07-sessions-tests.md` | Sessions test scenarios |
+| `08-users-tests.md` | Users page test scenarios |
+| `09-settings-tests.md` | Settings test scenarios |
+| `10-data-sources-tests.md` | Data Sources test scenarios |
+| `11-chat-tests.md` | Chat page test scenarios |
+| `12-common-tests.md` | Common tests (sidebar, navigation) |
+| `13-test-report-template.md` | Standard report template |
+| `14-test-data.md` | Test data and fixtures |
+
+**Covers:**
+- 14 frontend pages with detailed test scenarios
+- Playwright MCP tool usage
+- Standard test reporting format
+- Test data management
+
 ### project-architect
 
 WhatsApp Builder architecture and structure knowledge.
@@ -91,7 +120,7 @@ WhatsApp Builder architecture and structure knowledge.
 ```
 .claude/skills/
 ├── README.md (this file)
-├── chatbot-flow-development/          # NEW
+├── chatbot-flow-development/
 │   ├── SKILL.md
 │   ├── README.md
 │   └── reference/
@@ -103,6 +132,13 @@ WhatsApp Builder architecture and structure knowledge.
 │       ├── 06-whatsapp-flow-actions.md
 │       ├── 07-rest-api-integration.md
 │       └── 08-examples.md
+├── frontend-tester/                   # NEW
+│   ├── SKILL.md
+│   └── reference/
+│       ├── 01-login-tests.md
+│       ├── 02-chatbots-tests.md
+│       ├── ...
+│       └── 14-test-data.md
 ├── project-architect/
 │   ├── SKILL.md
 │   └── reference/ (17 files)

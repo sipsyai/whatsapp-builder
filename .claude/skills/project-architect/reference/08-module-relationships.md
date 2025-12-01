@@ -28,7 +28,7 @@ AppModule
   │     └─→ WhatsAppModule (imports WhatsAppFlowService)
   │
   ├─→ DataSourcesModule
-  │     └─→ TypeOrmModule.forFeature([DataSource])
+  │     └─→ TypeOrmModule.forFeature([DataSource, DataSourceConnection])
   │
   ├─→ ConversationsModule
   │     ├─→ TypeOrmModule.forFeature([Conversation, User])
@@ -321,6 +321,8 @@ ChatPage Component
 | `MessageRepository` | MessagesModule, ConversationsModule, WebhooksModule |
 | `WhatsAppConfigRepository` | WhatsAppModule |
 | `WhatsAppFlowRepository` | FlowsModule, ChatBotsModule, WhatsAppModule |
+| `DataSourceRepository` | DataSourcesModule, ChatBotsModule, WebhooksModule |
+| `DataSourceConnectionRepository` | DataSourcesModule, FlowsModule |
 
 ---
 
@@ -345,6 +347,20 @@ ChatPage Component
 - `GET /api/flows/active` → FlowsService → WhatsAppFlowRepository
 - `POST /api/flows/:id/publish` → FlowsService → WhatsAppFlowService
 - `GET /api/flows/:id/preview` → FlowsService → WhatsAppFlowService
+
+### DataSources Endpoints
+- `GET /api/data-sources` → DataSourcesService → DataSourceRepository
+- `POST /api/data-sources` → DataSourcesService → DataSourceRepository
+- `GET /api/data-sources/:id` → DataSourcesService → DataSourceRepository
+- `PUT /api/data-sources/:id` → DataSourcesService → DataSourceRepository
+- `DELETE /api/data-sources/:id` → DataSourcesService → DataSourceRepository
+- `POST /api/data-sources/:id/test-endpoint` → DataSourcesService (endpoint testing)
+
+### DataSourceConnections Endpoints
+- `GET /api/data-sources/:dataSourceId/connections` → DataSourcesService → DataSourceConnectionRepository
+- `POST /api/data-sources/:dataSourceId/connections` → DataSourcesService → DataSourceConnectionRepository
+- `PUT /api/data-sources/:dataSourceId/connections/:id` → DataSourcesService → DataSourceConnectionRepository
+- `DELETE /api/data-sources/:dataSourceId/connections/:id` → DataSourcesService → DataSourceConnectionRepository
 
 ---
 
@@ -478,16 +494,25 @@ User reaches WhatsApp Flow node in chatbot
 ### Entity Relationships
 
 ```
-DataSource (1) ←─┐
-                  │ ManyToOne (nullable)
-                  │
+DataSource (1) ←──→ (M) DataSourceConnection (CASCADE)
+    │                        │
+    │                        └──→ DataSourceConnection (self-ref, SET NULL)
+    │                              (for cascading dropdowns)
+    │
+    └── ManyToOne (nullable, SET NULL)
+              │
+              ↓
 WhatsAppFlow ←────┘
   ↓ (referenced in JSONB)
 ChatBot.nodes[].data.whatsappFlowId
 ```
 
 **Cascade Behavior**:
-- When DataSource is deleted: `WhatsAppFlow.dataSourceId` set to NULL (not broken)
+- When DataSource is deleted:
+  - `WhatsAppFlow.dataSourceId` set to NULL (flow continues to work)
+  - All related `DataSourceConnection` records are CASCADE deleted
+- When DataSourceConnection is deleted:
+  - `dependsOnConnectionId` on dependent connections set to NULL
 - When WhatsAppFlow is deleted: No cascade (DataSource remains)
 
 ### Frontend Integration

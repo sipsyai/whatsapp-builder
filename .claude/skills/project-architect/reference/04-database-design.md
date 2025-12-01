@@ -29,15 +29,19 @@ conversations (1) ←→ (M) messages
 conversations (1) ←→ (1) conversation_contexts
 chatbots (1) ←→ (M) conversation_contexts
 
+Data Sources Hierarchy:
+- data_sources (1) ←→ (M) data_source_connections (CASCADE)
+- data_source_connections (1) ←→ (M) data_source_connections (self-ref, SET NULL)
+- data_sources (1) ←→ (M) whatsapp_flows (optional, SET NULL)
+
 Standalone:
 - whatsapp_config (singleton via partial unique index)
 - whatsapp_flows (referenced in chatbot nodes via JSONB)
-- data_sources (1) ←→ (M) whatsapp_flows (optional relation)
 ```
 
 ---
 
-## Entities (8 Tables)
+## Entities (9 Tables)
 
 ### 1. users
 **File**: `/backend/src/entities/user.entity.ts`
@@ -208,6 +212,40 @@ Standalone:
 
 ---
 
+### 9. data_source_connections
+**File**: `/backend/src/entities/data-source-connection.entity.ts`
+
+**Purpose**: Store reusable API endpoint configurations for cascading/dependent dropdowns in WhatsApp Flows.
+
+**Fields**:
+- `id` (UUID, PK)
+- `name` (string, 255) - Human-readable connection name
+- `description` (text, nullable)
+- `dataSourceId` (FK → data_sources, CASCADE) - Parent data source
+- `endpoint` (string, 500) - API path like '/api/products'
+- `method` (ENUM: GET, POST, PUT, PATCH, DELETE) - Default: GET
+- `defaultParams` (JSONB, nullable) - Default query parameters
+- `defaultBody` (JSONB, nullable) - Default request body for POST/PUT
+- `dataKey` (string, 255, nullable) - Path to data in response (e.g., 'data.items')
+- `transformConfig` (JSONB, nullable) - Field mappings: `{ idField, titleField, descriptionField? }`
+- `dependsOnConnectionId` (FK → data_source_connections, SET NULL, nullable) - For cascading dropdowns
+- `paramMapping` (JSONB, nullable) - JSONPath mappings like `{ "filters[brand]": "$.selectedBrand" }`
+- `isActive` (boolean) - Default: true
+- `createdAt`, `updatedAt` (timestamps)
+
+**Relationships**:
+- `dataSource` (ManyToOne → DataSource, CASCADE on delete)
+- `dependsOnConnection` (ManyToOne → self, SET NULL on delete) - For chained connections
+
+**Use Cases**:
+- Cascading dropdown: Brand → Products (dependsOnConnection links them)
+- Reusable API endpoints without hardcoding in Flow JSON
+- Dynamic data binding in WhatsApp Flow components
+
+**Migration**: `1732800000000-CreateDataSourceConnectionsTable.ts`
+
+---
+
 ## Relationships
 
 ### Many-to-Many: users ↔ conversations
@@ -281,6 +319,7 @@ WHERE isActive = true;
 3. `1701234567892-AddSessionTracking.ts` - Add session fields
 4. `1701234567893-AddFlowSync.ts` - Add syncedFromMeta field
 5. `1764000000000-AddAuthFieldsToUser.ts` - Add email, password, role, isActive, lastLoginAt
+6. `1732800000000-CreateDataSourceConnectionsTable.ts` - Add data_source_connections table for cascading dropdowns
 
 ### Commands
 ```bash
@@ -438,11 +477,11 @@ npm run migration:revert  # Rolls back last migration
 7. **No Sync**: `synchronize: false` prevents accidental schema changes
 
 ### Schema Stats
-- **Tables**: 7 (+ 1 junction table)
-- **Entities**: 7 TypeORM entities
-- **Relationships**: 6 (2 M:N, 4 1:M)
-- **Migrations**: 5 applied (including auth fields)
-- **Indexes**: 9+ (including unique constraints on email)
+- **Tables**: 8 (+ 1 junction table)
+- **Entities**: 9 TypeORM entities
+- **Relationships**: 8 (2 M:N, 5 1:M, 1 self-referential)
+- **Migrations**: 6 applied (including data_source_connections)
+- **Indexes**: 10+ (including unique constraints on email)
 
 ---
 
