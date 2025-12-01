@@ -170,8 +170,8 @@ export const connectionApi = {
   },
 
   // Execute chained connection
-  executeChain: async (connectionId: string, contextData?: Record<string, any>): Promise<any> => {
-    const response = await client.post(`/api/data-sources/connections/${connectionId}/execute-chain`, { contextData });
+  executeChain: async (connectionId: string, contextData?: Record<string, any>): Promise<ConnectionTestResponse> => {
+    const response = await client.post<ConnectionTestResponse>(`/api/data-sources/connections/${connectionId}/execute-chain`, { contextData });
     return response.data;
   },
 

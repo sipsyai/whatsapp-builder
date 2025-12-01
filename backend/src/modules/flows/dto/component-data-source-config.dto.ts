@@ -22,6 +22,11 @@ export class ComponentDataSourceConfigDto {
   @IsString()
   componentName: string;
 
+  @ApiPropertyOptional({ description: 'Connection UUID (v2 - pre-configured connection)' })
+  @IsOptional()
+  @IsUUID()
+  connectionId?: string;
+
   @ApiProperty({ description: 'Data Source UUID' })
   @IsUUID()
   dataSourceId: string;

@@ -41,6 +41,15 @@ export interface TestEndpointResult {
   error?: string;
 }
 
+export interface ExecuteConnectionResult {
+  success: boolean;
+  statusCode?: number;
+  responseTime: number;
+  data?: any;
+  transformedData?: Array<{ id: string; title: string; description?: string }>;
+  error?: string;
+}
+
 @Injectable()
 export class DataSourcesService {
   private readonly logger = new Logger(DataSourcesService.name);
@@ -452,13 +461,14 @@ export class DataSourcesService {
   }
 
   /**
-   * Execute a connection and return the data
+   * Execute a connection and return the data with proper response format
    */
   async executeConnection(
     connectionId: string,
     params?: Record<string, any>,
     body?: any,
-  ): Promise<any> {
+  ): Promise<ExecuteConnectionResult> {
+    const startTime = Date.now();
     const connection = await this.findConnection(connectionId);
 
     if (!connection.isActive) {
@@ -496,6 +506,7 @@ export class DataSourcesService {
       );
 
       const response: AxiosResponse = await client.request(config);
+      const responseTime = Date.now() - startTime;
       let data = response.data;
 
       // Extract data using dataKey if specified
@@ -503,28 +514,57 @@ export class DataSourcesService {
         data = this.extractDataByKey(data, connection.dataKey);
       }
 
-      return data;
+      // Build result
+      const result: {
+        success: boolean;
+        statusCode: number;
+        responseTime: number;
+        data: any;
+        transformedData?: Array<{ id: string; title: string; description?: string }>;
+      } = {
+        success: true,
+        statusCode: response.status,
+        responseTime,
+        data,
+      };
+
+      // Transform data if transformConfig exists and data is array
+      if (connection.transformConfig && Array.isArray(data)) {
+        result.transformedData = data.map((item: any) => ({
+          id: String(item[connection.transformConfig.idField] || ''),
+          title: String(item[connection.transformConfig.titleField] || ''),
+          ...(connection.transformConfig.descriptionField && item[connection.transformConfig.descriptionField]
+            ? { description: String(item[connection.transformConfig.descriptionField]) }
+            : {}),
+        }));
+      }
+
+      return result;
     } catch (error) {
+      const responseTime = Date.now() - startTime;
       this.logger.error(
         `Failed to execute connection ${connection.name}:`,
         error.message,
       );
 
+      let statusCode = 500;
+      let errorMessage = error.message || 'Unknown error';
+
       if (axios.isAxiosError(error)) {
         if (error.response) {
-          throw new BadRequestException(
-            `Connection returned ${error.response.status}: ${error.response.statusText}`,
-          );
+          statusCode = error.response.status;
+          errorMessage = `${error.response.status}: ${error.response.statusText}`;
         } else if (error.request) {
-          throw new InternalServerErrorException(
-            `No response received from connection: ${error.message}`,
-          );
+          errorMessage = `No response received: ${error.message}`;
         }
       }
 
-      throw new InternalServerErrorException(
-        `Failed to execute connection: ${error.message}`,
-      );
+      return {
+        success: false,
+        statusCode,
+        responseTime,
+        error: errorMessage,
+      };
     }
   }
 
@@ -534,7 +574,7 @@ export class DataSourcesService {
   async executeChainedConnection(
     connectionId: string,
     contextData?: Record<string, any>,
-  ): Promise<any> {
+  ): Promise<ExecuteConnectionResult> {
     const connection = await this.findConnection(connectionId);
 
     if (!connection.isActive) {

@@ -21,6 +21,7 @@ import {
   DataSourcesService,
   TestConnectionResult,
   TestEndpointResult,
+  ExecuteConnectionResult,
 } from './data-sources.service';
 import { CreateDataSourceDto } from './dto/create-data-source.dto';
 import { UpdateDataSourceDto } from './dto/update-data-source.dto';
@@ -456,7 +457,7 @@ export class DataSourcesController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Execute a connection and get data',
-    description: 'Executes a connection with optional parameters and body, returning the fetched data',
+    description: 'Executes a connection with optional parameters and body, returning the fetched data. If contextData is provided, executes as a chained connection with JSONPath parameter resolution.',
   })
   @ApiParam({
     name: 'connectionId',
@@ -476,6 +477,11 @@ export class DataSourcesController {
           description: 'Request body to override defaults',
           example: { filter: 'active' },
         },
+        contextData: {
+          type: 'object',
+          description: 'Context data for resolving JSONPath parameter mappings (enables chained execution)',
+          example: { selectedBrand: 'Nike', selectedCategory: 'shoes' },
+        },
       },
     },
     required: false,
@@ -485,7 +491,25 @@ export class DataSourcesController {
     description: 'Connection executed successfully, data returned',
     schema: {
       type: 'object',
-      description: 'Response data from the executed connection',
+      properties: {
+        success: { type: 'boolean', example: true },
+        statusCode: { type: 'number', example: 200 },
+        responseTime: { type: 'number', example: 234 },
+        data: { type: 'object', description: 'Raw response data' },
+        transformedData: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              title: { type: 'string' },
+              description: { type: 'string' },
+            },
+          },
+          description: 'Transformed data if transformConfig is defined',
+        },
+        error: { type: 'string', example: null },
+      },
     },
   })
   @ApiResponse({
@@ -498,8 +522,16 @@ export class DataSourcesController {
   })
   async executeConnection(
     @Param('connectionId', ParseUUIDPipe) connectionId: string,
-    @Body() dto: { params?: Record<string, any>; body?: any },
-  ): Promise<any> {
+    @Body() dto: { params?: Record<string, any>; body?: any; contextData?: Record<string, any> },
+  ): Promise<ExecuteConnectionResult> {
+    // If contextData is provided, use chained execution for JSONPath parameter resolution
+    if (dto?.contextData) {
+      return this.dataSourcesService.executeChainedConnection(
+        connectionId,
+        dto.contextData,
+      );
+    }
+
     return this.dataSourcesService.executeConnection(
       connectionId,
       dto?.params,
@@ -536,7 +568,25 @@ export class DataSourcesController {
     description: 'Chained connection executed successfully, data returned',
     schema: {
       type: 'object',
-      description: 'Response data from the executed connection',
+      properties: {
+        success: { type: 'boolean', example: true },
+        statusCode: { type: 'number', example: 200 },
+        responseTime: { type: 'number', example: 234 },
+        data: { type: 'object', description: 'Raw response data' },
+        transformedData: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              title: { type: 'string' },
+              description: { type: 'string' },
+            },
+          },
+          description: 'Transformed data if transformConfig is defined',
+        },
+        error: { type: 'string', example: null },
+      },
     },
   })
   @ApiResponse({
@@ -550,7 +600,7 @@ export class DataSourcesController {
   async executeChainedConnection(
     @Param('connectionId', ParseUUIDPipe) connectionId: string,
     @Body() dto: { contextData?: Record<string, any> },
-  ): Promise<any> {
+  ): Promise<ExecuteConnectionResult> {
     return this.dataSourcesService.executeChainedConnection(
       connectionId,
       dto?.contextData,

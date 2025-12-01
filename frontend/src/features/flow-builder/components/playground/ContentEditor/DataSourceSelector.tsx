@@ -64,7 +64,7 @@ export const DataSourceSelector: React.FC<DataSourceSelectorProps> = ({
       endpoint: connection.endpoint,
       dataKey: connection.dataKey || 'data',
       transformTo: connection.transformConfig || { idField: 'id', titleField: 'name' },
-      dependsOn: connection.dependsOnConnectionId ? dependsOnField : undefined,
+      dependsOn: connection.dependsOnConnectionId && dependsOnField ? dependsOnField : undefined,
       filterParam: connection.paramMapping
         ? Object.keys(connection.paramMapping)[0]
         : undefined,
