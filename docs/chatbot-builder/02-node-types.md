@@ -1,6 +1,6 @@
 # Node Types
 
-Chatbot Builder'da kullanabileceğiniz 6 farklı node tipi bulunmaktadır. Her node tipi farklı bir işlev sunar ve çeşitli yapılandırma seçeneklerine sahiptir.
+Chatbot Builder'da kullanabileceginiz 7 farkli node tipi bulunmaktadir. Her node tipi farkli bir islev sunar ve cesitli yapilandirma seceneklerine sahiptir.
 
 ## Node Listesi
 
@@ -187,9 +187,78 @@ Ornek: Kullanici "Berber Randevu" butonuna tikladiginda `selected_service` varia
 
 ---
 
-## 6. REST API Node
+## 6. Google Calendar Node
 
-**Amaç**: Harici API'lere HTTP istekleri gönderir.
+**Amac**: Google Calendar entegrasyonu ile takvim islemleri yapar. Etkinlikleri listeler, musaitlik kontrolu yapar.
+
+| Ozellik | Deger |
+|---------|-------|
+| **Type** | `google_calendar` |
+| **Renk** | Yesil (emerald gradient) |
+| **Handles** | Giris (sol) + Cikis (sag) |
+| **Icon** | Calendar icon |
+
+### Google Calendar Node Yapılandırması
+
+| Alan | Aciklama |
+|------|----------|
+| **Label** | Node etiketi |
+| **Action** | Yapmak istenen islem (asagida detayli) |
+| **Calendar Owner** | Hangi kullanicinin takviminin kullanilacagi |
+| **Output Variable** | Sonucu kaydetmek icin degisken adi |
+
+### Action Secenekleri
+
+| Action | Aciklama |
+|--------|----------|
+| `get_today_events` | Bugunun etkinliklerini listeler |
+| `get_tomorrow_events` | Yarinin etkinliklerini listeler |
+| `get_events_by_date` | Belirli tarih araligindaki etkinlikleri listeler |
+| `check_availability` | Musait zaman dilimlerini kontrol eder |
+
+### Calendar Owner Secenekleri
+
+| Owner Type | Aciklama |
+|------------|----------|
+| **Chatbot Owner** | Chatbot'un sahibinin takvimini kullanir (varsayilan) |
+| **Specific User** | Dropdown'dan belirli bir kullanici secer |
+| **From Variable** | Dinamik olarak degiskenden kullanici ID'si alir |
+
+### Onemli Gereksinimler
+
+1. **Chatbot Owner Atamasi**: Google Calendar node'unun calismasi icin chatbot'un bir owner'a (userId) atanmis olmasi gerekir.
+2. **OAuth Token**: Owner'in Google Calendar OAuth entegrasyonunu tamamlamis olmasi gerekir.
+3. **Users API**: Google Calendar baglantisi olan kullanicilari listelemek icin `/api/users?hasGoogleCalendar=true` endpoint'i kullanilabilir.
+
+### Check Availability Yapilandirmasi
+
+| Alan | Aciklama |
+|------|----------|
+| **Date Source** | `static` (sabit tarih) veya `variable` (degiskenden) |
+| **Static Date** | Tarih secimi (YYYY-MM-DD) |
+| **Working Hours** | Calisma saatleri (orn: 09:00 - 18:00) |
+| **Slot Duration** | Randevu suresi (dakika) |
+| **Output Format** | `all_slots` veya `available_only` |
+
+### Ornek Kullanim: Randevu Sistemi
+
+```
+1. QUESTION: "Hangi hizmeti secersiniz?" -> service_type
+2. GOOGLE_CALENDAR:
+   - Action: check_availability
+   - Calendar Owner: Chatbot Owner
+   - Date: Tomorrow
+   - Output: available_slots
+3. QUESTION (List): "Musait saatler:" -> selected_time
+   - Dynamic List Source: available_slots
+4. MESSAGE: "Randevunuz {{selected_time}} saatine alindi!"
+```
+
+---
+
+## 7. REST API Node
+
+**Amac**: Harici API'lere HTTP istekleri gonderir.
 
 | Özellik | Değer |
 |---------|-------|

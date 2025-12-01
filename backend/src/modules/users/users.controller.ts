@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Put, Patch, Delete, Body, Param } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
+import { Controller, Get, Post, Put, Patch, Delete, Body, Param, Query } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -15,10 +15,14 @@ export class UsersController {
   @Get()
   @ApiOperation({
     summary: 'Get all users',
-    description: 'Retrieves a list of all registered users',
+    description: 'Retrieves a list of all registered users. Use hasGoogleCalendar=true to filter users with Google Calendar connected.',
   })
+  @ApiQuery({ name: 'hasGoogleCalendar', required: false, type: Boolean, description: 'Filter users with Google Calendar OAuth connected' })
   @ApiResponse({ status: 200, description: 'Users retrieved successfully', type: [UserResponseDto] })
-  findAll() {
+  findAll(@Query('hasGoogleCalendar') hasGoogleCalendar?: string) {
+    if (hasGoogleCalendar === 'true') {
+      return this.usersService.findWithGoogleCalendar();
+    }
     return this.usersService.findAll();
   }
 

@@ -314,4 +314,118 @@ Kullanici secimi islenirken:
 
 ---
 
-**Son Guncelleme:** 1 Aralik 2024
+---
+
+## Google Calendar Node Execution
+
+Google Calendar node'u, chatbot akisi icinde takvim islemlerini gerceklestirir.
+
+### Chatbot Owner Iliskisi
+
+Google Calendar node'unun calismasi icin chatbot'un bir owner'a (userId) atanmis olmasi gerekir:
+
+```typescript
+// ChatBot Entity
+@Entity('chatbots')
+export class ChatBot {
+  @Column({ type: 'uuid', nullable: true })
+  userId?: string;
+
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'userId' })
+  user?: User;
+}
+```
+
+### Calendar Owner Belirleme
+
+Node yapilandirmasinda 3 farkli owner tipi desteklenir:
+
+| Owner Type | Aciklama | Kullanim |
+|------------|----------|----------|
+| `chatbot_owner` | Chatbot'un sahibinin takvimi | Varsayilan secenek |
+| `static` | Belirli bir kullanici | Dropdown'dan secilen kullanici ID'si |
+| `variable` | Degiskenden alinan ID | Dinamik kullanici secimi |
+
+### Users API - hasGoogleCalendar Filter
+
+Google Calendar baglantisi olan kullanicilari listelemek icin:
+
+**Endpoint:** `GET /api/users?hasGoogleCalendar=true`
+
+**Response:**
+```json
+[
+  {
+    "id": "uuid-1",
+    "name": "Ali Veli",
+    "email": "ali@example.com"
+  },
+  {
+    "id": "uuid-2",
+    "name": "Ayse Fatma",
+    "email": "ayse@example.com"
+  }
+]
+```
+
+Bu endpoint, `user_oauth_tokens` tablosunda `GOOGLE_CALENDAR` provider'i ile aktif token'i olan kullanicilari dondurur.
+
+### UsersService.findWithGoogleCalendar()
+
+```typescript
+async findWithGoogleCalendar(): Promise<{ id: string; name: string; email: string }[]> {
+  const tokens = await this.oauthTokenRepository.find({
+    where: {
+      provider: OAuthProvider.GOOGLE_CALENDAR,
+      isActive: true,
+    },
+    relations: ['user'],
+  });
+
+  return tokens
+    .filter(token => token.user)
+    .map(token => ({
+      id: token.user.id,
+      name: token.user.name || token.metadata?.name || 'Unknown',
+      email: token.metadata?.email || token.user.email || '',
+    }));
+}
+```
+
+### Execution Flow
+
+```
+1. Google Calendar node'a gelindiginde
+2. Calendar owner belirlenir:
+   - chatbot_owner -> chatbot.userId kullanilir
+   - static -> node.data.calendarOwnerId kullanilir
+   - variable -> context.variables[node.data.ownerVariable] kullanilir
+3. Owner'in OAuth token'i kontrol edilir
+4. Google Calendar API'sine istek yapilir
+5. Sonuc output variable'a kaydedilir
+6. Flow bir sonraki node'a ilerler
+```
+
+### Hata Durumlari
+
+| Hata | Aciklama |
+|------|----------|
+| `CHATBOT_NO_OWNER` | Chatbot'a owner atanmamis |
+| `OWNER_NO_OAUTH_TOKEN` | Owner'in Google Calendar baglantisi yok |
+| `OAUTH_TOKEN_EXPIRED` | Token suresi dolmus, yenileme gerekli |
+| `CALENDAR_API_ERROR` | Google Calendar API hatasi |
+
+### Ilgili Dosyalar
+
+| Dosya | Aciklama |
+|-------|----------|
+| `backend/src/entities/chatbot.entity.ts` | ChatBot entity, userId foreign key |
+| `backend/src/entities/user-oauth-token.entity.ts` | OAuth token entity |
+| `backend/src/modules/users/users.service.ts` | findWithGoogleCalendar() metodu |
+| `backend/src/modules/users/users.controller.ts` | hasGoogleCalendar query parameter |
+| `backend/src/modules/google-oauth/google-oauth.service.ts` | Google Calendar API islemleri |
+
+---
+
+**Son Guncelleme:** 1 Aralik 2025

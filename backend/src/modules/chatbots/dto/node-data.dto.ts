@@ -275,4 +275,83 @@ export class NodeDataDto {
   @ApiPropertyOptional({ description: 'Request timeout in ms', example: 30000 })
   @IsOptional()
   apiTimeout?: number;
+
+  // Google Calendar Fields
+  @ApiPropertyOptional({ description: 'Calendar action type', enum: ['get_today_events', 'get_tomorrow_events', 'get_events', 'check_availability'] })
+  @IsOptional()
+  @IsString()
+  calendarAction?: string;
+
+  @ApiPropertyOptional({ description: 'Calendar user source type', enum: ['owner', 'static', 'variable'] })
+  @IsOptional()
+  @IsString()
+  calendarUserSource?: string;
+
+  @ApiPropertyOptional({ description: 'Static calendar user ID' })
+  @IsOptional()
+  @IsString()
+  calendarUserId?: string;
+
+  @ApiPropertyOptional({ description: 'Variable containing calendar user ID' })
+  @IsOptional()
+  @IsString()
+  calendarUserVariable?: string;
+
+  @ApiPropertyOptional({ description: 'Calendar date source type', enum: ['variable', 'static'] })
+  @IsOptional()
+  @IsString()
+  calendarDateSource?: string;
+
+  @ApiPropertyOptional({ description: 'Variable containing the date', example: 'selected_date' })
+  @IsOptional()
+  @IsString()
+  calendarDateVariable?: string;
+
+  @ApiPropertyOptional({ description: 'Static date value (YYYY-MM-DD)', example: '2024-12-01' })
+  @IsOptional()
+  @IsString()
+  calendarStaticDate?: string;
+
+  @ApiPropertyOptional({ description: 'Calendar end date source type', enum: ['variable', 'static'] })
+  @IsOptional()
+  @IsString()
+  calendarEndDateSource?: string;
+
+  @ApiPropertyOptional({ description: 'Variable containing the end date' })
+  @IsOptional()
+  @IsString()
+  calendarEndDateVariable?: string;
+
+  @ApiPropertyOptional({ description: 'Static end date value (YYYY-MM-DD)' })
+  @IsOptional()
+  @IsString()
+  calendarStaticEndDate?: string;
+
+  @ApiPropertyOptional({ description: 'Maximum number of events to retrieve', example: 10 })
+  @IsOptional()
+  calendarMaxResults?: number;
+
+  @ApiPropertyOptional({ description: 'Working hours start time (HH:mm)', example: '09:00' })
+  @IsOptional()
+  @IsString()
+  calendarWorkingHoursStart?: string;
+
+  @ApiPropertyOptional({ description: 'Working hours end time (HH:mm)', example: '18:00' })
+  @IsOptional()
+  @IsString()
+  calendarWorkingHoursEnd?: string;
+
+  @ApiPropertyOptional({ description: 'Slot duration in minutes', example: 30 })
+  @IsOptional()
+  calendarSlotDuration?: number;
+
+  @ApiPropertyOptional({ description: 'Variable to store calendar output', example: 'calendar_result' })
+  @IsOptional()
+  @IsString()
+  calendarOutputVariable?: string;
+
+  @ApiPropertyOptional({ description: 'Output format type', enum: ['full', 'slots_only'] })
+  @IsOptional()
+  @IsString()
+  calendarOutputFormat?: string;
 }

@@ -45,7 +45,7 @@ export class CalendarController {
   constructor(private readonly calendarService: CalendarService) {}
 
   // =====================================================
-  // Calendar Endpoints
+  // Calendar Endpoints (Static routes first)
   // =====================================================
 
   @Post()
@@ -67,46 +67,8 @@ export class CalendarController {
     return this.calendarService.getUserCalendars(user.userId);
   }
 
-  @Get(':id')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get calendar by ID' })
-  @ApiParam({ name: 'id', description: 'Calendar UUID' })
-  @ApiResponse({ status: 200, description: 'Returns calendar details' })
-  async getCalendarById(
-    @CurrentUser() user: CurrentUserData,
-    @Param('id', ParseUUIDPipe) id: string,
-  ): Promise<CalendarWithPermission> {
-    return this.calendarService.getCalendarById(id, user.userId);
-  }
-
-  @Put(':id')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update calendar' })
-  @ApiParam({ name: 'id', description: 'Calendar UUID' })
-  @ApiResponse({ status: 200, description: 'Calendar updated' })
-  async updateCalendar(
-    @CurrentUser() user: CurrentUserData,
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateCalendarDto,
-  ): Promise<CalendarResponseDto> {
-    return this.calendarService.updateCalendar(id, user.userId, dto);
-  }
-
-  @Delete(':id')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Delete calendar' })
-  @ApiParam({ name: 'id', description: 'Calendar UUID' })
-  @ApiResponse({ status: 200, description: 'Calendar deleted' })
-  async deleteCalendar(
-    @CurrentUser() user: CurrentUserData,
-    @Param('id', ParseUUIDPipe) id: string,
-  ): Promise<{ message: string }> {
-    await this.calendarService.deleteCalendar(id, user.userId);
-    return { message: 'Calendar deleted successfully' };
-  }
-
   // =====================================================
-  // Sharing & Invitation Endpoints
+  // Sharing & Invitation Endpoints (Before :id routes)
   // =====================================================
 
   @Post('invites')
@@ -146,18 +108,6 @@ export class CalendarController {
     return this.calendarService.acceptInvite(user.userId, token);
   }
 
-  @Get(':id/shares')
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get all shares for a calendar' })
-  @ApiParam({ name: 'id', description: 'Calendar UUID' })
-  @ApiResponse({ status: 200, description: 'Returns list of shares' })
-  async getCalendarShares(
-    @CurrentUser() user: CurrentUserData,
-    @Param('id', ParseUUIDPipe) id: string,
-  ): Promise<CalendarShareResponseDto[]> {
-    return this.calendarService.getCalendarShares(id, user.userId);
-  }
-
   @Patch('shares/:shareId/permission')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update share permission' })
@@ -185,7 +135,7 @@ export class CalendarController {
   }
 
   // =====================================================
-  // Appointment Endpoints
+  // Appointment Endpoints (Before :id routes)
   // =====================================================
 
   @Post('appointments')
@@ -283,5 +233,61 @@ export class CalendarController {
   ): Promise<{ message: string }> {
     await this.calendarService.deleteAppointment(id, user.userId);
     return { message: 'Appointment deleted successfully' };
+  }
+
+  // =====================================================
+  // Generic Calendar :id Routes (MUST be LAST)
+  // These catch-all parameter routes must come after all
+  // specific routes to prevent intercepting them
+  // =====================================================
+
+  @Get(':id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get calendar by ID' })
+  @ApiParam({ name: 'id', description: 'Calendar UUID' })
+  @ApiResponse({ status: 200, description: 'Returns calendar details' })
+  async getCalendarById(
+    @CurrentUser() user: CurrentUserData,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<CalendarWithPermission> {
+    return this.calendarService.getCalendarById(id, user.userId);
+  }
+
+  @Get(':id/shares')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all shares for a calendar' })
+  @ApiParam({ name: 'id', description: 'Calendar UUID' })
+  @ApiResponse({ status: 200, description: 'Returns list of shares' })
+  async getCalendarShares(
+    @CurrentUser() user: CurrentUserData,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<CalendarShareResponseDto[]> {
+    return this.calendarService.getCalendarShares(id, user.userId);
+  }
+
+  @Put(':id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update calendar' })
+  @ApiParam({ name: 'id', description: 'Calendar UUID' })
+  @ApiResponse({ status: 200, description: 'Calendar updated' })
+  async updateCalendar(
+    @CurrentUser() user: CurrentUserData,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateCalendarDto,
+  ): Promise<CalendarResponseDto> {
+    return this.calendarService.updateCalendar(id, user.userId, dto);
+  }
+
+  @Delete(':id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete calendar' })
+  @ApiParam({ name: 'id', description: 'Calendar UUID' })
+  @ApiResponse({ status: 200, description: 'Calendar deleted' })
+  async deleteCalendar(
+    @CurrentUser() user: CurrentUserData,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<{ message: string }> {
+    await this.calendarService.deleteCalendar(id, user.userId);
+    return { message: 'Calendar deleted successfully' };
   }
 }

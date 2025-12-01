@@ -2,18 +2,40 @@ import { Injectable, ConflictException, NotFoundException, ForbiddenException } 
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../../entities/user.entity';
+import { UserOAuthToken, OAuthProvider } from '../../entities/user-oauth-token.entity';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(UserOAuthToken)
+    private readonly oauthTokenRepository: Repository<UserOAuthToken>,
   ) {}
 
   async findAll(): Promise<User[]> {
     return await this.userRepository.find({
       order: { createdAt: 'DESC' },
     });
+  }
+
+  async findWithGoogleCalendar(): Promise<{ id: string; name: string; email: string }[]> {
+    // Find users who have an active Google Calendar OAuth token
+    const tokens = await this.oauthTokenRepository.find({
+      where: {
+        provider: OAuthProvider.GOOGLE_CALENDAR,
+        isActive: true,
+      },
+      relations: ['user'],
+    });
+
+    return tokens
+      .filter(token => token.user)
+      .map(token => ({
+        id: token.user.id,
+        name: token.user.name || token.metadata?.name || 'Unknown',
+        email: token.metadata?.email || token.user.email || '',
+      }));
   }
 
   async findOne(id: string): Promise<User> {

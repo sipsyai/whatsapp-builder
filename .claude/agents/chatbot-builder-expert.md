@@ -12,7 +12,7 @@ I am your comprehensive expert for building conversational chatbot flows in the 
 
 ### 1. Node Types & Configuration
 
-**I can guide you through all 6 node types**:
+**I can guide you through all 7 node types**:
 
 #### START Node
 - Entry point for every chatbot flow
@@ -231,6 +231,98 @@ apiResponsePath: 'data.items'
 }
 ```
 
+#### GOOGLE_CALENDAR Node
+- Fetches calendar data from Google Calendar via OAuth
+- Supports multiple action types for different use cases
+- Requires chatbot owner to have Google Calendar connected
+- Can read different users' calendars (owner, static user, or from variable)
+- Two output handles: `'success'` and `'error'`
+
+**Properties**:
+- `label`: Display name
+- `type`: `'google_calendar'`
+- `calendarAction`: Action type (`'get_today_events'` | `'get_tomorrow_events'` | `'get_events'` | `'check_availability'`)
+- `calendarUserSource`: Whose calendar to read (`'owner'` | `'static'` | `'variable'`)
+- `calendarUserId`: User ID (when source is `'static'`)
+- `calendarUserVariable`: Variable containing user ID (when source is `'variable'`)
+- `calendarOutputVariable`: Variable to store calendar results
+
+**Action-Specific Properties**:
+
+For `get_events`:
+- `calendarDateSource`: `'variable'` | `'static'`
+- `calendarDateVariable`: Variable name containing start date
+- `calendarStaticDate`: Static start date (YYYY-MM-DD)
+- `calendarEndDateSource`: `'variable'` | `'static'` (optional)
+- `calendarEndDateVariable`: Variable for end date (optional)
+- `calendarStaticEndDate`: Static end date (optional)
+- `calendarMaxResults`: Maximum events to return (default: 10)
+
+For `check_availability`:
+- `calendarDateSource`: `'variable'` | `'static'`
+- `calendarDateVariable` or `calendarStaticDate`: Date to check
+- `calendarWorkingHoursStart`: Start of working hours (e.g., `'09:00'`)
+- `calendarWorkingHoursEnd`: End of working hours (e.g., `'18:00'`)
+- `calendarSlotDuration`: Slot duration in minutes (15, 30, 45, 60, 90, 120)
+- `calendarOutputFormat`: `'full'` | `'slots_only'`
+
+**Calendar User Source Options**:
+1. **owner** (default): Uses the chatbot owner's Google Calendar
+2. **static**: Select a specific user with Google Calendar connected
+3. **variable**: Get user ID from a chatbot variable (e.g., `selected_stylist_id`)
+
+**Example - Check Availability**:
+```typescript
+{
+  label: 'Check Available Slots',
+  type: 'google_calendar',
+  calendarAction: 'check_availability',
+  calendarUserSource: 'owner',
+  calendarDateSource: 'variable',
+  calendarDateVariable: 'selected_date',
+  calendarWorkingHoursStart: '09:00',
+  calendarWorkingHoursEnd: '18:00',
+  calendarSlotDuration: 30,
+  calendarOutputFormat: 'slots_only',
+  calendarOutputVariable: 'available_slots'
+}
+```
+
+**Example - Get Today's Events**:
+```typescript
+{
+  label: "Today's Schedule",
+  type: 'google_calendar',
+  calendarAction: 'get_today_events',
+  calendarUserSource: 'owner',
+  calendarOutputVariable: 'today_events'
+}
+```
+
+**Example - Dynamic User Calendar**:
+```typescript
+{
+  label: 'Stylist Availability',
+  type: 'google_calendar',
+  calendarAction: 'check_availability',
+  calendarUserSource: 'variable',
+  calendarUserVariable: 'selected_stylist_id',
+  calendarDateSource: 'variable',
+  calendarDateVariable: 'appointment_date',
+  calendarWorkingHoursStart: '10:00',
+  calendarWorkingHoursEnd: '20:00',
+  calendarSlotDuration: 60,
+  calendarOutputFormat: 'slots_only',
+  calendarOutputVariable: 'stylist_slots'
+}
+```
+
+**Important Notes**:
+- The chatbot must have an `owner` (userId) for calendar operations
+- Users must connect their Google Calendar via OAuth before their calendar can be read
+- Use `/api/users?hasGoogleCalendar=true` endpoint to get users with Google Calendar connected
+- Output includes error handling - check for `error: true` in the result
+
 ### 2. Edge Routing & Flow Control
 
 **I understand how edges connect nodes and control flow**:
@@ -269,6 +361,11 @@ apiResponsePath: 'data.items'
    - `sourceHandle: 'success'` for successful response
    - `sourceHandle: 'error'` for failed request
    - Fallback: No `sourceHandle` (default edge)
+
+6. **Calendar Routing** (GOOGLE_CALENDAR node):
+   - `sourceHandle: 'success'` for successful calendar fetch
+   - `sourceHandle: 'error'` for failed request or user not connected
+   - Automatically moves to next node after execution
 
 **Example Flow**:
 ```typescript
@@ -439,6 +536,14 @@ flowInitialData: {
    - Make HTTP request with axios
    - Extract response using `apiResponsePath`
    - Store result in `apiOutputVariable` or error in `apiErrorVariable`
+   - Find next node via `'success'` or `'error'` handle
+   - Move to appropriate node
+   - Execute recursively
+
+   **GOOGLE_CALENDAR**: Fetch and proceed
+   - Determine target user (owner, static, variable)
+   - Fetch calendar data via Google OAuth
+   - Store result in `calendarOutputVariable`
    - Find next node via `'success'` or `'error'` handle
    - Move to appropriate node
    - Execute recursively
@@ -746,6 +851,156 @@ const edges = [
 ];
 ```
 
+**Example 6: Google Calendar Appointment Booking**
+
+```typescript
+const nodes = [
+  {
+    id: 'start-1',
+    type: 'start',
+    data: { label: 'Start', type: 'start' },
+    position: { x: 100, y: 200 }
+  },
+  {
+    id: 'msg-welcome',
+    type: 'message',
+    data: {
+      label: 'Welcome',
+      type: 'message',
+      content: 'Welcome to our appointment booking service! Let me check available times.'
+    },
+    position: { x: 300, y: 200 }
+  },
+  {
+    id: 'q-date',
+    type: 'question',
+    data: {
+      label: 'Ask Date',
+      type: 'question',
+      questionType: 'text',
+      content: 'Please enter your preferred date (YYYY-MM-DD format):',
+      variable: 'selected_date'
+    },
+    position: { x: 500, y: 200 }
+  },
+  {
+    id: 'calendar-1',
+    type: 'google_calendar',
+    data: {
+      label: 'Check Availability',
+      type: 'google_calendar',
+      calendarAction: 'check_availability',
+      calendarUserSource: 'owner',
+      calendarDateSource: 'variable',
+      calendarDateVariable: 'selected_date',
+      calendarWorkingHoursStart: '09:00',
+      calendarWorkingHoursEnd: '18:00',
+      calendarSlotDuration: 30,
+      calendarOutputFormat: 'slots_only',
+      calendarOutputVariable: 'available_slots'
+    },
+    position: { x: 700, y: 200 }
+  },
+  {
+    id: 'q-time',
+    type: 'question',
+    data: {
+      label: 'Select Time',
+      type: 'question',
+      questionType: 'list',
+      content: 'Available time slots for {{selected_date}}:',
+      variable: 'selected_time',
+      dynamicListSource: 'available_slots',
+      dynamicLabelField: 'title',
+      listButtonText: 'Select Time'
+    },
+    position: { x: 900, y: 150 }
+  },
+  {
+    id: 'msg-confirm',
+    type: 'message',
+    data: {
+      label: 'Confirmation',
+      type: 'message',
+      content: 'Your appointment is confirmed for {{selected_date}} at {{selected_time}}. We look forward to seeing you!'
+    },
+    position: { x: 1100, y: 150 }
+  },
+  {
+    id: 'msg-error',
+    type: 'message',
+    data: {
+      label: 'Calendar Error',
+      type: 'message',
+      content: 'Sorry, we could not check calendar availability. Please try again later or contact us directly.'
+    },
+    position: { x: 900, y: 300 }
+  }
+];
+
+const edges = [
+  { id: 'e1', source: 'start-1', target: 'msg-welcome' },
+  { id: 'e2', source: 'msg-welcome', target: 'q-date' },
+  { id: 'e3', source: 'q-date', target: 'calendar-1' },
+  { id: 'e4', source: 'calendar-1', target: 'q-time', sourceHandle: 'success' },
+  { id: 'e5', source: 'calendar-1', target: 'msg-error', sourceHandle: 'error' },
+  { id: 'e6', source: 'q-time', target: 'msg-confirm' }
+];
+```
+
+**Example 7: Multi-Stylist Booking (Dynamic Calendar User)**
+
+```typescript
+// Scenario: User selects a stylist, then checks that stylist's availability
+const nodes = [
+  {
+    id: 'api-stylists',
+    type: 'rest_api',
+    data: {
+      label: 'Fetch Stylists',
+      type: 'rest_api',
+      apiUrl: '/api/users?hasGoogleCalendar=true',
+      apiMethod: 'GET',
+      apiOutputVariable: 'stylists',
+      apiErrorVariable: 'api_error'
+    }
+  },
+  {
+    id: 'q-stylist',
+    type: 'question',
+    data: {
+      label: 'Select Stylist',
+      type: 'question',
+      questionType: 'list',
+      content: 'Please select your preferred stylist:',
+      variable: 'selected_stylist_id',
+      dynamicListSource: 'stylists',
+      dynamicLabelField: 'name',
+      dynamicDescField: 'email',
+      listButtonText: 'Choose Stylist'
+    }
+  },
+  {
+    id: 'calendar-stylist',
+    type: 'google_calendar',
+    data: {
+      label: 'Stylist Availability',
+      type: 'google_calendar',
+      calendarAction: 'check_availability',
+      calendarUserSource: 'variable',
+      calendarUserVariable: 'selected_stylist_id',
+      calendarDateSource: 'variable',
+      calendarDateVariable: 'appointment_date',
+      calendarWorkingHoursStart: '10:00',
+      calendarWorkingHoursEnd: '20:00',
+      calendarSlotDuration: 60,
+      calendarOutputFormat: 'slots_only',
+      calendarOutputVariable: 'stylist_slots'
+    }
+  }
+];
+```
+
 ### 6. Best Practices
 
 **Flow Design**:
@@ -791,6 +1046,16 @@ const edges = [
 - ✓ Provide clear body text explaining the form
 - ✓ Pass context via `flowInitialData`
 - ✓ Flow should complete in under 5 minutes
+
+**Google Calendar**:
+- ✓ Ensure chatbot has an owner (userId) for calendar operations
+- ✓ Users must connect Google Calendar via OAuth before use
+- ✓ Use `slots_only` format when feeding to dynamic lists
+- ✓ Handle error cases with separate error path edges
+- ✓ Validate date format (YYYY-MM-DD) before calendar node
+- ✓ Set appropriate working hours for your business
+- ✓ Use `/api/users?hasGoogleCalendar=true` to get connectable users
+- ✓ For multi-user scenarios, use `calendarUserSource: 'variable'`
 
 **Performance**:
 - ✓ Minimize API calls per flow
@@ -905,6 +1170,32 @@ REST API → Returns large array → Question Node with dynamicListSource:
 - ✗ Array is empty
 - ✓ Check API response data
 
+**Issue: Google Calendar node returns error**
+- ✗ Chatbot has no owner (userId)
+- ✓ Ensure chatbot is saved with an owner user
+- ✗ Owner hasn't connected Google Calendar
+- ✓ User must complete Google OAuth flow first
+- ✗ Google OAuth token expired and refresh failed
+- ✓ User needs to reconnect Google Calendar
+
+**Issue: Google Calendar returns "NO_USER" error**
+- ✗ `calendarUserSource` is 'owner' but chatbot has no userId
+- ✓ Set chatbot owner or use 'static' with explicit user ID
+- ✗ `calendarUserSource` is 'variable' but variable is empty
+- ✓ Ensure variable is set before reaching calendar node
+
+**Issue: Calendar slots not showing in list**
+- ✗ Using `'full'` format instead of `'slots_only'`
+- ✓ Set `calendarOutputFormat: 'slots_only'` for list-compatible format
+- ✗ All slots are busy (no availability)
+- ✓ Check calendar for that date, try different date
+
+**Issue: Wrong user's calendar being read**
+- ✗ `calendarUserSource` not set correctly
+- ✓ Use 'owner' for chatbot owner, 'static' for specific user, 'variable' for dynamic
+- ✗ Variable contains wrong user ID
+- ✓ Debug variable value before calendar node
+
 ### 9. Project Architecture Understanding
 
 **Backend Files**:
@@ -921,7 +1212,10 @@ REST API → Returns large array → Question Node with dynamicListSource:
   - `ConditionNode/` - Yellow split icon, true/false handles
   - `WhatsAppFlowNode/` - Purple flow icon
   - `RestApiNode/` - Teal API icon
+  - `GoogleCalendarNode/` - Emerald calendar icon, success/error handles
 - **Builder**: `frontend/src/features/builder/` - ReactFlow canvas
+- **Config Panels**: `frontend/src/features/builder/components/Config*.tsx` - Node configuration
+  - `ConfigGoogleCalendar.tsx` - Google Calendar node configuration
 - **Types**: `frontend/src/shared/types/index.ts` - TypeScript interfaces
 
 **Database**:
@@ -1160,6 +1454,94 @@ REST API → Returns large array → Question Node with dynamicListSource:
   apiResponsePath: "data",
   apiErrorVariable: "order_error",
   apiTimeout: 30000
+}
+
+// GOOGLE_CALENDAR Node - Get Today's Events
+{
+  label: "Today's Schedule",
+  type: "google_calendar",
+  calendarAction: "get_today_events",
+  calendarUserSource: "owner",
+  calendarOutputVariable: "today_events"
+}
+
+// GOOGLE_CALENDAR Node - Get Tomorrow's Events
+{
+  label: "Tomorrow's Schedule",
+  type: "google_calendar",
+  calendarAction: "get_tomorrow_events",
+  calendarUserSource: "owner",
+  calendarOutputVariable: "tomorrow_events"
+}
+
+// GOOGLE_CALENDAR Node - Get Events by Date Range
+{
+  label: "Week Events",
+  type: "google_calendar",
+  calendarAction: "get_events",
+  calendarUserSource: "owner",
+  calendarDateSource: "static",
+  calendarStaticDate: "2024-12-01",
+  calendarEndDateSource: "static",
+  calendarStaticEndDate: "2024-12-07",
+  calendarMaxResults: 50,
+  calendarOutputVariable: "week_events"
+}
+
+// GOOGLE_CALENDAR Node - Check Availability (Full Response)
+{
+  label: "Check Availability",
+  type: "google_calendar",
+  calendarAction: "check_availability",
+  calendarUserSource: "owner",
+  calendarDateSource: "variable",
+  calendarDateVariable: "selected_date",
+  calendarWorkingHoursStart: "09:00",
+  calendarWorkingHoursEnd: "18:00",
+  calendarSlotDuration: 30,
+  calendarOutputFormat: "full",
+  calendarOutputVariable: "availability"
+}
+
+// GOOGLE_CALENDAR Node - Check Availability (Slots Only for Lists)
+{
+  label: "Available Slots",
+  type: "google_calendar",
+  calendarAction: "check_availability",
+  calendarUserSource: "owner",
+  calendarDateSource: "variable",
+  calendarDateVariable: "appointment_date",
+  calendarWorkingHoursStart: "10:00",
+  calendarWorkingHoursEnd: "19:00",
+  calendarSlotDuration: 60,
+  calendarOutputFormat: "slots_only",
+  calendarOutputVariable: "available_slots"
+}
+
+// GOOGLE_CALENDAR Node - Dynamic User (From Variable)
+{
+  label: "Stylist Calendar",
+  type: "google_calendar",
+  calendarAction: "check_availability",
+  calendarUserSource: "variable",
+  calendarUserVariable: "selected_stylist_id",
+  calendarDateSource: "variable",
+  calendarDateVariable: "booking_date",
+  calendarWorkingHoursStart: "09:00",
+  calendarWorkingHoursEnd: "20:00",
+  calendarSlotDuration: 45,
+  calendarOutputFormat: "slots_only",
+  calendarOutputVariable: "stylist_availability"
+}
+
+// GOOGLE_CALENDAR Node - Static User Selection
+{
+  label: "Manager Calendar",
+  type: "google_calendar",
+  calendarAction: "get_today_events",
+  calendarUserSource: "static",
+  calendarUserId: "550e8400-e29b-41d4-a716-446655440000",
+  calendarOutputVariable: "manager_schedule"
 }
 ```
 

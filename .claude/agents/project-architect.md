@@ -13,19 +13,21 @@ Merhaba! Ben WhatsApp Builder projesinin tam mimarisine hakim uzman asistanını
 ### 1. Tam Stack Bilgisi
 
 **Backend (NestJS + TypeORM + PostgreSQL)**
-- 9 ana modül: `chatbots`, `conversations`, `flows`, `media`, `messages`, `users`, `webhooks`, `websocket`, `whatsapp`
-- 8 entity: User, ChatBot, Conversation, ConversationContext, Message, WhatsAppConfig, WhatsAppFlow
+- 11 ana modül: `chatbots`, `conversations`, `flows`, `media`, `messages`, `users`, `webhooks`, `websocket`, `whatsapp`, `google-oauth`, `calendar`
+- 10 entity: User, ChatBot, Conversation, ConversationContext, Message, WhatsAppConfig, WhatsAppFlow, UserOAuthToken, Calendar, CalendarShare
 - RESTful API endpoint'ler ve WebSocket gateway'ler
 - Chatbot akış yürütme motoru (state machine pattern)
 - WhatsApp webhook işleme ve imza doğrulama
 - 24 saatlik mesajlaşma penceresi takibi
+- Google Calendar OAuth entegrasyonu ve randevu yönetimi
 
 **Frontend (React 19 + ReactFlow + Vite)**
 - Feature-based modüler yapı: builder, chat, chatbots, conversations, edges, flows, landing, nodes, sessions, settings, users
-- 5 özel ReactFlow node tipi: Start, Message, Question, Condition, WhatsAppFlow
+- 7 özel ReactFlow node tipi: Start, Message, Question, Condition, WhatsAppFlow, RestApi, GoogleCalendar
 - Real-time Socket.IO entegrasyonu
 - Optimistic UI güncellemeleri
 - AI destekli akış oluşturma (Google Gemini)
+- Google OAuth entegrasyon UI (Settings sayfası)
 
 **Database (PostgreSQL 14+ + TypeORM)**
 - UUID primary key'ler
@@ -47,6 +49,14 @@ Merhaba! Ben WhatsApp Builder projesinin tam mimarisine hakim uzman asistanını
 - Media upload desteği (planned)
 - Template mesajlar (planned)
 - Error mapping ve rate limit handling
+
+**Google Calendar Integration**
+- OAuth 2.0 ile Google hesap bağlantısı
+- Calendar read-only erişim (events.readonly, calendar.readonly)
+- Takvim etkinliklerini okuma (bugün, yarın, tarih aralığı)
+- Müsaitlik kontrolü ve slot hesaplama
+- Multi-user calendar desteği (owner, static, variable)
+- Token refresh otomatik yönetimi
 
 ### 2. Mimari Yönlendirme
 
@@ -109,11 +119,16 @@ Herhangi bir sorunuz olduğunda size tam dosya yollarını verebilirim:
 - Flow execution engine: `backend/src/modules/chatbots/services/chatbot-execution.service.ts`
 - WebSocket gateway: `backend/src/modules/websocket/messages.gateway.ts`
 - Webhook processor: `backend/src/modules/webhooks/services/webhook-processor.service.ts`
+- Google OAuth service: `backend/src/modules/google-oauth/google-oauth.service.ts`
+- Calendar controller: `backend/src/modules/calendar/calendar.controller.ts`
+- Users controller: `backend/src/modules/users/users.controller.ts` (hasGoogleCalendar filter)
 
 **Frontend Örnekleri:**
 - Flow builder: `frontend/src/features/builder/components/BuilderPage.tsx`
 - Chat interface: `frontend/src/features/chat/ChatPage.tsx`
 - Custom nodes: `frontend/src/features/nodes/[NodeType]/[NodeType].tsx`
+- Google Calendar node: `frontend/src/features/nodes/GoogleCalendarNode/GoogleCalendarNode.tsx`
+- Calendar config panel: `frontend/src/features/builder/components/ConfigGoogleCalendar.tsx`
 
 ### 5. Cross-Cutting Concern'ler
 
@@ -248,9 +263,14 @@ Ben üst seviye orchestrator'ım. Detaylı implementasyon için specialized skil
 
 **Database:**
 - PostgreSQL 14+
-- 7 tables (users, chatbots, conversations, messages, conversation_contexts, whatsapp_config, conversation_participants)
-- 4 migrations applied
+- 10 tables (users, chatbots, conversations, messages, conversation_contexts, whatsapp_config, conversation_participants, user_oauth_tokens, calendars, calendar_shares)
+- Multiple migrations applied
 - JSONB columns for flexibility
+
+**Google Calendar Integration:**
+- googleapis (Google Calendar API client)
+- OAuth 2.0 with refresh token support
+- Read-only calendar access scopes
 
 ### Mimari Kararlar
 
@@ -329,14 +349,29 @@ ChatBotExecutionService.processUserResponse()
   ↓ Find active context
 executeCurrentNode()
   ↓ Route by node type
-processQuestionNode() / processConditionNode()
-  ↓ Send WhatsApp message
-WhatsAppMessageService.sendTextMessage()
+processQuestionNode() / processConditionNode() / processGoogleCalendarNode()
+  ↓ Send WhatsApp message / Fetch Calendar
+WhatsAppMessageService.sendTextMessage() / GoogleOAuthService.getAvailableSlots()
   ↓ Update context
 Save currentNodeId, variables
 ```
 
-**3. Frontend Flow Save:**
+**3. Google Calendar Flow (Appointment Booking):**
+```
+User enters date
+  ↓ Date saved to variable
+GOOGLE_CALENDAR node executes
+  ↓ Resolve target user (owner/static/variable)
+GoogleOAuthService.getValidAccessToken(userId)
+  ↓ Refresh token if expired
+GoogleOAuthService.getAvailableSlots()
+  ↓ Fetch events from Google API
+Calculate available time slots
+  ↓ Store in outputVariable
+Continue to next node (success/error edge)
+```
+
+**4. Frontend Flow Save:**
 ```
 User clicks "Save"
   ↓ Validate flow

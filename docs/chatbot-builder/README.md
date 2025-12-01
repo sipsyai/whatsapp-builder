@@ -31,8 +31,8 @@ Chatbot Builder, WhatsApp chatbot akışlarını sürükle-bırak yöntemiyle ta
 
 | Feature | Description |
 |---------|-------------|
-| Visual Flow Builder | Sürükle-bırak ile akış tasarımı |
-| 6 Node Types | Message, Question, Condition, WhatsApp Flow, REST API |
+| Visual Flow Builder | Surukle-birak ile akis tasarimi |
+| 7 Node Types | Message, Question, Condition, WhatsApp Flow, Google Calendar, REST API |
 | Real-time Validation | Anlık hata ve uyarı kontrolü |
 | Test Mode | Akışı simüle etme |
 | AI Build | Yapay zeka ile otomatik akış oluşturma |

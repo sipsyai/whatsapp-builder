@@ -51,7 +51,7 @@ Complete guide for building chatbots and WhatsApp Flows.
 **Reference Files:**
 | File | Content |
 |------|---------|
-| `01-chatbot-node-types.md` | All 6 node types with properties and examples |
+| `01-chatbot-node-types.md` | All 7 node types with properties and examples |
 | `02-chatbot-edge-routing.md` | Edge connections, routing logic, branching |
 | `03-chatbot-variables.md` | Variable system, scopes, binding syntax |
 | `04-whatsapp-flow-screens.md` | Screen types, layouts, navigation |
@@ -59,12 +59,14 @@ Complete guide for building chatbots and WhatsApp Flows.
 | `06-whatsapp-flow-actions.md` | Actions, data_exchange, complete flow |
 | `07-rest-api-integration.md` | API calls, response mapping, error handling |
 | `08-examples.md` | 7 complete flow examples |
+| `09-google-calendar-integration.md` | Google Calendar node configuration, OAuth, availability |
 
 **Covers:**
-- Chatbot node types (START, MESSAGE, QUESTION, CONDITION, WHATSAPP_FLOW, REST_API)
+- Chatbot node types (START, MESSAGE, QUESTION, CONDITION, WHATSAPP_FLOW, REST_API, GOOGLE_CALENDAR)
 - WhatsApp Flow JSON v7.2 specification
 - Variable binding and dynamic content
 - REST API integration patterns
+- Google Calendar integration and appointment booking
 - Best practices and validation
 
 ### frontend-tester (NEW)
@@ -131,7 +133,8 @@ WhatsApp Builder architecture and structure knowledge.
 │       ├── 05-whatsapp-flow-components.md
 │       ├── 06-whatsapp-flow-actions.md
 │       ├── 07-rest-api-integration.md
-│       └── 08-examples.md
+│       ├── 08-examples.md
+│       └── 09-google-calendar-integration.md
 ├── frontend-tester/                   # NEW
 │   ├── SKILL.md
 │   └── reference/
@@ -163,4 +166,4 @@ WhatsApp Builder architecture and structure knowledge.
 
 ---
 
-*Last updated: November 2025*
+*Last updated: December 2025*

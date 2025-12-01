@@ -35,7 +35,7 @@ Both systems work together seamlessly: chatbots can trigger WhatsApp Flows, and 
 
 ### 1. Chatbot Design - Node-Based Conversation Flows
 
-Build conversation flows using 6 specialized node types:
+Build conversation flows using 7 specialized node types:
 
 **Start Node** - Entry point for every flow
 - Single node per chatbot
@@ -70,6 +70,15 @@ Build conversation flows using 6 specialized node types:
 - Pass variables as initial data
 - Receive form responses
 - Continue chatbot after completion
+
+**Google Calendar Node** - Calendar integration
+- Connect to Google Calendar via OAuth
+- Fetch events (today, tomorrow, date range)
+- Check availability and get free slots
+- Support multiple calendar users (owner, static, variable)
+- Store results in chatbot variables
+- Working hours and slot duration configuration
+- Success/error routing for error handling
 
 ### 2. WhatsApp Flows - Interactive Form Flows
 
@@ -128,6 +137,33 @@ Connect to external services and databases:
 - Payment processing
 - Appointment booking
 - Product catalogs
+
+### Google Calendar Integration
+
+Connect to Google Calendar for appointment and scheduling:
+
+**Calendar Actions**
+- `get_today_events`: Fetch today's calendar events
+- `get_tomorrow_events`: Fetch tomorrow's calendar events
+- `get_events`: Fetch events for a specific date or date range
+- `check_availability`: Calculate available time slots
+
+**Calendar User Sources**
+- `owner`: Use chatbot owner's connected Google Calendar
+- `static`: Select a specific user with Google Calendar connected
+- `variable`: Get user ID from a chatbot variable (e.g., selected_stylist_id)
+
+**Availability Configuration**
+- Working hours start/end (e.g., 09:00 - 18:00)
+- Slot duration (15, 30, 45, 60, 90, 120 minutes)
+- Output format: full response or slots_only (for lists)
+
+**Use Cases**
+- Appointment booking with real-time availability
+- Staff/stylist calendar management
+- Meeting room scheduling
+- Service provider availability checks
+- Multi-person scheduling
 
 ### 4. Variable Management - Dynamic Content
 
@@ -209,6 +245,7 @@ For detailed technical information, see:
 ### Integration
 - **[reference/07-rest-api-integration.md](reference/07-rest-api-integration.md)** - API configuration, authentication, response mapping, error handling
 - **[reference/08-examples.md](reference/08-examples.md)** - Complete working examples: appointment booking, lead generation, support ticket, e-commerce
+- **[reference/09-google-calendar-integration.md](reference/09-google-calendar-integration.md)** - Google Calendar node configuration, OAuth setup, availability checking
 
 ## Best Practices
 
@@ -318,7 +355,7 @@ REST API: Submit lead to CRM
 Message: "Thank you! We'll contact you soon."
 ```
 
-### Pattern 2: Appointment Booking
+### Pattern 2: Appointment Booking (with Google Calendar)
 
 ```
 START
@@ -326,9 +363,17 @@ START
 Question: "What service do you need?"
   → List: Services from API
   ↓
-REST API: Get available slots
+Question: "Which date would you like?"
+  → Text input (YYYY-MM-DD format)
   ↓
-WhatsApp Flow: Date/Time Selection
+Google Calendar: Check Availability
+  → calendarUserSource: owner
+  → calendarDateVariable: selected_date
+  → calendarOutputFormat: slots_only
+  → calendarOutputVariable: available_slots
+  ↓ success
+Question: "Select your preferred time:"
+  → Dynamic List from available_slots
   ↓
 Question: "Confirm booking?"
   → Buttons: "Confirm", "Cancel"
@@ -340,6 +385,33 @@ Condition: Check confirmation
 REST API: POST /bookings
   ↓
 Message: "Booked! Confirmation: {{booking_id}}"
+```
+
+### Pattern 2b: Multi-Stylist Appointment (Dynamic Calendar User)
+
+```
+START
+  ↓
+REST API: GET /api/users?hasGoogleCalendar=true
+  → Store in stylists variable
+  ↓
+Question: "Select a stylist:"
+  → Dynamic List from stylists
+  → Store in selected_stylist_id
+  ↓
+Question: "Which date?"
+  → Text input
+  ↓
+Google Calendar: Check Availability
+  → calendarUserSource: variable
+  → calendarUserVariable: selected_stylist_id
+  → calendarDateVariable: appointment_date
+  → calendarOutputFormat: slots_only
+  ↓ success
+Question: "Available slots for your stylist:"
+  → Dynamic List from stylist_slots
+  ↓ error
+Message: "Sorry, this stylist hasn't connected their calendar yet."
 ```
 
 ### Pattern 3: Support Ticket
@@ -465,6 +537,32 @@ Message: "Ticket created: {{ticket_id}}"
 - Verify JSONPath syntax
 - Check response structure
 - Test with sample data
+
+### Google Calendar Issues
+
+**Calendar node returns error**
+- Verify chatbot has an owner (userId)
+- Check user has connected Google Calendar via OAuth
+- Token may have expired - user needs to reconnect
+
+**"NO_USER" error**
+- calendarUserSource is 'owner' but chatbot has no owner
+- calendarUserSource is 'variable' but variable is empty
+- Solution: Set chatbot owner or use 'static' with explicit user ID
+
+**Calendar slots not appearing in list**
+- Use `calendarOutputFormat: 'slots_only'` for list-compatible format
+- All slots might be busy - check calendar for that date
+- Verify working hours configuration
+
+**Wrong user's calendar being read**
+- Check calendarUserSource setting
+- If using 'variable', verify the variable contains correct user ID
+- Debug variable value before calendar node execution
+
+**How to get users with Google Calendar connected**
+- Use API: `GET /api/users?hasGoogleCalendar=true`
+- This returns only users who have completed Google OAuth flow
 
 ## Related Skills
 
