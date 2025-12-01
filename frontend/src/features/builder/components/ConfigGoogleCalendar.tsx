@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { client } from "../../../api/client";
 
 type CalendarActionType = 'get_today_events' | 'get_tomorrow_events' | 'get_events' | 'check_availability';
 type DateSourceType = 'variable' | 'static';
@@ -57,14 +58,12 @@ export const ConfigGoogleCalendar = ({ data, onClose, onSave }: ConfigGoogleCale
 
             setLoadingUsers(true);
             try {
-                // Fetch users with Google Calendar connected
-                const response = await fetch('/api/users?hasGoogleCalendar=true');
-                if (response.ok) {
-                    const users = await response.json();
-                    setCalendarUsers(users);
-                }
+                // Fetch users with Google Calendar connected using axios client (includes auth token)
+                const response = await client.get<CalendarUser[]>('/api/users?hasGoogleCalendar=true');
+                setCalendarUsers(response.data);
             } catch (error) {
                 console.error('Failed to fetch calendar users:', error);
+                setCalendarUsers([]);
             } finally {
                 setLoadingUsers(false);
             }
