@@ -5,6 +5,9 @@ Complete guide for integrating external REST APIs within chatbot flows using the
 ## Table of Contents
 - [Overview](#overview)
 - [Node Configuration](#node-configuration)
+- [Authentication](#authentication)
+- [Query Parameters](#query-parameters)
+- [Content Types](#content-types)
 - [Variable Replacement](#variable-replacement)
 - [Response Handling](#response-handling)
 - [Error Handling](#error-handling)
@@ -23,11 +26,15 @@ The REST_API node enables chatbots to call external HTTP APIs during conversatio
 - Triggering webhooks and integrations
 
 **Key Features:**
-- Supports GET, POST, PUT, DELETE methods
+- Supports GET, POST, PUT, PATCH, DELETE methods
+- Multiple content types: JSON, Form-Data, URL-Encoded
+- Authentication options: Bearer Token, Basic Auth, API Key
+- Query Parameters tab with URL preview
 - Variable interpolation in URL, headers, and body using `{{variable}}` syntax
 - JSON path extraction from responses (e.g., `data.items[0].name`)
 - Dual output handles (success/error) for flow branching
 - Math expressions in templates (e.g., `{{page + 1}}`)
+- Enhanced test interface with status badges and response headers
 - Configurable timeout (default: 30 seconds)
 
 ---
@@ -60,13 +67,127 @@ The REST_API node enables chatbots to call external HTTP APIs during conversatio
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
 | `apiUrl` | String | Yes | Full URL with protocol (http/https). Supports `{{variable}}` |
-| `apiMethod` | String | No | HTTP method: GET, POST, PUT, DELETE (default: GET) |
+| `apiMethod` | String | No | HTTP method: GET, POST, PUT, PATCH, DELETE (default: GET) |
+| `apiContentType` | String | No | Content-Type for POST/PUT/PATCH: `application/json`, `multipart/form-data`, `application/x-www-form-urlencoded` |
 | `apiHeaders` | Object | No | Key-value pairs for request headers. Supports `{{variable}}` |
 | `apiBody` | String | No | Request body (JSON string). Supports `{{variable}}` |
+| `apiQueryParams` | Object | No | Key-value pairs for query parameters |
 | `apiOutputVariable` | String | No | Variable name to store successful response |
 | `apiResponsePath` | String | No | JSON path to extract from response (e.g., "data.items") |
 | `apiErrorVariable` | String | No | Variable name to store error message |
 | `apiTimeout` | Number | No | Request timeout in milliseconds (default: 30000) |
+| `apiAuthType` | String | No | Authentication type: `none`, `bearer`, `basic`, `api_key` |
+| `apiAuthToken` | String | No | Bearer token value (supports `{{variable}}`) |
+| `apiAuthUsername` | String | No | Basic auth username |
+| `apiAuthPassword` | String | No | Basic auth password |
+| `apiAuthKeyName` | String | No | API key header/param name (default: X-API-Key) |
+| `apiAuthKeyValue` | String | No | API key value |
+| `apiAuthKeyLocation` | String | No | Where to add API key: `header` or `query` |
+
+---
+
+## Authentication
+
+The REST_API node supports multiple authentication methods configured via the Auth tab.
+
+### No Auth
+Default setting. No authentication headers are added.
+
+### Bearer Token
+```json
+{
+  "apiAuthType": "bearer",
+  "apiAuthToken": "your-token-here"
+}
+```
+Automatically adds: `Authorization: Bearer <token>`
+
+Supports variables: `"apiAuthToken": "{{auth_token}}"`
+
+### Basic Auth
+```json
+{
+  "apiAuthType": "basic",
+  "apiAuthUsername": "user",
+  "apiAuthPassword": "pass"
+}
+```
+Backend encodes credentials as Base64 and adds: `Authorization: Basic <base64>`
+
+### API Key
+```json
+{
+  "apiAuthType": "api_key",
+  "apiAuthKeyName": "X-API-Key",
+  "apiAuthKeyValue": "your-api-key",
+  "apiAuthKeyLocation": "header"
+}
+```
+
+Location options:
+- `header`: Adds as HTTP header (e.g., `X-API-Key: value`)
+- `query`: Adds to URL query string (e.g., `?X-API-Key=value`)
+
+---
+
+## Query Parameters
+
+Manage query parameters separately from the URL using the Params tab.
+
+### Configuration
+```json
+{
+  "apiUrl": "https://api.example.com/items",
+  "apiQueryParams": {
+    "page": "1",
+    "limit": "10",
+    "filter": "{{filter_value}}"
+  }
+}
+```
+
+**Features:**
+- Real-time URL preview in the UI
+- Supports `{{variable}}` syntax
+- Cleaner than embedding params in URL
+- API Key can be automatically added to query params
+
+### URL Preview Example
+Base URL: `https://api.example.com/items`
+Query Params: `page=1`, `limit=10`
+Preview: `https://api.example.com/items?page=1&limit=10`
+
+---
+
+## Content Types
+
+For POST, PUT, and PATCH methods, you can select the Content-Type.
+
+### application/json (Default)
+```json
+{
+  "apiContentType": "application/json",
+  "apiBody": "{\"name\": \"{{user_name}}\", \"email\": \"{{user_email}}\"}"
+}
+```
+
+### application/x-www-form-urlencoded
+```json
+{
+  "apiContentType": "application/x-www-form-urlencoded",
+  "apiBody": "{\"field1\": \"value1\", \"field2\": \"value2\"}"
+}
+```
+Body is provided as JSON but converted to URL-encoded format by the backend.
+
+### multipart/form-data
+```json
+{
+  "apiContentType": "multipart/form-data",
+  "apiBody": "{\"file_name\": \"document.pdf\", \"data\": \"{{file_data}}\"}"
+}
+```
+Body is provided as JSON but converted to form-data format by the backend.
 
 ---
 
@@ -365,17 +486,19 @@ The backend provides a test endpoint to verify API configurations before deployi
 **Request Body:**
 ```json
 {
-  "apiUrl": "https://api.example.com/products",
-  "apiMethod": "GET",
-  "apiHeaders": {
+  "url": "https://api.example.com/products",
+  "method": "GET",
+  "headers": {
     "Authorization": "Bearer test-token"
   },
-  "apiBody": "",
-  "variables": {
+  "body": "",
+  "contentType": "application/json",
+  "testVariables": {
     "user_id": "123",
     "category": "electronics"
   },
-  "apiResponsePath": "data.items"
+  "responsePath": "data.items",
+  "timeout": 30000
 }
 ```
 
@@ -385,7 +508,11 @@ The backend provides a test endpoint to verify API configurations before deployi
   "success": true,
   "data": [...extracted data...],
   "statusCode": 200,
-  "responseTime": 234
+  "responseTime": 234,
+  "responseHeaders": {
+    "content-type": "application/json",
+    "x-request-id": "abc123"
+  }
 }
 ```
 
@@ -399,12 +526,29 @@ The backend provides a test endpoint to verify API configurations before deployi
 }
 ```
 
+### Enhanced Test UI (Postman-Like)
+
+The Test tab in the ConfigRestApi modal provides:
+
+1. **Run Test Button**: Execute the API request with current configuration
+2. **Status Badge**: Color-coded status display
+   - Green: 2xx success responses
+   - Yellow: 3xx redirect responses
+   - Red: 4xx/5xx error responses
+3. **Response Time**: Shows request duration in milliseconds
+4. **Body/Headers Toggle**: Switch between response body and headers view
+5. **Copy Button**: Copy response to clipboard
+6. **JSON Formatting**: Pretty-printed JSON response
+
 ### Testing Workflow
 
-1. **Configure the REST_API node** in the builder
-2. **Click "Test API"** button (if available in UI)
-3. **Provide test variables** to simulate actual runtime data
-4. **Review response** to ensure correct path extraction
+1. **Configure the REST_API node** in the builder (Request, Auth, Params tabs)
+2. **Switch to Test tab**
+3. **Click "Run Test"** button
+4. **Review response**:
+   - Check status badge color
+   - Verify response data
+   - Inspect headers if needed
 5. **Adjust configuration** if needed
 6. **Save and deploy**
 
@@ -695,9 +839,11 @@ Error 500: Internal server error at line 234
 
 ---
 
-**Last Updated**: 2025-11-27
-**Document Version**: 1.0
+**Last Updated**: 2025-12-03
+**Document Version**: 2.0
 **Related**:
 - [08-examples.md](./08-examples.md) for complete chatbot examples
 - Backend: `/backend/src/modules/chatbots/services/rest-api-executor.service.ts`
+- Frontend: `/frontend/src/features/builder/components/ConfigRestApi.tsx`
 - Test Endpoint: `POST /api/chatbots/test-rest-api`
+- Types: `/frontend/src/shared/types/index.ts`

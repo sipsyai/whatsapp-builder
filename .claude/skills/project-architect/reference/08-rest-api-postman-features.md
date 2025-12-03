@@ -140,3 +140,65 @@ apiErrorVariable: string
 1. Params tab'ında parametreleri ekle
 2. URL preview'da birleşik URL'i gör
 3. `{{variable}}` ile dinamik değerler kullan
+
+### API Key ile Query Parameter
+1. Auth tab'ında "API Key" seç
+2. Key name olarak örn: `api_key` gir
+3. Add to olarak "Query Params" seç
+4. URL'e otomatik eklenir: `?api_key=value`
+
+### Basic Auth ile POST
+1. Auth tab'ında "Basic Auth" seç
+2. Username ve Password gir
+3. Request tab'ında POST seç, Content-Type: JSON
+4. Body'ye JSON gir: `{"data": "value"}`
+5. Backend Base64 encoding yapar
+
+---
+
+## Test Tab Kullanımı
+
+### Status Badge Renkleri
+| Status Code | Renk | Anlam |
+|-------------|------|-------|
+| 2xx | Yeşil | Başarılı |
+| 3xx | Sarı | Yönlendirme |
+| 4xx | Kırmızı | İstemci Hatası |
+| 5xx | Kırmızı | Sunucu Hatası |
+
+### Response Headers
+- Headers sekmesine geçerek sunucu header'larını görebilirsiniz
+- `content-type`, `x-request-id` gibi debug bilgileri içerir
+- Rate limit header'larını (`x-ratelimit-*`) kontrol edebilirsiniz
+
+### Copy Özelliği
+- Response body'yi panoya kopyalar
+- JSON formatında kopyalanır
+- Başka araçlarda (Postman, IDE) test edebilirsiniz
+
+---
+
+## İlgili Dosyalar
+
+| Kategori | Dosya | Açıklama |
+|----------|-------|----------|
+| Frontend Config | `/frontend/src/features/builder/components/ConfigRestApi.tsx` | 6 tab'lı yapılandırma modalı |
+| Frontend Node | `/frontend/src/features/nodes/RestApiNode/RestApiNode.tsx` | Görsel node bileşeni |
+| Frontend Types | `/frontend/src/shared/types/index.ts` | NodeData interface |
+| Backend Service | `/backend/src/modules/chatbots/services/rest-api-executor.service.ts` | HTTP istemci servisi |
+| Backend DTO | `/backend/src/modules/chatbots/dto/node-data.dto.ts` | Node veri yapısı |
+| Test DTO | `/backend/src/modules/chatbots/dto/test-rest-api.dto.ts` | Test endpoint DTO |
+
+---
+
+## Versiyon Bilgisi
+
+- **Eklendi**: v2.0.0 (REST API Node)
+- **Güncellendi**: v2.1.0 (Postman benzeri özellikler)
+- **Son Güncelleme**: 2025-12-03
+
+---
+
+**Ayrıca Bakın**:
+- [13-rest-api-node-feature.md](./13-rest-api-node-feature.md) - Detaylı REST API Node dokümantasyonu
+- [chatbot-flow-development/07-rest-api-integration.md](../../chatbot-flow-development/reference/07-rest-api-integration.md) - Chatbot entegrasyon rehberi

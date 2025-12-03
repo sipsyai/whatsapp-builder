@@ -2,10 +2,13 @@
 
 ## Overview
 
-Enables chatbot flows to call external REST APIs for data-driven conversations.
+Enables chatbot flows to call external REST APIs for data-driven conversations. The REST API node now includes Postman-like features for a comprehensive API testing and configuration experience.
 
 ### Capabilities
-- **HTTP Methods**: GET, POST, PUT, DELETE
+- **HTTP Methods**: GET, POST, PUT, PATCH, DELETE
+- **Content-Type Support**: JSON, Form-Data, URL-Encoded
+- **Authentication**: Bearer Token, Basic Auth, API Key (Header/Query)
+- **Query Parameters**: Dedicated tab with URL preview
 - **Variable Interpolation**:
   - Simple: `{{variableName}}`
   - Nested: `{{user.profile.email}}`
@@ -13,10 +16,11 @@ Enables chatbot flows to call external REST APIs for data-driven conversations.
   - Math expressions: `{{page + 1}}`, `{{count * 2}}`
 - **JSON Path Extraction**: Extract nested data (`data.items[0].name`)
 - **Dual Branching**: Success/error output handles
-- **Live Testing**: Test API config in builder
+- **Live Testing**: Enhanced test UI with status badges, response headers, copy functionality
 - **Timeout**: Configurable (default 30s)
 
 **Added**: Version 2.0.0
+**Enhanced**: Version 2.1.0 (Postman-like features)
 **Node Type**: `rest_api`
 
 ---
@@ -56,14 +60,31 @@ Enables chatbot flows to call external REST APIs for data-driven conversations.
 interface NodeData {
   type: 'rest_api';
   label: string;                    // Node display name
+
+  // Request Configuration
   apiUrl: string;                   // API endpoint (supports {{vars}})
-  apiMethod: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  apiMethod: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   apiHeaders?: Record<string, string>;  // Custom headers
-  apiBody?: string;                 // JSON body (POST/PUT)
+  apiBody?: string;                 // Request body (POST/PUT/PATCH)
+  apiTimeout?: number;              // Timeout in ms (default: 30000)
+  apiContentType?: 'application/json' | 'multipart/form-data' | 'application/x-www-form-urlencoded';
+
+  // Query Parameters
+  apiQueryParams?: Record<string, string>;  // Key-value query params
+
+  // Authentication
+  apiAuthType?: 'none' | 'bearer' | 'basic' | 'api_key';
+  apiAuthToken?: string;            // Bearer token value
+  apiAuthUsername?: string;         // Basic auth username
+  apiAuthPassword?: string;         // Basic auth password
+  apiAuthKeyName?: string;          // API key header/param name
+  apiAuthKeyValue?: string;         // API key value
+  apiAuthKeyLocation?: 'header' | 'query';  // Where to add API key
+
+  // Response Configuration
   apiOutputVariable: string;        // Variable to store success response
   apiResponsePath?: string;         // JSON path extraction (e.g., "data.items")
   apiErrorVariable?: string;        // Variable to store error message
-  apiTimeout?: number;              // Timeout in ms (default: 30000)
 }
 ```
 
@@ -71,10 +92,11 @@ interface NodeData {
 ```typescript
 interface RestApiResult {
   success: boolean;
-  data?: any;           // Extracted response data
-  error?: string;       // Error message
-  statusCode?: number;  // HTTP status
-  responseTime?: number; // Request duration (ms)
+  data?: any;               // Extracted response data
+  error?: string;           // Error message
+  statusCode?: number;      // HTTP status
+  responseTime?: number;    // Request duration (ms)
+  responseHeaders?: Record<string, string>;  // Response headers (test mode)
 }
 ```
 
@@ -193,33 +215,60 @@ private async processRestApiNode(node, context, chatbot) {
 
 ## Frontend UI
 
-### ConfigRestApi Modal
-**File**: `/frontend/src/features/builder/components/ConfigModals.tsx`
+### ConfigRestApi Modal (Postman-Like Interface)
+**File**: `/frontend/src/features/builder/components/ConfigRestApi.tsx`
 
-**Fields**:
-1. **Node Label** (text input)
-2. **HTTP Method** (dropdown: GET, POST, PUT, DELETE)
-3. **API URL** (text input with variable hint)
-4. **Headers** (key-value pairs)
-5. **Body** (textarea, JSON, shown for POST/PUT)
-6. **Response Path** (text input, optional)
-7. **Success Variable** (text input)
-8. **Error Variable** (text input, optional)
-9. **Timeout** (number input, ms)
+The ConfigRestApi modal now features a 6-tab interface similar to Postman:
 
-**Features**:
-- **Test Button**: Sends request with current config
-- **Variable Hints**: Shows available variables
-- **JSON Validation**: For body field
-- **Response Preview**: Shows test result
+#### Tab 1: Request
+- **Label**: Node display name
+- **HTTP Method**: GET, POST, PUT, PATCH, DELETE (color-coded buttons)
+- **URL**: API endpoint with `{{variable}}` support
+- **Content-Type** (POST/PUT/PATCH only): JSON, Form-Data, URL-Encoded
+- **Body** (POST/PUT/PATCH only): Request body textarea
+- **Timeout**: Request timeout in milliseconds
+
+#### Tab 2: Auth
+Authentication type selector with dynamic UI:
+- **No Auth**: No authentication
+- **Bearer Token**: Token input with variable support
+- **Basic Auth**: Username/Password fields
+- **API Key**: Key name, value, and location (Header/Query)
+
+#### Tab 3: Params
+- Query parameter key-value editor
+- Add/Remove parameter buttons
+- Real-time URL preview showing final URL
+
+#### Tab 4: Headers
+- Custom header key-value editor
+- Auto-generated headers display (Content-Type, Authorization)
+- Add/Remove header buttons
+
+#### Tab 5: Response
+- **Output Variable**: Variable to store success response
+- **JSON Path**: Optional path extraction (e.g., "data.items")
+- **Error Variable**: Variable to store error message
+
+#### Tab 6: Test
+- **Run Test Button**: Execute API request
+- **Status Badge**: Color-coded (green 2xx, yellow 3xx, red 4xx/5xx)
+- **Response Time**: Request duration in ms
+- **Response Body**: JSON formatted with copy button
+- **Response Headers**: Collapsible header list
 
 ### RestApiNode Component
 **File**: `/frontend/src/features/nodes/RestApiNode/RestApiNode.tsx`
 
 **Visual**:
-- Orange box
+- Cyan-blue gradient background
 - API endpoint icon
-- Method badge (GET/POST/PUT/DELETE)
+- Method badge with colors:
+  - GET: Green
+  - POST: Blue
+  - PUT: Orange
+  - PATCH: Yellow
+  - DELETE: Red
 - Success handle (right, green)
 - Error handle (bottom, red)
 
@@ -242,11 +291,13 @@ dynamicLabelField: "name"
 dynamicDescField: "description"
 ```
 
-### 2. Create Order
+### 2. Create Order (with Bearer Auth)
 ```typescript
 apiUrl: "https://api.shop.com/orders"
 apiMethod: "POST"
-apiHeaders: { "Authorization": "Bearer {{apiToken}}" }
+apiContentType: "application/json"
+apiAuthType: "bearer"
+apiAuthToken: "{{apiToken}}"
 apiBody: '{"productId": "{{selectedProduct}}", "quantity": 1}'
 apiResponsePath: "data.orderId"
 apiOutputVariable: "orderId"
@@ -267,16 +318,50 @@ conditionOp: "=="
 conditionVal: "true"
 ```
 
-### 4. Pagination
+### 4. Pagination (with Query Params)
 ```typescript
-// First page
-apiUrl: "https://api.example.com/items?page={{currentPage}}&limit=10"
+// First page - using dedicated query params
+apiUrl: "https://api.example.com/items"
 apiMethod: "GET"
+apiQueryParams: { "page": "{{currentPage}}", "limit": "10" }
 apiResponsePath: "data.items"
 apiOutputVariable: "items"
 
 // Next page button increments currentPage
 // Use math expression: {{currentPage + 1}}
+```
+
+### 5. Form Data Submission
+```typescript
+apiUrl: "https://api.example.com/upload"
+apiMethod: "POST"
+apiContentType: "multipart/form-data"
+apiBody: '{"file_name": "{{fileName}}", "data": "{{fileData}}"}'
+apiOutputVariable: "uploadResult"
+```
+
+### 6. API Key Authentication
+```typescript
+apiUrl: "https://api.weather.com/current"
+apiMethod: "GET"
+apiAuthType: "api_key"
+apiAuthKeyName: "X-API-Key"
+apiAuthKeyValue: "{{weatherApiKey}}"
+apiAuthKeyLocation: "header"
+apiQueryParams: { "city": "{{userCity}}" }
+apiOutputVariable: "weatherData"
+```
+
+### 7. Basic Auth with PATCH
+```typescript
+apiUrl: "https://api.example.com/users/{{userId}}"
+apiMethod: "PATCH"
+apiContentType: "application/json"
+apiAuthType: "basic"
+apiAuthUsername: "{{serviceUser}}"
+apiAuthPassword: "{{servicePassword}}"
+apiBody: '{"status": "verified"}'
+apiOutputVariable: "updateResult"
 ```
 
 ---
@@ -294,8 +379,10 @@ apiOutputVariable: "items"
   "method": "GET",
   "headers": { "Authorization": "Bearer token" },
   "body": null,
+  "contentType": "application/json",
   "responsePath": "data.user.name",
-  "timeout": 5000
+  "timeout": 5000,
+  "testVariables": { "page": "1", "limit": "10" }
 }
 ```
 
@@ -305,15 +392,25 @@ apiOutputVariable: "items"
   "success": true,
   "data": "John Doe",
   "statusCode": 200,
-  "responseTime": 234
+  "responseTime": 234,
+  "responseHeaders": {
+    "content-type": "application/json",
+    "x-request-id": "abc123"
+  }
 }
 ```
 
 **Frontend Integration**:
-- Test button in ConfigRestApi modal
-- Shows loading state during test
-- Displays result or error
-- Validates before saving
+- Test button in ConfigRestApi modal (Tab 6)
+- Shows loading state with spinner during test
+- Status badge with color coding:
+  - Green: 2xx success
+  - Yellow: 3xx redirect
+  - Red: 4xx/5xx errors
+- Response time display in milliseconds
+- Body/Headers toggle tabs
+- Copy to clipboard functionality
+- JSON formatted response preview
 
 ---
 
@@ -387,23 +484,37 @@ content: "Error: {{apiError}}"
 ## Summary
 
 ### Key Features
-- ✅ Full HTTP method support
-- ✅ Advanced variable interpolation with math
-- ✅ Nested JSON path extraction
-- ✅ Success/error branching
-- ✅ Live testing in builder
-- ✅ Configurable timeout
+- Full HTTP method support (GET, POST, PUT, PATCH, DELETE)
+- Content-Type selection (JSON, Form-Data, URL-Encoded)
+- Authentication options (Bearer, Basic, API Key)
+- Query Parameters with URL preview
+- Advanced variable interpolation with math
+- Nested JSON path extraction
+- Success/error branching
+- Enhanced live testing with response headers
+- Configurable timeout
+
+### New in Version 2.1.0 (Postman-Like Features)
+- 6-tab configuration interface
+- PATCH HTTP method support
+- Content-Type selector for POST/PUT/PATCH
+- Auth Tab with Bearer Token, Basic Auth, API Key
+- Query Parameters Tab with real-time URL preview
+- Test Tab with status badges, response headers, copy functionality
 
 ### Integration Points
 - **ChatBot Execution**: `processRestApiNode()` in flow
-- **Frontend Builder**: Visual node + config modal
-- **Test Endpoint**: Real-time API testing
+- **Frontend Builder**: Visual node + 6-tab config modal
+- **Test Endpoint**: Real-time API testing with headers
 
 ### File Locations
 - Service: `/backend/src/modules/chatbots/services/rest-api-executor.service.ts`
 - Execution: `/backend/src/modules/chatbots/services/chatbot-execution.service.ts:processRestApiNode()`
 - Node: `/frontend/src/features/nodes/RestApiNode/RestApiNode.tsx`
-- Config: `/frontend/src/features/builder/components/ConfigModals.tsx:ConfigRestApi`
+- Config: `/frontend/src/features/builder/components/ConfigRestApi.tsx`
+- Types: `/frontend/src/shared/types/index.ts`
+- DTO: `/backend/src/modules/chatbots/dto/node-data.dto.ts`
+- Test DTO: `/backend/src/modules/chatbots/dto/test-rest-api.dto.ts`
 
 ---
 
@@ -411,3 +522,4 @@ content: "Error: {{apiError}}"
 - [Backend Architecture](02-backend-architecture.md#1-chatbotsmodule) - ChatBot execution engine
 - [Frontend Architecture](03-frontend-architecture.md#2-custom-nodes) - Custom node patterns
 - [Dynamic Lists Feature](02-backend-architecture.md#processquestionnode) - Using API data in interactive messages
+- [REST API Postman Features](08-rest-api-postman-features.md) - Detailed Postman-like features documentation

@@ -258,53 +258,86 @@ Ornek: Kullanici "Berber Randevu" butonuna tikladiginda `selected_service` varia
 
 ## 7. REST API Node
 
-**Amac**: Harici API'lere HTTP istekleri gonderir.
+**Amac**: Harici API'lere HTTP istekleri gonderir. Postman benzeri gelismis ozellikler icerir.
 
-| Özellik | Değer |
+| Ozellik | Deger |
 |---------|-------|
 | **Type** | `rest_api` |
 | **Renk** | Cyan-mavi gradient |
-| **Handles** | Giriş (sol) + Success/Error çıkışları |
-| **Icon** | 🔗 api |
+| **Handles** | Giris (sol) + Success/Error cikislari |
+| **Icon** | api |
 
 ### REST API Node Yapılandırması
 
-REST API Node 4 sekmeden oluşur:
+REST API Node 6 sekmeden olusur (Postman benzeri arayuz):
 
-#### Request Tab
+#### 1. Request Tab
 
-![REST API Request](images/11-rest-api-config-modal.png)
-
-| Alan | Açıklama |
+| Alan | Aciklama |
 |------|----------|
 | **Label** | Node etiketi |
-| **HTTP Method** | GET, POST, PUT, DELETE |
-| **URL** | API endpoint (`{{variable}}` desteği) |
-| **Timeout** | İstek zaman aşımı (ms) |
+| **HTTP Method** | GET, POST, PUT, PATCH, DELETE (renkli butonlar) |
+| **URL** | API endpoint (`{{variable}}` destegi) |
+| **Content-Type** | POST/PUT/PATCH icin: JSON, Form-Data, URL-Encoded |
+| **Body** | POST/PUT/PATCH icin istek govdesi |
+| **Timeout** | Istek zaman asimi (ms) |
 
-#### Headers Tab
+#### 2. Auth Tab
 
-![REST API Headers](images/12-rest-api-headers-tab.png)
+Kimlik dogrulama secenekleri:
 
-| Alan | Açıklama |
+| Auth Type | Aciklama |
+|-----------|----------|
+| **No Auth** | Kimlik dogrulama yok |
+| **Bearer Token** | Token degeri, `{{variable}}` destegi |
+| **Basic Auth** | Kullanici adi / Sifre |
+| **API Key** | Key adi, degeri ve konumu (Header/Query) |
+
+#### 3. Params Tab
+
+| Alan | Aciklama |
 |------|----------|
-| **Header Key** | HTTP header adı |
-| **Header Value** | HTTP header değeri |
-| **Add Header** | Yeni header ekleme |
+| **Parameter Name** | Query parameter adi |
+| **Parameter Value** | Deger veya `{{variable}}` |
+| **URL Preview** | Canli URL onizlemesi |
 
-#### Response Tab
+#### 4. Headers Tab
 
-![REST API Response](images/13-rest-api-response-tab.png)
-
-| Alan | Açıklama |
+| Alan | Aciklama |
 |------|----------|
-| **Output Variable** | Başarılı yanıtı kaydetme değişkeni |
-| **JSON Path** | Yanıttan veri çıkarma (ör: `data.items[0].name`) |
-| **Error Variable** | Hata mesajını kaydetme değişkeni |
+| **Header Key** | HTTP header adi |
+| **Header Value** | HTTP header degeri |
+| **Auto Headers** | Auth ve Content-Type otomatik eklenir |
 
-#### Test Tab
+#### 5. Response Tab
 
-API isteğini test etme arayüzü.
+| Alan | Aciklama |
+|------|----------|
+| **Output Variable** | Basarili yaniti kaydetme degiskeni |
+| **JSON Path** | Yanittan veri cikarma (orn: `data.items[0].name`) |
+| **Error Variable** | Hata mesajini kaydetme degiskeni |
+
+#### 6. Test Tab
+
+Gelismis API test arayuzu:
+
+| Ozellik | Aciklama |
+|---------|----------|
+| **Run Test** | API istegini calistir |
+| **Status Badge** | Renkli durum gostergesi (2xx yesil, 4xx/5xx kirmizi) |
+| **Response Time** | Istek suresi (ms) |
+| **Body/Headers** | Yanit govdesi veya header'lari goster |
+| **Copy** | Yaniti panoya kopyala |
+
+### HTTP Method Renkleri
+
+| Method | Renk |
+|--------|------|
+| GET | Yesil |
+| POST | Mavi |
+| PUT | Turuncu |
+| PATCH | Sari |
+| DELETE | Kirmizi |
 
 ---
 
