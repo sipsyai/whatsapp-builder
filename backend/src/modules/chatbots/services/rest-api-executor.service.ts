@@ -8,6 +8,7 @@ export interface RestApiResult {
   error?: string;
   statusCode?: number;
   responseTime?: number;
+  responseHeaders?: Record<string, string>;
 }
 
 @Injectable()
@@ -87,6 +88,16 @@ export class RestApiExecutorService {
       contentType?: string;
       filterField?: string;
       filterValue?: string;
+      // Auth parameters
+      authType?: 'none' | 'bearer' | 'basic' | 'api_key';
+      authToken?: string;
+      authUsername?: string;
+      authPassword?: string;
+      authKeyName?: string;
+      authKeyValue?: string;
+      authKeyLocation?: 'header' | 'query';
+      // Query params
+      queryParams?: Record<string, string>;
     },
     variables: Record<string, any>,
   ): Promise<RestApiResult> {
@@ -103,6 +114,21 @@ export class RestApiExecutorService {
 
     let body: any;
     let requestHeaders = { ...headers };
+
+    // Auth header ekle
+    if (config.authType === 'bearer' && config.authToken) {
+      const token = this.replaceVariables(config.authToken, variables);
+      requestHeaders['Authorization'] = `Bearer ${token}`;
+    } else if (config.authType === 'basic' && config.authUsername) {
+      const username = this.replaceVariables(config.authUsername, variables);
+      const password = this.replaceVariables(config.authPassword || '', variables);
+      const credentials = Buffer.from(`${username}:${password}`).toString('base64');
+      requestHeaders['Authorization'] = `Basic ${credentials}`;
+    } else if (config.authType === 'api_key' && config.authKeyValue && config.authKeyLocation === 'header') {
+      const keyName = config.authKeyName || 'X-API-Key';
+      const keyValue = this.replaceVariables(config.authKeyValue, variables);
+      requestHeaders[keyName] = keyValue;
+    }
 
     if (config.body) {
       const bodyStr = this.replaceVariables(config.body, variables);
@@ -146,8 +172,29 @@ export class RestApiExecutorService {
       }
     }
 
+    // Query params ekle
+    let finalUrl = url;
+    if (config.queryParams && Object.keys(config.queryParams).length > 0) {
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(config.queryParams)) {
+        params.append(key, this.replaceVariables(String(value), variables));
+      }
+      // API Key query'de ise ekle
+      if (config.authType === 'api_key' && config.authKeyLocation === 'query' && config.authKeyValue) {
+        const keyName = config.authKeyName || 'api_key';
+        params.append(keyName, this.replaceVariables(config.authKeyValue, variables));
+      }
+      finalUrl = `${url}${url.includes('?') ? '&' : '?'}${params.toString()}`;
+    } else if (config.authType === 'api_key' && config.authKeyLocation === 'query' && config.authKeyValue) {
+      // Query params yoksa ama API key query'de ise sadece API key'i ekle
+      const params = new URLSearchParams();
+      const keyName = config.authKeyName || 'api_key';
+      params.append(keyName, this.replaceVariables(config.authKeyValue, variables));
+      finalUrl = `${url}${url.includes('?') ? '&' : '?'}${params.toString()}`;
+    }
+
     try {
-      this.logger.log(`Executing ${config.method} ${url}`);
+      this.logger.log(`Executing ${config.method} ${finalUrl}`);
       // Mask sensitive headers before logging
       const maskedHeaders = { ...requestHeaders };
       if (maskedHeaders['Authorization']) {
@@ -164,7 +211,7 @@ export class RestApiExecutorService {
 
       const response = await axios({
         method: config.method.toLowerCase() as any,
-        url,
+        url: finalUrl,
         headers: requestHeaders,
         data: body,
         timeout: config.timeout || 30000,
@@ -192,6 +239,7 @@ export class RestApiExecutorService {
         data: resultData,
         statusCode: response.status,
         responseTime,
+        responseHeaders: response.headers as Record<string, string>,
       };
     } catch (error) {
       const responseTime = Date.now() - startTime;

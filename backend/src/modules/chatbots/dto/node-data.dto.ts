@@ -291,6 +291,47 @@ export class NodeDataDto {
   @IsString()
   apiFilterValue?: string;
 
+  // REST API Query Params
+  @ApiPropertyOptional({ description: 'Query parameters as key-value pairs' })
+  @IsOptional()
+  apiQueryParams?: Record<string, string>;
+
+  // REST API Authentication Fields
+  @ApiPropertyOptional({ description: 'Authentication type', enum: ['none', 'bearer', 'basic', 'api_key'] })
+  @IsOptional()
+  @IsString()
+  apiAuthType?: string;
+
+  @ApiPropertyOptional({ description: 'Bearer token or API key value' })
+  @IsOptional()
+  @IsString()
+  apiAuthToken?: string;
+
+  @ApiPropertyOptional({ description: 'Basic auth username' })
+  @IsOptional()
+  @IsString()
+  apiAuthUsername?: string;
+
+  @ApiPropertyOptional({ description: 'Basic auth password' })
+  @IsOptional()
+  @IsString()
+  apiAuthPassword?: string;
+
+  @ApiPropertyOptional({ description: 'API Key header name', example: 'X-API-Key' })
+  @IsOptional()
+  @IsString()
+  apiAuthKeyName?: string;
+
+  @ApiPropertyOptional({ description: 'API Key value' })
+  @IsOptional()
+  @IsString()
+  apiAuthKeyValue?: string;
+
+  @ApiPropertyOptional({ description: 'API Key location', enum: ['header', 'query'] })
+  @IsOptional()
+  @IsString()
+  apiAuthKeyLocation?: string;
+
   // Google Calendar Fields
   @ApiPropertyOptional({ description: 'Calendar action type', enum: ['get_today_events', 'get_tomorrow_events', 'get_events', 'check_availability'] })
   @IsOptional()

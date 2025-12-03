@@ -353,6 +353,9 @@ export class ChatBotsController {
         body: dto.body,
         timeout: dto.timeout,
         responsePath: dto.responsePath,
+        contentType: dto.contentType,
+        filterField: dto.filterField,
+        filterValue: dto.filterValue,
       },
       dto.testVariables || {},
     );

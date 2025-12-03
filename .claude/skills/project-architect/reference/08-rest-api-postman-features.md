@@ -1,0 +1,142 @@
+# REST API Node - Postman Benzeri Özellikler
+
+## Genel Bakış
+
+REST API node, chatbot flow'larında harici API'lerle iletişim kurmak için kullanılır. Bu güncelleme ile Postman benzeri gelişmiş özellikler eklendi.
+
+## Yeni Özellikler
+
+### 1. HTTP Methods
+- **GET** - Veri çekme (yeşil)
+- **POST** - Veri oluşturma (mavi)
+- **PUT** - Veri güncelleme (turuncu)
+- **PATCH** - Kısmi güncelleme (sarı) - **YENİ**
+- **DELETE** - Veri silme (kırmızı)
+
+### 2. Content-Type Desteği
+POST, PUT, PATCH metodları için:
+- `application/json` (varsayılan)
+- `application/x-www-form-urlencoded`
+- `multipart/form-data`
+
+### 3. Authentication Tab
+**No Auth** - Authentication yok
+
+**Bearer Token**
+- Token değeri `{{variable}}` destekler
+- Otomatik `Authorization: Bearer <token>` header'ı
+
+**Basic Auth**
+- Username/Password
+- Backend'de Base64 encoding yapılır
+- Otomatik `Authorization: Basic <base64>` header'ı
+
+**API Key**
+- Key name ve value
+- Header veya Query parameter olarak eklenebilir
+
+### 4. Query Parameters Tab
+- URL'den ayrı key-value yönetimi
+- Real-time URL preview
+- `{{variable}}` desteği
+
+### 5. Test Tab Zenginleştirmeleri
+- Status code badge (renkli)
+- Response time (ms)
+- Response body (JSON formatted)
+- Response headers görüntüleme
+- Copy to clipboard
+
+## Dosya Yapısı
+
+### Backend
+```
+backend/src/modules/chatbots/
+├── dto/
+│   ├── node-data.dto.ts         # Auth alanları eklendi
+│   └── test-rest-api.dto.ts     # PATCH, contentType, filter eklendi
+├── services/
+│   ├── rest-api-executor.service.ts    # Auth ve query params desteği
+│   └── chatbot-execution.service.ts    # Yeni alanlar okunuyor
+└── chatbots.controller.ts       # Test endpoint güncellendi
+```
+
+### Frontend
+```
+frontend/src/
+├── features/builder/components/
+│   └── ConfigRestApi.tsx        # 6 tab: Request, Auth, Params, Headers, Response, Test
+├── features/nodes/RestApiNode/
+│   └── RestApiNode.tsx          # PATCH rengi eklendi
+└── shared/types/
+    └── index.ts                 # Auth ve query params tipleri
+```
+
+## API Endpoint'leri
+
+### Test REST API
+```
+POST /api/chatbots/test-rest-api
+Body: {
+  method: string,
+  url: string,
+  headers?: Record<string, string>,
+  body?: string,
+  contentType?: string,
+  filterField?: string,
+  filterValue?: string,
+  testVariables?: Record<string, any>,
+  responsePath?: string,
+  timeout?: number
+}
+```
+
+## Node Data Alanları
+
+```typescript
+// Request
+apiUrl: string
+apiMethod: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
+apiBody: string
+apiTimeout: number
+apiContentType: 'application/json' | 'multipart/form-data' | 'application/x-www-form-urlencoded'
+
+// Auth
+apiAuthType: 'none' | 'bearer' | 'basic' | 'api_key'
+apiAuthToken: string           // Bearer token
+apiAuthUsername: string        // Basic auth
+apiAuthPassword: string        // Basic auth
+apiAuthKeyName: string         // API Key header name
+apiAuthKeyValue: string        // API Key value
+apiAuthKeyLocation: 'header' | 'query'
+
+// Query Params
+apiQueryParams: Record<string, string>
+
+// Headers
+apiHeaders: Record<string, string>
+
+// Response
+apiOutputVariable: string
+apiResponsePath: string
+apiErrorVariable: string
+```
+
+## Kullanım Örnekleri
+
+### Bearer Token ile API Çağrısı
+1. Auth tab'ında "Bearer Token" seç
+2. Token alanına `{{auth_token}}` veya doğrudan token değeri gir
+3. Request tab'ında URL'i ayarla
+4. Test tab'ında "Run Test" ile dene
+
+### Form-Data Gönderimi
+1. Request tab'ında POST veya PUT seç
+2. Content-Type olarak "multipart/form-data" seç
+3. Body'ye JSON formatında key-value pairs gir: `{"name": "value"}`
+4. Backend otomatik form-data'ya çevirir
+
+### Query Parameters
+1. Params tab'ında parametreleri ekle
+2. URL preview'da birleşik URL'i gör
+3. `{{variable}}` ile dinamik değerler kullan

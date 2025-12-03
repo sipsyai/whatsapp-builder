@@ -73,13 +73,28 @@ export interface NodeData {
 
     // REST API Fields
     apiUrl?: string;
-    apiMethod?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+    apiMethod?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
     apiHeaders?: Record<string, string>;
     apiBody?: string;
     apiOutputVariable?: string;
     apiResponsePath?: string;
     apiErrorVariable?: string;
     apiTimeout?: number;
+
+    // REST API Content Type
+    apiContentType?: 'application/json' | 'multipart/form-data' | 'application/x-www-form-urlencoded';
+
+    // REST API Query Params
+    apiQueryParams?: Record<string, string>;
+
+    // REST API Authentication Fields
+    apiAuthType?: 'none' | 'bearer' | 'basic' | 'api_key';
+    apiAuthToken?: string;
+    apiAuthUsername?: string;
+    apiAuthPassword?: string;
+    apiAuthKeyName?: string;
+    apiAuthKeyValue?: string;
+    apiAuthKeyLocation?: 'header' | 'query';
 
     // Google Calendar Fields
     calendarAction?: 'get_today_events' | 'get_tomorrow_events' | 'get_events' | 'check_availability';

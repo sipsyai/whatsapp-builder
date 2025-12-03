@@ -5,6 +5,7 @@ const methodColors: Record<string, string> = {
     GET: "text-green-400",
     POST: "text-blue-400",
     PUT: "text-orange-400",
+    PATCH: "text-yellow-400",
     DELETE: "text-red-400",
 };
 

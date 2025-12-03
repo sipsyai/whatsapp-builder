@@ -1125,7 +1125,13 @@ export class ChatBotExecutionService {
   ): Promise<void> {
     this.logger.log(`Processing REST_API node ${node.id}`);
 
-    const { apiUrl, apiMethod, apiHeaders, apiBody, apiOutputVariable, apiResponsePath, apiErrorVariable, apiTimeout, apiContentType, apiFilterField, apiFilterValue } = node.data || {};
+    const {
+      apiUrl, apiMethod, apiHeaders, apiBody, apiOutputVariable, apiResponsePath,
+      apiErrorVariable, apiTimeout, apiContentType, apiFilterField, apiFilterValue,
+      // Yeni alanlar
+      apiQueryParams, apiAuthType, apiAuthToken, apiAuthUsername, apiAuthPassword,
+      apiAuthKeyName, apiAuthKeyValue, apiAuthKeyLocation
+    } = node.data || {};
 
     if (!apiUrl) {
       this.logger.error('REST API URL not specified');
@@ -1147,6 +1153,16 @@ export class ChatBotExecutionService {
         contentType: apiContentType,
         filterField: apiFilterField,
         filterValue: apiFilterValue,
+        // Auth parametreleri
+        authType: apiAuthType,
+        authToken: apiAuthToken,
+        authUsername: apiAuthUsername,
+        authPassword: apiAuthPassword,
+        authKeyName: apiAuthKeyName,
+        authKeyValue: apiAuthKeyValue,
+        authKeyLocation: apiAuthKeyLocation,
+        // Query params
+        queryParams: apiQueryParams,
       },
       context.variables,
     );
