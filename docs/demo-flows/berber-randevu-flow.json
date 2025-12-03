@@ -1,0 +1,265 @@
+{
+  "version": "7.2",
+  "data_api_version": "3.0",
+  "routing_model": {
+    "BERBER_SECIM": ["TARIH_SECIM"],
+    "TARIH_SECIM": ["SAAT_SECIM"],
+    "SAAT_SECIM": ["ONAY"],
+    "ONAY": []
+  },
+  "screens": [
+    {
+      "id": "BERBER_SECIM",
+      "title": "Berber Secimi",
+      "data": {
+        "barbers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "title": { "type": "string" },
+              "description": { "type": "string" }
+            }
+          },
+          "__example__": [
+            { "id": "berber_1", "title": "Ahmet Usta", "description": "10 yillik deneyim" },
+            { "id": "berber_2", "title": "Mehmet Usta", "description": "Sac kesimi uzmani" },
+            { "id": "berber_3", "title": "Ali Usta", "description": "Sakal ve sac kesimi" }
+          ]
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Berber Randevusu"
+          },
+          {
+            "type": "TextBody",
+            "text": "Randevu almak istediginiz berberi secin"
+          },
+          {
+            "type": "Dropdown",
+            "name": "selected_barber",
+            "label": "Berber",
+            "required": true,
+            "data-source": "${data.barbers}"
+          },
+          {
+            "type": "Footer",
+            "label": "Devam Et",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "selected_barber": "${form.selected_barber}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "TARIH_SECIM",
+      "title": "Tarih Secimi",
+      "refresh_on_back": true,
+      "data": {
+        "selected_barber_name": {
+          "type": "string",
+          "__example__": "Ahmet Usta"
+        },
+        "available_dates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "title": { "type": "string" }
+            }
+          },
+          "__example__": [
+            { "id": "2024-12-02", "title": "2 Aralik 2024 - Pazartesi" },
+            { "id": "2024-12-03", "title": "3 Aralik 2024 - Sali" },
+            { "id": "2024-12-04", "title": "4 Aralik 2024 - Carsamba" },
+            { "id": "2024-12-05", "title": "5 Aralik 2024 - Persembe" },
+            { "id": "2024-12-06", "title": "6 Aralik 2024 - Cuma" }
+          ]
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Tarih Secin"
+          },
+          {
+            "type": "TextBody",
+            "text": "`'Secilen Berber: ' + ${data.selected_barber_name}`"
+          },
+          {
+            "type": "Dropdown",
+            "name": "selected_date",
+            "label": "Randevu Tarihi",
+            "required": true,
+            "data-source": "${data.available_dates}"
+          },
+          {
+            "type": "Footer",
+            "label": "Devam Et",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "selected_date": "${form.selected_date}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "SAAT_SECIM",
+      "title": "Saat Secimi",
+      "refresh_on_back": true,
+      "data": {
+        "selected_barber_name": {
+          "type": "string",
+          "__example__": "Ahmet Usta"
+        },
+        "selected_date_display": {
+          "type": "string",
+          "__example__": "2 Aralik 2024 - Pazartesi"
+        },
+        "available_slots": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "title": { "type": "string" }
+            }
+          },
+          "__example__": [
+            { "id": "09:00", "title": "09:00" },
+            { "id": "09:30", "title": "09:30" },
+            { "id": "10:00", "title": "10:00" },
+            { "id": "10:30", "title": "10:30" },
+            { "id": "11:00", "title": "11:00" },
+            { "id": "14:00", "title": "14:00" },
+            { "id": "14:30", "title": "14:30" },
+            { "id": "15:00", "title": "15:00" }
+          ]
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Saat Secin"
+          },
+          {
+            "type": "TextBody",
+            "text": "`${data.selected_barber_name} + ' - ' + ${data.selected_date_display}`"
+          },
+          {
+            "type": "TextCaption",
+            "text": "Musait saatlerden birini secin"
+          },
+          {
+            "type": "Dropdown",
+            "name": "selected_time",
+            "label": "Randevu Saati",
+            "required": true,
+            "data-source": "${data.available_slots}"
+          },
+          {
+            "type": "Footer",
+            "label": "Randevuyu Onayla",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "selected_time": "${form.selected_time}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ONAY",
+      "title": "Randevu Onaylandi",
+      "terminal": true,
+      "success": true,
+      "data": {
+        "booking_id": {
+          "type": "string",
+          "__example__": "RNV-2024120201"
+        },
+        "barber_name": {
+          "type": "string",
+          "__example__": "Ahmet Usta"
+        },
+        "appointment_date": {
+          "type": "string",
+          "__example__": "2 Aralik 2024 - Pazartesi"
+        },
+        "appointment_time": {
+          "type": "string",
+          "__example__": "09:00"
+        },
+        "confirmation_message": {
+          "type": "string",
+          "__example__": "Randevunuz basariyla olusturuldu!"
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "${data.confirmation_message}"
+          },
+          {
+            "type": "TextSubheading",
+            "text": "Randevu Detaylari"
+          },
+          {
+            "type": "TextBody",
+            "text": "`'Berber: ' + ${data.barber_name}`"
+          },
+          {
+            "type": "TextBody",
+            "text": "`'Tarih: ' + ${data.appointment_date}`"
+          },
+          {
+            "type": "TextBody",
+            "text": "`'Saat: ' + ${data.appointment_time}`"
+          },
+          {
+            "type": "TextCaption",
+            "text": "`'Randevu No: ' + ${data.booking_id}`"
+          },
+          {
+            "type": "TextCaption",
+            "text": "Randevunuzu iptal etmek icin lutfen bize ulasin."
+          },
+          {
+            "type": "Footer",
+            "label": "Tamam",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {
+                "booking_id": "${data.booking_id}",
+                "barber_name": "${data.barber_name}",
+                "appointment_date": "${data.appointment_date}",
+                "appointment_time": "${data.appointment_time}"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

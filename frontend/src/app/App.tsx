@@ -328,18 +328,28 @@ const App = () => {
                     };
                   }
 
+                  // Build metadata if integrationConfigs provided
+                  const metadata = flowData.integrationConfigs?.length
+                    ? { integrationConfigs: flowData.integrationConfigs }
+                    : undefined;
+
                   if (playgroundFlow === null) {
                     // CREATE NEW FLOW
-                    await flowsApi.create({
+                    const createdFlow = await flowsApi.create({
                       name: flowData.name,
                       categories: (flowData.categories as any) || ['OTHER'],
                       flowJson,
                     });
+                    // If integrationConfigs provided, update metadata separately
+                    if (metadata) {
+                      await flowsApi.updateMetadata(createdFlow.id, metadata);
+                    }
                   } else {
                     // UPDATE EXISTING FLOW
                     await flowsApi.update(playgroundFlow.id, {
                       name: flowData.name,
                       flowJson,
+                      metadata: metadata || playgroundFlow.metadata,
                     });
                   }
 

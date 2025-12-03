@@ -257,6 +257,11 @@ export class NodeDataDto {
   @IsString()
   apiBody?: string;
 
+  @ApiPropertyOptional({ description: 'Content-Type for request body', enum: ['application/json', 'application/x-www-form-urlencoded', 'multipart/form-data'] })
+  @IsOptional()
+  @IsString()
+  apiContentType?: string;
+
   @ApiPropertyOptional({ description: 'Variable to store response', example: 'api_result' })
   @IsOptional()
   @IsString()
@@ -275,6 +280,16 @@ export class NodeDataDto {
   @ApiPropertyOptional({ description: 'Request timeout in ms', example: 30000 })
   @IsOptional()
   apiTimeout?: number;
+
+  @ApiPropertyOptional({ description: 'Field to filter response array by', example: 'mobile' })
+  @IsOptional()
+  @IsString()
+  apiFilterField?: string;
+
+  @ApiPropertyOptional({ description: 'Value to filter by (supports {{variable}})', example: '{{customer_phone}}' })
+  @IsOptional()
+  @IsString()
+  apiFilterValue?: string;
 
   // Google Calendar Fields
   @ApiPropertyOptional({ description: 'Calendar action type', enum: ['get_today_events', 'get_tomorrow_events', 'get_events', 'check_availability'] })

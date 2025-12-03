@@ -19,6 +19,7 @@ import { ChatBotsModule } from '../chatbots/chatbots.module';
 import { WebSocketModule } from '../websocket/websocket.module';
 import { WhatsAppModule } from '../whatsapp/whatsapp.module';
 import { DataSourcesModule } from '../data-sources/data-sources.module';
+import { IntegrationHandlersModule } from './services/integration-handlers';
 
 /**
  * Webhooks Module
@@ -38,6 +39,7 @@ import { DataSourcesModule } from '../data-sources/data-sources.module';
     ChatBotsModule,
     WhatsAppModule,
     DataSourcesModule,
+    IntegrationHandlersModule,
     forwardRef(() => WebSocketModule),
   ],
   controllers: [WebhooksController, FlowEndpointController],

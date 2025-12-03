@@ -37,4 +37,9 @@ export class UpdateFlowDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiPropertyOptional({ description: 'Additional metadata for the flow (integration configs, etc.)' })
+  @IsOptional()
+  @IsObject()
+  metadata?: Record<string, any>;
 }

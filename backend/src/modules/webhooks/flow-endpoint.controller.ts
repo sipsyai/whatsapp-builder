@@ -24,6 +24,8 @@ import * as crypto from 'crypto';
 import { FlowEndpointService } from './services/flow-endpoint.service';
 import { FlowEncryptionService } from '../whatsapp/services/flow-encryption.service';
 import { WhatsAppConfig } from '../../entities/whatsapp-config.entity';
+import { WhatsAppFlow } from '../../entities/whatsapp-flow.entity';
+import { ConversationContext } from '../../entities/conversation-context.entity';
 import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('Flow Endpoint')
@@ -41,6 +43,10 @@ export class FlowEndpointController {
     private readonly encryptionService: FlowEncryptionService,
     @InjectRepository(WhatsAppConfig)
     private readonly configRepo: Repository<WhatsAppConfig>,
+    @InjectRepository(WhatsAppFlow)
+    private readonly flowRepo: Repository<WhatsAppFlow>,
+    @InjectRepository(ConversationContext)
+    private readonly contextRepo: Repository<ConversationContext>,
   ) {
     // Use environment variable if set, otherwise generate keys
     if (process.env.WHATSAPP_FLOW_PRIVATE_KEY) {
@@ -136,6 +142,12 @@ export class FlowEndpointController {
       this.logger.debug(`Flow action: ${decryptedBody.action}`);
       this.logger.debug(`Screen: ${decryptedBody.screen || 'N/A'}`);
 
+      // Load flow record from flow_token for data_exchange and BACK actions
+      let flowRecord: WhatsAppFlow | null = null;
+      if (decryptedBody.flow_token && ['data_exchange', 'BACK'].includes(decryptedBody.action)) {
+        flowRecord = await this.loadFlowRecordFromToken(decryptedBody.flow_token);
+      }
+
       // Process request based on action
       let response: any;
 
@@ -158,7 +170,7 @@ export class FlowEndpointController {
 
         case 'data_exchange':
           // Screen submission - process and return next screen
-          response = await this.flowEndpointService.handleDataExchange(decryptedBody);
+          response = await this.flowEndpointService.handleDataExchange(decryptedBody, flowRecord);
           this.logger.log(
             `data_exchange processed - returning screen: ${response.screen}`,
           );
@@ -167,7 +179,7 @@ export class FlowEndpointController {
 
         case 'BACK':
           // Navigate back (optional - can return previous screen or current)
-          response = await this.flowEndpointService.handleBack(decryptedBody);
+          response = await this.flowEndpointService.handleBack(decryptedBody, flowRecord);
           this.logger.log('BACK action processed');
           break;
 
@@ -203,6 +215,57 @@ export class FlowEndpointController {
       }
 
       throw error;
+    }
+  }
+
+  /**
+   * Load WhatsApp Flow record from flow_token
+   * flow_token format: {contextId}-{nodeId}
+   * @param flowToken Flow token from request
+   * @returns WhatsAppFlow record or null
+   */
+  private async loadFlowRecordFromToken(flowToken: string): Promise<WhatsAppFlow | null> {
+    if (!flowToken || !flowToken.includes('-')) {
+      return null;
+    }
+
+    try {
+      const parts = flowToken.split('-');
+      // UUID format: 8-4-4-4-12 = 5 parts when split by '-'
+      // flow_token format: {contextId}-{nodeId}
+      if (parts.length < 6) {
+        return null;
+      }
+
+      const contextId = parts.slice(0, 5).join('-');
+      const nodeId = parts.slice(5).join('-');
+
+      // Load context to get the chatbot and flow node
+      const context = await this.contextRepo.findOne({
+        where: { id: contextId },
+        relations: ['chatbot'],
+      });
+
+      if (!context?.chatbot) {
+        return null;
+      }
+
+      // Find the WhatsApp Flow node to get the whatsappFlowId
+      const flowNode = context.chatbot.nodes?.find((n: any) => n.id === nodeId);
+      if (!flowNode?.data?.whatsappFlowId) {
+        return null;
+      }
+
+      // Load the flow record
+      const flow = await this.flowRepo.findOne({
+        where: { whatsappFlowId: flowNode.data.whatsappFlowId },
+        relations: ['dataSource'],
+      });
+
+      return flow || null;
+    } catch (error) {
+      this.logger.warn(`Could not load flow record from token: ${error.message}`);
+      return null;
     }
   }
 }

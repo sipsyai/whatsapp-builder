@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "WhatsApp Flow Integration Configuration for Barber Appointment System",
+  "flowId": "berber-randevu-flow",
+  "flowName": "Berber Randevu Sistemi",
+  "description": "Google Calendar entegrasyonu ile berber randevu akisi",
+  "integrationConfigs": [
+    {
+      "componentName": "barbers",
+      "screenId": "BERBER_SECIM",
+      "integrationType": "google_calendar",
+      "sourceType": "static",
+      "action": "list_calendar_users",
+      "description": "Google Calendar'daki tum berberleri listeler",
+      "params": {
+        "filterByRole": "barber",
+        "includeAvailability": false
+      },
+      "transformTo": {
+        "idField": "id",
+        "titleField": "title",
+        "descriptionField": "description"
+      },
+      "cacheConfig": {
+        "enabled": true,
+        "ttlSeconds": 3600
+      }
+    },
+    {
+      "componentName": "available_dates",
+      "screenId": "TARIH_SECIM",
+      "integrationType": "google_calendar",
+      "sourceType": "variable",
+      "sourceVariable": "selected_barber",
+      "action": "get_available_dates",
+      "description": "Secilen berberin musait tarihlerini getirir",
+      "params": {
+        "daysAhead": 14,
+        "excludeWeekends": false,
+        "excludeDays": ["sunday"],
+        "workingHoursStart": "09:00",
+        "workingHoursEnd": "20:00",
+        "minimumSlotDuration": 30
+      },
+      "dependsOn": ["selected_barber"],
+      "transformTo": {
+        "idField": "id",
+        "titleField": "title"
+      },
+      "cacheConfig": {
+        "enabled": true,
+        "ttlSeconds": 300
+      }
+    },
+    {
+      "componentName": "available_slots",
+      "screenId": "SAAT_SECIM",
+      "integrationType": "google_calendar",
+      "sourceType": "variable",
+      "sourceVariable": "selected_barber",
+      "action": "check_availability",
+      "description": "Secilen tarih icin musait saatleri getirir",
+      "params": {
+        "workingHoursStart": "09:00",
+        "workingHoursEnd": "20:00",
+        "slotDuration": 30,
+        "breakTime": {
+          "start": "12:00",
+          "end": "13:00"
+        },
+        "dateSource": "variable",
+        "dateVariable": "selected_date",
+        "bufferMinutes": 5
+      },
+      "dependsOn": ["selected_barber", "selected_date"],
+      "transformTo": {
+        "idField": "id",
+        "titleField": "title"
+      },
+      "cacheConfig": {
+        "enabled": false
+      }
+    },
+    {
+      "componentName": "booking_confirmation",
+      "screenId": "ONAY",
+      "integrationType": "google_calendar",
+      "sourceType": "variable",
+      "action": "create_event",
+      "description": "Google Calendar'da randevu olusturur",
+      "params": {
+        "eventTitle": "Berber Randevusu - ${customer_name}",
+        "eventDescription": "WhatsApp uzerinden olusturulan randevu",
+        "duration": 30,
+        "reminderMinutes": [60, 15],
+        "sendNotifications": true,
+        "calendarIdSource": "variable",
+        "calendarIdVariable": "selected_barber"
+      },
+      "dependsOn": ["selected_barber", "selected_date", "selected_time"],
+      "inputMapping": {
+        "calendarId": "${selected_barber}",
+        "startDate": "${selected_date}",
+        "startTime": "${selected_time}",
+        "attendeePhone": "${flow_token.phone}",
+        "attendeeName": "${flow_token.customer_name}"
+      },
+      "outputMapping": {
+        "booking_id": "eventId",
+        "barber_name": "organizerName",
+        "appointment_date": "formattedDate",
+        "appointment_time": "formattedTime",
+        "confirmation_message": "successMessage"
+      }
+    }
+  ],
+  "globalConfig": {
+    "timezone": "Europe/Istanbul",
+    "locale": "tr-TR",
+    "dateFormat": "D MMMM YYYY - dddd",
+    "timeFormat": "HH:mm",
+    "errorMessages": {
+      "noAvailableSlots": "Bu tarihte musait saat bulunmamaktadir.",
+      "bookingFailed": "Randevu olusturulamadi. Lutfen tekrar deneyin.",
+      "slotNotAvailable": "Sectiginiz saat artik musait degil. Lutfen baska bir saat secin.",
+      "calendarError": "Takvim bilgilerine ulasilamiyor."
+    },
+    "successMessages": {
+      "bookingCreated": "Randevunuz basariyla olusturuldu!"
+    }
+  },
+  "endpointConfig": {
+    "healthCheckEnabled": true,
+    "timeoutSeconds": 10,
+    "retryConfig": {
+      "maxRetries": 3,
+      "retryDelayMs": 1000
+    }
+  },
+  "flowTokenConfig": {
+    "includeFields": ["phone", "customer_name", "customer_id"],
+    "expirationHours": 24
+  }
+}

@@ -56,6 +56,7 @@ export type WhatsAppFlow = {
   endpointUri?: string;
   previewUrl?: string;
   isActive: boolean;
+  metadata?: Record<string, any>;
   createdAt: string;
   updatedAt: string;
 };
@@ -79,6 +80,7 @@ export type UpdateFlowDto = {
   isActive?: boolean;
   dataSourceId?: string;
   dataSourceConfig?: ComponentDataSourceConfig[];
+  metadata?: Record<string, any>;
 };
 
 export type ValidateFlowDto = {
@@ -157,6 +159,12 @@ export const flowsApi = {
   // Update Flow
   async update(id: string, data: UpdateFlowDto): Promise<WhatsAppFlow> {
     const response = await client.put(`/api/flows/${id}`, data);
+    return response.data;
+  },
+
+  // Update Flow Metadata (convenience method)
+  async updateMetadata(id: string, metadata: Record<string, any>): Promise<WhatsAppFlow> {
+    const response = await client.put(`/api/flows/${id}`, { metadata });
     return response.data;
   },
 

@@ -1,10 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { usePlaygroundState } from './components/playground/hooks/usePlaygroundState';
 import { usePreviewSettings } from './components/playground/hooks/usePreviewSettings';
 import { ScreensPanel } from './components/playground/ScreensPanel';
 import { ContentEditor } from './components/playground/ContentEditor';
 import { PreviewPanel } from './components/playground/PreviewPanel';
 import { SaveFlowModal } from './components/playground/modals';
+import type { SaveFlowModalData } from './components/playground/modals';
 import { flowsApi } from '../flows/api';
 import type { FlowValidationResult } from '../flows/api';
 import type { BuilderScreen } from './types/builder.types';
@@ -43,6 +44,7 @@ export interface FlowPlaygroundPageProps {
     categories?: string[];
     screens: BuilderScreen[];
     version: FlowJSONVersion;
+    integrationConfigs?: any[];
   }) => void;
 
   /**
@@ -99,12 +101,21 @@ export function FlowPlaygroundPage({
   const [activeTab, setActiveTab] = useState<'screens' | 'editor' | 'preview'>('editor');
   const [isValidating, setIsValidating] = useState(false);
   const [validationResult, setValidationResult] = useState<FlowValidationResult | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  // Auto-hide toast after 3 seconds
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   // ========================================================================
   // Save Flow
   // ========================================================================
 
-  const handleSave = useCallback(async (data?: { name: string; categories: string[] }) => {
+  const handleSave = useCallback(async (data?: { name: string; categories: string[]; integrationConfigs?: any[] }) => {
     setIsSaving(true);
 
     try {
@@ -113,6 +124,7 @@ export function FlowPlaygroundPage({
         categories: data?.categories,
         screens: playground.screens,
         version: playground.flowVersion,
+        integrationConfigs: data?.integrationConfigs,
       };
 
       if (onSave) {
@@ -120,10 +132,10 @@ export function FlowPlaygroundPage({
       }
 
       // Show success feedback
-      alert(`Flow "${flowData.name}" saved successfully!`);
+      setToast({ message: `Flow "${flowData.name}" saved successfully!`, type: 'success' });
     } catch (error) {
       console.error('Save error:', error);
-      alert('Failed to save flow. Please try again.');
+      setToast({ message: 'Failed to save flow. Please try again.', type: 'error' });
     } finally {
       setIsSaving(false);
     }
@@ -139,7 +151,7 @@ export function FlowPlaygroundPage({
     }
   }, [mode, handleSave]);
 
-  const handleSaveModalSubmit = useCallback(async (data: { name: string; categories: string[] }) => {
+  const handleSaveModalSubmit = useCallback(async (data: SaveFlowModalData) => {
     setShowSaveModal(false);
     await handleSave(data);
   }, [handleSave]);
@@ -531,6 +543,30 @@ export function FlowPlaygroundPage({
         initialName={playground.flowName}
         onSave={handleSaveModalSubmit}
       />
+
+      {/* Toast Notification */}
+      {toast && (
+        <div
+          className={`fixed bottom-6 right-6 flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg z-50 ${
+            toast.type === 'success'
+              ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400'
+              : 'bg-red-500/20 border border-red-500/30 text-red-400'
+          }`}
+          role="alert"
+        >
+          <span className="material-symbols-outlined text-xl">
+            {toast.type === 'success' ? 'check_circle' : 'error'}
+          </span>
+          <span className="font-medium">{toast.message}</span>
+          <button
+            onClick={() => setToast(null)}
+            className="ml-2 hover:opacity-70 transition-opacity"
+            aria-label="Dismiss"
+          >
+            <span className="material-symbols-outlined text-lg">close</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

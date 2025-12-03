@@ -791,9 +791,51 @@ const FlowDetailsModal = ({
   flow: WhatsAppFlow;
   onClose: () => void;
 }) => {
+  const [activeTab, setActiveTab] = useState<'details' | 'integrations' | 'json'>('details');
+  const [integrationConfig, setIntegrationConfig] = useState<string>(
+    flow.metadata?.integrationConfigs
+      ? JSON.stringify(flow.metadata.integrationConfigs, null, 2)
+      : '[]'
+  );
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const handleSaveIntegrationConfig = async () => {
+    try {
+      // Validate JSON
+      const parsed = JSON.parse(integrationConfig);
+      if (!Array.isArray(parsed)) {
+        throw new Error('integrationConfigs must be an array');
+      }
+
+      setSaving(true);
+      setSaveMessage(null);
+
+      // Update metadata via API
+      const newMetadata = {
+        ...flow.metadata,
+        integrationConfigs: parsed,
+      };
+
+      await flowsApi.updateMetadata(flow.id, newMetadata);
+
+      setSaveMessage({ type: 'success', text: 'Integration config saved successfully!' });
+
+      // Clear message after 3 seconds
+      setTimeout(() => setSaveMessage(null), 3000);
+    } catch (error: any) {
+      setSaveMessage({
+        type: 'error',
+        text: error.message || 'Failed to save integration config'
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-surface rounded-2xl p-6 max-w-3xl w-full max-h-[80vh] overflow-auto shadow-2xl">
+      <div className="bg-surface rounded-2xl p-6 max-w-4xl w-full max-h-[85vh] overflow-auto shadow-2xl">
         <div className="flex items-start justify-between mb-4">
           <h2 className="text-xl font-bold text-white">{flow.name}</h2>
           <button onClick={onClose} className="text-zinc-400 hover:text-zinc-300 transition-colors">
@@ -801,69 +843,227 @@ const FlowDetailsModal = ({
           </button>
         </div>
 
-        <div className="space-y-4">
-          <div>
-            <label className="text-sm font-medium text-zinc-300">Status</label>
-            <div className="mt-1">
-              <span className={`px-3 py-1 text-xs font-bold rounded-full inline-block ${
-                flow.status === 'PUBLISHED' ? 'bg-green-900/30 text-green-400' :
-                flow.status === 'DRAFT' ? 'bg-gray-900/30 text-gray-400' :
-                flow.status === 'DEPRECATED' ? 'bg-red-900/30 text-red-400' :
-                'bg-yellow-900/30 text-yellow-400'
-              }`}>
-                {flow.status}
-              </span>
-            </div>
-          </div>
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6 border-b border-zinc-700 pb-2">
+          <button
+            onClick={() => setActiveTab('details')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              activeTab === 'details'
+                ? 'bg-primary text-[#112217]'
+                : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+            }`}
+          >
+            <span className="material-symbols-outlined text-sm mr-1 align-middle">info</span>
+            Details
+          </button>
+          <button
+            onClick={() => setActiveTab('integrations')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              activeTab === 'integrations'
+                ? 'bg-primary text-[#112217]'
+                : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+            }`}
+          >
+            <span className="material-symbols-outlined text-sm mr-1 align-middle">extension</span>
+            Integrations
+          </button>
+          <button
+            onClick={() => setActiveTab('json')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              activeTab === 'json'
+                ? 'bg-primary text-[#112217]'
+                : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+            }`}
+          >
+            <span className="material-symbols-outlined text-sm mr-1 align-middle">code</span>
+            Flow JSON
+          </button>
+        </div>
 
-          {flow.description && (
+        {/* Details Tab */}
+        {activeTab === 'details' && (
+          <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-zinc-300">Description</label>
-              <div className="mt-1 text-zinc-400">{flow.description}</div>
-            </div>
-          )}
-
-          <div>
-            <label className="text-sm font-medium text-zinc-300">Categories</label>
-            <div className="mt-1 flex flex-wrap gap-2">
-              {flow.categories.map((cat) => (
-                <span
-                  key={cat}
-                  className="px-2 py-1 text-xs bg-blue-900/30 text-blue-400 rounded"
-                >
-                  {WHATSAPP_FLOW_CATEGORY_LABELS[cat]}
+              <label className="text-sm font-medium text-zinc-300">Status</label>
+              <div className="mt-1">
+                <span className={`px-3 py-1 text-xs font-bold rounded-full inline-block ${
+                  flow.status === 'PUBLISHED' ? 'bg-green-900/30 text-green-400' :
+                  flow.status === 'DRAFT' ? 'bg-gray-900/30 text-gray-400' :
+                  flow.status === 'DEPRECATED' ? 'bg-red-900/30 text-red-400' :
+                  'bg-yellow-900/30 text-yellow-400'
+                }`}>
+                  {flow.status}
                 </span>
-              ))}
+              </div>
+            </div>
+
+            {flow.description && (
+              <div>
+                <label className="text-sm font-medium text-zinc-300">Description</label>
+                <div className="mt-1 text-zinc-400">{flow.description}</div>
+              </div>
+            )}
+
+            <div>
+              <label className="text-sm font-medium text-zinc-300">Categories</label>
+              <div className="mt-1 flex flex-wrap gap-2">
+                {flow.categories.map((cat) => (
+                  <span
+                    key={cat}
+                    className="px-2 py-1 text-xs bg-blue-900/30 text-blue-400 rounded"
+                  >
+                    {WHATSAPP_FLOW_CATEGORY_LABELS[cat]}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {flow.whatsappFlowId && (
+              <div>
+                <label className="text-sm font-medium text-zinc-300">
+                  WhatsApp Flow ID
+                </label>
+                <div className="mt-1 font-mono text-sm text-zinc-400">
+                  {flow.whatsappFlowId}
+                </div>
+              </div>
+            )}
+
+            {flow.endpointUri && (
+              <div>
+                <label className="text-sm font-medium text-zinc-300">Endpoint URI</label>
+                <div className="mt-1 font-mono text-sm text-zinc-400">
+                  {flow.endpointUri}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Integrations Tab */}
+        {activeTab === 'integrations' && (
+          <div className="space-y-4">
+            <div className="bg-blue-900/20 border border-blue-800 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <span className="material-symbols-outlined text-blue-400">info</span>
+                <div>
+                  <p className="text-blue-100 font-medium">Integration Configs</p>
+                  <p className="text-sm text-blue-300 mt-1">
+                    Configure dynamic data sources for this WhatsApp Flow. Integration configs allow
+                    you to fetch data from Google Calendar, REST APIs, and other sources to populate
+                    dropdown options dynamically.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
+                <span className="material-symbols-outlined text-sm">integration_instructions</span>
+                Integration Configs (JSON Array)
+              </label>
+              <textarea
+                value={integrationConfig}
+                onChange={(e) => setIntegrationConfig(e.target.value)}
+                rows={15}
+                className="mt-2 w-full px-3 py-2 border border-zinc-700 rounded-lg font-mono text-sm bg-zinc-900 text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                placeholder='[
+  {
+    "componentName": "barbers",
+    "integrationType": "google_calendar",
+    "sourceType": "static",
+    "action": "list_calendar_users",
+    "transformTo": {
+      "idField": "id",
+      "titleField": "title"
+    }
+  }
+]'
+              />
+              <p className="mt-2 text-xs text-zinc-400">
+                Supported integration types: <code className="text-primary">google_calendar</code>, <code className="text-primary">rest_api</code>
+              </p>
+            </div>
+
+            {/* Save Message */}
+            {saveMessage && (
+              <div className={`px-4 py-3 rounded-xl flex items-center gap-3 ${
+                saveMessage.type === 'success'
+                  ? 'bg-green-900/30 border border-green-800 text-green-400'
+                  : 'bg-red-900/30 border border-red-800 text-red-400'
+              }`}>
+                <span className="material-symbols-outlined">
+                  {saveMessage.type === 'success' ? 'check_circle' : 'error'}
+                </span>
+                <span>{saveMessage.text}</span>
+              </div>
+            )}
+
+            {/* Save Button */}
+            <div className="flex justify-end pt-4 border-t border-zinc-800">
+              <button
+                onClick={handleSaveIntegrationConfig}
+                disabled={saving}
+                className="px-6 py-2 bg-primary hover:bg-primary/90 text-[#112217] rounded-lg font-bold transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {saving ? (
+                  <>
+                    <span className="animate-spin material-symbols-outlined text-sm">progress_activity</span>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-sm">save</span>
+                    Save Integration Config
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Example Config */}
+            <div className="mt-6 p-4 bg-zinc-800/50 rounded-xl">
+              <h4 className="text-sm font-bold text-zinc-300 mb-3 flex items-center gap-2">
+                <span className="material-symbols-outlined text-sm">lightbulb</span>
+                Example: Berber Randevusu Integration Config
+              </h4>
+              <pre className="text-xs text-zinc-400 overflow-auto">{`[
+  {
+    "componentName": "barbers",
+    "integrationType": "google_calendar",
+    "sourceType": "static",
+    "action": "list_calendar_users",
+    "transformTo": { "idField": "id", "titleField": "title" }
+  },
+  {
+    "componentName": "available_slots",
+    "integrationType": "google_calendar",
+    "sourceType": "variable",
+    "sourceVariable": "selected_barber",
+    "action": "check_availability",
+    "params": {
+      "workingHoursStart": "09:00",
+      "workingHoursEnd": "20:00",
+      "slotDuration": 30,
+      "dateSource": "variable",
+      "dateVariable": "selected_date"
+    },
+    "dependsOn": "selected_date",
+    "transformTo": { "idField": "id", "titleField": "title" }
+  }
+]`}</pre>
             </div>
           </div>
+        )}
 
-          {flow.whatsappFlowId && (
-            <div>
-              <label className="text-sm font-medium text-zinc-300">
-                WhatsApp Flow ID
-              </label>
-              <div className="mt-1 font-mono text-sm text-zinc-400">
-                {flow.whatsappFlowId}
-              </div>
-            </div>
-          )}
-
-          {flow.endpointUri && (
-            <div>
-              <label className="text-sm font-medium text-zinc-300">Endpoint URI</label>
-              <div className="mt-1 font-mono text-sm text-zinc-400">
-                {flow.endpointUri}
-              </div>
-            </div>
-          )}
-
+        {/* Flow JSON Tab */}
+        {activeTab === 'json' && (
           <div>
             <label className="text-sm font-medium text-zinc-300">Flow JSON</label>
-            <pre className="mt-1 p-3 bg-zinc-900 rounded text-xs overflow-auto max-h-96 text-zinc-100">
+            <pre className="mt-1 p-3 bg-zinc-900 rounded text-xs overflow-auto max-h-[60vh] text-zinc-100">
               {JSON.stringify(flow.flowJson, null, 2)}
             </pre>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

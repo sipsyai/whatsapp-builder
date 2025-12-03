@@ -304,6 +304,7 @@ export class FlowsService {
     if (normalizedFlowJson) flow.flowJson = normalizedFlowJson;
     if (dto.endpointUri !== undefined) flow.endpointUri = dto.endpointUri;
     if (dto.isActive !== undefined) flow.isActive = dto.isActive;
+    if (dto.metadata !== undefined) flow.metadata = dto.metadata;
 
     await this.flowRepo.save(flow);
 

@@ -85,8 +85,10 @@ export class ChatBotExecutionService {
 
     this.logger.log(`Found chatbot ${chatbot.id} with START node ${startNode.id}`);
 
-    // Prepare initial variables with OAuth tokens if available
-    const initialVariables: Record<string, any> = {};
+    // Prepare initial variables with customer phone and OAuth tokens
+    const initialVariables: Record<string, any> = {
+      customer_phone: phoneNumber,
+    };
 
     // Try to inject Google OAuth token if chatbot has an owner
     if (chatbot.userId) {
@@ -1123,7 +1125,7 @@ export class ChatBotExecutionService {
   ): Promise<void> {
     this.logger.log(`Processing REST_API node ${node.id}`);
 
-    const { apiUrl, apiMethod, apiHeaders, apiBody, apiOutputVariable, apiResponsePath, apiErrorVariable, apiTimeout } = node.data || {};
+    const { apiUrl, apiMethod, apiHeaders, apiBody, apiOutputVariable, apiResponsePath, apiErrorVariable, apiTimeout, apiContentType, apiFilterField, apiFilterValue } = node.data || {};
 
     if (!apiUrl) {
       this.logger.error('REST API URL not specified');
@@ -1142,6 +1144,9 @@ export class ChatBotExecutionService {
         body: apiBody,
         timeout: apiTimeout,
         responsePath: apiResponsePath,
+        contentType: apiContentType,
+        filterField: apiFilterField,
+        filterValue: apiFilterValue,
       },
       context.variables,
     );
@@ -1150,6 +1155,7 @@ export class ChatBotExecutionService {
     if (result.success) {
       if (apiOutputVariable) {
         context.variables[apiOutputVariable] = result.data;
+        this.logger.log(`REST API saved variable ${apiOutputVariable}: ${typeof result.data === 'string' ? result.data.substring(0, 50) : JSON.stringify(result.data).substring(0, 100)}`);
       }
       context.variables['__last_api_status__'] = result.statusCode;
     } else {

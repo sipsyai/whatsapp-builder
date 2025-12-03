@@ -1,0 +1,543 @@
+{
+  "version": "1.0",
+  "exportedAt": "2025-12-02T17:00:00.000Z",
+  "chatbot": {
+    "name": "ITSM ServiceDesk Plus Chatbot",
+    "description": "IT support chatbot with ManageEngine ServiceDesk Plus integration. Request creation, tracking and service catalog features. Auto token refresh enabled.",
+    "isActive": false,
+    "status": "draft",
+    "metadata": {
+      "version": "1.5",
+      "author": "Claude",
+      "integration": "ManageEngine ServiceDesk Plus",
+      "apiEndpoint": "https://sdpondemand.manageengine.com/api/v3",
+      "features": ["auto_token_refresh", "backend_filtering"]
+    },
+    "nodes": [
+      {
+        "id": "start-1",
+        "type": "start",
+        "position": { "x": 50, "y": 300 },
+        "data": {
+          "label": "Start",
+          "type": "start"
+        }
+      },
+      {
+        "id": "refresh-token",
+        "type": "rest_api",
+        "position": { "x": 200, "y": 300 },
+        "data": {
+          "label": "Refresh Token",
+          "type": "rest_api",
+          "apiUrl": "https://accounts.zoho.com/oauth/v2/token",
+          "apiMethod": "POST",
+          "apiHeaders": {
+            "Content-Type": "application/x-www-form-urlencoded"
+          },
+          "apiBody": "grant_type=refresh_token&client_id=1000.W2OEHZLSSSBQPAPZLC38C59NZ1GVDT&client_secret=08e0d4ca30c469ba6523e67ce43ed21a63b97c1b31&refresh_token=1000.097dc84560ed9a643f0e4d0043bd9752.e40e3e092fc5fb4a8c3aff9209b40023",
+          "apiOutputVariable": "zoho_token_data",
+          "apiResponsePath": "access_token",
+          "apiErrorVariable": "token_error",
+          "apiTimeout": 10000
+        }
+      },
+      {
+        "id": "fetch-requester",
+        "type": "rest_api",
+        "position": { "x": 400, "y": 300 },
+        "data": {
+          "label": "Find User",
+          "type": "rest_api",
+          "apiUrl": "https://sdpondemand.manageengine.com/app/itdesk/api/v3/requesters",
+          "apiMethod": "GET",
+          "apiHeaders": {
+            "Authorization": "Zoho-oauthtoken {{zoho_token_data}}",
+            "Content-Type": "application/json"
+          },
+          "apiOutputVariable": "requester_data",
+          "apiResponsePath": "requesters",
+          "apiFilterField": "mobile",
+          "apiFilterValue": "{{customer_phone}}",
+          "apiErrorVariable": "requester_error",
+          "apiTimeout": 30000
+        }
+      },
+      {
+        "id": "welcome-msg",
+        "type": "message",
+        "position": { "x": 600, "y": 300 },
+        "data": {
+          "label": "Welcome",
+          "type": "message",
+          "content": "🎫 *IT Help Desk*\n\nHello! I'm your IT Support assistant. How can I help you today?"
+        }
+      },
+      {
+        "id": "main-menu",
+        "type": "question",
+        "position": { "x": 850, "y": 300 },
+        "data": {
+          "label": "Main Menu",
+          "type": "question",
+          "content": "Please select what you would like to do:",
+          "questionType": "buttons",
+          "buttons": [
+            { "id": "btn_new", "title": "🆕 New Request" },
+            { "id": "btn_list", "title": "📋 My Requests" },
+            { "id": "btn_catalog", "title": "📁 Service Catalog" }
+          ],
+          "variable": "menu_selection"
+        }
+      },
+
+      {
+        "id": "fetch-categories",
+        "type": "rest_api",
+        "position": { "x": 1100, "y": 100 },
+        "data": {
+          "label": "Fetch Categories",
+          "type": "rest_api",
+          "apiUrl": "https://sdpondemand.manageengine.com/app/itdesk/api/v3/service_categories",
+          "apiMethod": "GET",
+          "apiHeaders": {
+            "Authorization": "Zoho-oauthtoken {{zoho_token_data}}",
+            "Content-Type": "application/json"
+          },
+          "apiOutputVariable": "categories",
+          "apiResponsePath": "service_categories",
+          "apiErrorVariable": "api_error",
+          "apiTimeout": 30000
+        }
+      },
+      {
+        "id": "select-category",
+        "type": "question",
+        "position": { "x": 1400, "y": 100 },
+        "data": {
+          "label": "Select Category",
+          "type": "question",
+          "content": "What category is your request related to?",
+          "questionType": "list",
+          "variable": "selected_category",
+          "dynamicListSource": "categories",
+          "dynamicLabelField": "name",
+          "dynamicDescField": "description",
+          "listButtonText": "Categories"
+        }
+      },
+      {
+        "id": "ask-subject",
+        "type": "question",
+        "position": { "x": 1700, "y": 100 },
+        "data": {
+          "label": "Ask Subject",
+          "type": "question",
+          "content": "Please briefly describe the subject of your request:",
+          "questionType": "text",
+          "variable": "ticket_subject"
+        }
+      },
+      {
+        "id": "ask-description",
+        "type": "question",
+        "position": { "x": 1950, "y": 100 },
+        "data": {
+          "label": "Ask Description",
+          "type": "question",
+          "content": "Please describe your issue in detail:",
+          "questionType": "text",
+          "variable": "ticket_description"
+        }
+      },
+      {
+        "id": "ask-priority",
+        "type": "question",
+        "position": { "x": 2200, "y": 100 },
+        "data": {
+          "label": "Select Priority",
+          "type": "question",
+          "content": "Please select the priority of your request:",
+          "questionType": "buttons",
+          "buttons": [
+            { "id": "btn_low", "title": "🟢 Low" },
+            { "id": "btn_medium", "title": "🟡 Medium" },
+            { "id": "btn_high", "title": "🔴 High" }
+          ],
+          "variable": "ticket_priority"
+        }
+      },
+      {
+        "id": "create-ticket",
+        "type": "rest_api",
+        "position": { "x": 2450, "y": 100 },
+        "data": {
+          "label": "Create Request",
+          "type": "rest_api",
+          "apiUrl": "https://sdpondemand.manageengine.com/app/itdesk/api/v3/requests",
+          "apiMethod": "POST",
+          "apiHeaders": {
+            "Authorization": "Zoho-oauthtoken {{zoho_token_data}}",
+            "Accept": "application/vnd.manageengine.sdp.v3+json"
+          },
+          "apiBody": "{\"input_data\":\"{\\\"request\\\":{\\\"subject\\\":\\\"{{ticket_subject}}\\\",\\\"description\\\":\\\"{{ticket_description}}\\\",\\\"requester\\\":{\\\"id\\\":\\\"{{requester_data[0].id}}\\\"}}}\"}",
+          "apiContentType": "application/x-www-form-urlencoded",
+          "apiOutputVariable": "ticket_result",
+          "apiResponsePath": "request",
+          "apiErrorVariable": "ticket_error",
+          "apiTimeout": 30000
+        }
+      },
+      {
+        "id": "ticket-success",
+        "type": "message",
+        "position": { "x": 2750, "y": 50 },
+        "data": {
+          "label": "Request Success",
+          "type": "message",
+          "content": "✅ *Your Request Has Been Created!*\n\n🎫 Request ID: #{{ticket_result.display_id}}\n📝 Subject: {{ticket_subject}}\n📁 Category: {{selected_category}}\n\nYour request has been submitted to our IT team. We will get back to you shortly."
+        }
+      },
+      {
+        "id": "ticket-error",
+        "type": "message",
+        "position": { "x": 2750, "y": 200 },
+        "data": {
+          "label": "Request Error",
+          "type": "message",
+          "content": "❌ *Request Could Not Be Created*\n\nAn error occurred: {{ticket_error}}\n\nPlease try again later or contact the IT team."
+        }
+      },
+
+      {
+        "id": "fetch-requests",
+        "type": "rest_api",
+        "position": { "x": 1100, "y": 300 },
+        "data": {
+          "label": "Fetch Requests",
+          "type": "rest_api",
+          "apiUrl": "https://sdpondemand.manageengine.com/app/itdesk/api/v3/requests?input_data={\"list_info\":{\"row_count\":10,\"search_criteria\":{\"field\":\"requester.id\",\"condition\":\"is\",\"value\":\"{{requester_data[0].id}}\"}}}",
+          "apiMethod": "GET",
+          "apiHeaders": {
+            "Authorization": "Zoho-oauthtoken {{zoho_token_data}}",
+            "Content-Type": "application/json"
+          },
+          "apiOutputVariable": "my_requests",
+          "apiResponsePath": "requests",
+          "apiErrorVariable": "requests_error",
+          "apiTimeout": 30000
+        }
+      },
+      {
+        "id": "show-requests",
+        "type": "message",
+        "position": { "x": 1400, "y": 300 },
+        "data": {
+          "label": "Show Requests",
+          "type": "message",
+          "content": "📋 *Your Recent Requests*\n\nYour last 10 requests have been loaded. Visit the ServiceDesk portal for details.\n\n_Your total active request count is displayed in the system._"
+        }
+      },
+      {
+        "id": "requests-error",
+        "type": "message",
+        "position": { "x": 1400, "y": 450 },
+        "data": {
+          "label": "Requests Error",
+          "type": "message",
+          "content": "❌ *Could Not Fetch Requests*\n\nError: {{requests_error}}\n\nPlease try again later."
+        }
+      },
+
+      {
+        "id": "fetch-catalog-categories",
+        "type": "rest_api",
+        "position": { "x": 1100, "y": 550 },
+        "data": {
+          "label": "Catalog Categories",
+          "type": "rest_api",
+          "apiUrl": "https://sdpondemand.manageengine.com/app/itdesk/api/v3/service_categories",
+          "apiMethod": "GET",
+          "apiHeaders": {
+            "Authorization": "Zoho-oauthtoken {{zoho_token_data}}",
+            "Content-Type": "application/json"
+          },
+          "apiOutputVariable": "catalog_categories",
+          "apiResponsePath": "service_categories",
+          "apiErrorVariable": "catalog_error",
+          "apiTimeout": 30000
+        }
+      },
+      {
+        "id": "select-catalog-category",
+        "type": "question",
+        "position": { "x": 1400, "y": 550 },
+        "data": {
+          "label": "Select Catalog Category",
+          "type": "question",
+          "content": "📁 *Service Catalog*\n\nSelect a category to view related service templates:",
+          "questionType": "list",
+          "variable": "catalog_selected_category",
+          "dynamicListSource": "catalog_categories",
+          "dynamicLabelField": "name",
+          "dynamicDescField": "description",
+          "listButtonText": "Categories"
+        }
+      },
+      {
+        "id": "fetch-templates",
+        "type": "rest_api",
+        "position": { "x": 1700, "y": 550 },
+        "data": {
+          "label": "Fetch Templates",
+          "type": "rest_api",
+          "apiUrl": "https://sdpondemand.manageengine.com/app/itdesk/api/v3/service_categories/{{catalog_selected_category}}/request_templates",
+          "apiMethod": "GET",
+          "apiHeaders": {
+            "Authorization": "Zoho-oauthtoken {{zoho_token_data}}",
+            "Content-Type": "application/json"
+          },
+          "apiOutputVariable": "templates",
+          "apiResponsePath": "request_templates",
+          "apiErrorVariable": "template_error",
+          "apiTimeout": 30000
+        }
+      },
+      {
+        "id": "select-template",
+        "type": "question",
+        "position": { "x": 2000, "y": 550 },
+        "data": {
+          "label": "Select Template",
+          "type": "question",
+          "content": "📋 *Service Templates*\n\nSelect one of the templates in this category:",
+          "questionType": "list",
+          "variable": "selected_template",
+          "dynamicListSource": "templates",
+          "dynamicLabelField": "name",
+          "dynamicDescField": "description",
+          "listButtonText": "Templates"
+        }
+      },
+      {
+        "id": "ask-create-from-template",
+        "type": "question",
+        "position": { "x": 2300, "y": 550 },
+        "data": {
+          "label": "Create Request?",
+          "type": "question",
+          "content": "📝 *Template Selected*\n\nWould you like to create a request using this template?",
+          "questionType": "buttons",
+          "buttons": [
+            { "id": "btn_create_yes", "title": "✅ Yes, Create" },
+            { "id": "btn_create_no", "title": "❌ No" }
+          ],
+          "variable": "create_from_template"
+        }
+      },
+      {
+        "id": "ask-catalog-subject",
+        "type": "question",
+        "position": { "x": 2600, "y": 450 },
+        "data": {
+          "label": "Catalog Subject",
+          "type": "question",
+          "content": "Please briefly describe the subject of your request:",
+          "questionType": "text",
+          "variable": "catalog_ticket_subject"
+        }
+      },
+      {
+        "id": "ask-catalog-description",
+        "type": "question",
+        "position": { "x": 2900, "y": 450 },
+        "data": {
+          "label": "Catalog Description",
+          "type": "question",
+          "content": "Please describe your issue in detail:",
+          "questionType": "text",
+          "variable": "catalog_ticket_description"
+        }
+      },
+      {
+        "id": "create-catalog-ticket",
+        "type": "rest_api",
+        "position": { "x": 3200, "y": 450 },
+        "data": {
+          "label": "Create Catalog Request",
+          "type": "rest_api",
+          "apiUrl": "https://sdpondemand.manageengine.com/app/itdesk/api/v3/requests",
+          "apiMethod": "POST",
+          "apiHeaders": {
+            "Authorization": "Zoho-oauthtoken {{zoho_token_data}}",
+            "Accept": "application/vnd.manageengine.sdp.v3+json"
+          },
+          "apiBody": "{\"input_data\":\"{\\\"request\\\":{\\\"subject\\\":\\\"{{catalog_ticket_subject}}\\\",\\\"description\\\":\\\"{{catalog_ticket_description}}\\\",\\\"template\\\":{\\\"id\\\":\\\"{{selected_template}}\\\"},\\\"requester\\\":{\\\"id\\\":\\\"{{requester_data[0].id}}\\\"}}}\"}",
+          "apiContentType": "application/x-www-form-urlencoded",
+          "apiOutputVariable": "catalog_ticket_result",
+          "apiResponsePath": "request",
+          "apiErrorVariable": "catalog_ticket_error",
+          "apiTimeout": 30000
+        }
+      },
+      {
+        "id": "catalog-ticket-success",
+        "type": "message",
+        "position": { "x": 3500, "y": 400 },
+        "data": {
+          "label": "Catalog Request Success",
+          "type": "message",
+          "content": "✅ *Your Request Has Been Created!*\n\n🎫 Request ID: #{{catalog_ticket_result.display_id}}\n📝 Subject: {{catalog_ticket_subject}}\n📁 Category ID: {{catalog_selected_category}}\n📋 Template ID: {{selected_template}}\n\nYour request has been submitted to our IT team. We will get back to you shortly."
+        }
+      },
+      {
+        "id": "catalog-ticket-error",
+        "type": "message",
+        "position": { "x": 3500, "y": 550 },
+        "data": {
+          "label": "Catalog Request Error",
+          "type": "message",
+          "content": "❌ *Request Could Not Be Created*\n\nAn error occurred: {{catalog_ticket_error}}\n\nPlease try again later or contact the IT team."
+        }
+      },
+      {
+        "id": "template-error",
+        "type": "message",
+        "position": { "x": 2000, "y": 700 },
+        "data": {
+          "label": "Template Error",
+          "type": "message",
+          "content": "❌ *Templates Could Not Be Loaded*\n\nNo templates found for this category or an error occurred.\n\nError: {{template_error}}"
+        }
+      },
+      {
+        "id": "catalog-error",
+        "type": "message",
+        "position": { "x": 1400, "y": 700 },
+        "data": {
+          "label": "Catalog Error",
+          "type": "message",
+          "content": "❌ *Catalog Could Not Be Loaded*\n\nError: {{catalog_error}}"
+        }
+      },
+
+      {
+        "id": "ask-continue",
+        "type": "question",
+        "position": { "x": 3800, "y": 500 },
+        "data": {
+          "label": "Continue",
+          "type": "question",
+          "content": "Would you like to do anything else?",
+          "questionType": "buttons",
+          "buttons": [
+            { "id": "btn_yes", "title": "✅ Yes" },
+            { "id": "btn_no", "title": "❌ No" }
+          ],
+          "variable": "continue_choice"
+        }
+      },
+      {
+        "id": "goodbye-msg",
+        "type": "message",
+        "position": { "x": 4100, "y": 550 },
+        "data": {
+          "label": "Goodbye",
+          "type": "message",
+          "content": "👋 *Thank You!*\n\nThank you for using the IT Help Desk.\n\nIf you need help again, just message us!\n\n📧 it-support@company.com\n📞 Ext: 1234"
+        }
+      },
+
+      {
+        "id": "api-general-error",
+        "type": "message",
+        "position": { "x": 1100, "y": 800 },
+        "data": {
+          "label": "API Error",
+          "type": "message",
+          "content": "⚠️ *Connection Error*\n\nA problem occurred while connecting to the service desk. Please try again later.\n\nError: {{api_error}}"
+        }
+      },
+      {
+        "id": "requester-error",
+        "type": "message",
+        "position": { "x": 600, "y": 450 },
+        "data": {
+          "label": "User Not Found",
+          "type": "message",
+          "content": "⚠️ *User Not Found*\n\nYour phone number is not registered in the system.\n\nPlease contact the IT team:\n📧 it-support@company.com\n📞 Ext: 1234"
+        }
+      },
+      {
+        "id": "token-error",
+        "type": "message",
+        "position": { "x": 200, "y": 450 },
+        "data": {
+          "label": "Token Error",
+          "type": "message",
+          "content": "⚠️ *Connection Error*\n\nService desk authentication error.\n\nPlease contact the IT team:\n📧 it-support@company.com\n📞 Ext: 1234"
+        }
+      }
+    ],
+    "edges": [
+      { "id": "e0", "source": "start-1", "target": "refresh-token" },
+      { "id": "e0-token", "source": "refresh-token", "target": "fetch-requester", "sourceHandle": "success" },
+      { "id": "e0-token-err", "source": "refresh-token", "target": "token-error", "sourceHandle": "error" },
+      { "id": "e1", "source": "fetch-requester", "target": "welcome-msg", "sourceHandle": "success" },
+      { "id": "e1-err", "source": "fetch-requester", "target": "requester-error", "sourceHandle": "error" },
+      { "id": "e2", "source": "welcome-msg", "target": "main-menu" },
+
+      { "id": "e3", "source": "main-menu", "target": "fetch-categories", "sourceHandle": "btn_new" },
+      { "id": "e4", "source": "main-menu", "target": "fetch-requests", "sourceHandle": "btn_list" },
+      { "id": "e5", "source": "main-menu", "target": "fetch-catalog-categories", "sourceHandle": "btn_catalog" },
+
+      { "id": "e6", "source": "fetch-categories", "target": "select-category", "sourceHandle": "success" },
+      { "id": "e7", "source": "fetch-categories", "target": "api-general-error", "sourceHandle": "error" },
+
+      { "id": "e8", "source": "select-category", "target": "ask-subject" },
+      { "id": "e9", "source": "ask-subject", "target": "ask-description" },
+      { "id": "e10", "source": "ask-description", "target": "ask-priority" },
+      { "id": "e11", "source": "ask-priority", "target": "create-ticket" },
+
+      { "id": "e12", "source": "create-ticket", "target": "ticket-success", "sourceHandle": "success" },
+      { "id": "e13", "source": "create-ticket", "target": "ticket-error", "sourceHandle": "error" },
+
+      { "id": "e14", "source": "ticket-success", "target": "ask-continue" },
+      { "id": "e15", "source": "ticket-error", "target": "ask-continue" },
+
+      { "id": "e16", "source": "fetch-requests", "target": "show-requests", "sourceHandle": "success" },
+      { "id": "e17", "source": "fetch-requests", "target": "requests-error", "sourceHandle": "error" },
+      { "id": "e18", "source": "show-requests", "target": "ask-continue" },
+      { "id": "e19", "source": "requests-error", "target": "ask-continue" },
+
+      { "id": "e20", "source": "fetch-catalog-categories", "target": "select-catalog-category", "sourceHandle": "success" },
+      { "id": "e21", "source": "fetch-catalog-categories", "target": "catalog-error", "sourceHandle": "error" },
+      { "id": "e22", "source": "select-catalog-category", "target": "fetch-templates" },
+      { "id": "e23", "source": "fetch-templates", "target": "select-template", "sourceHandle": "success" },
+      { "id": "e24", "source": "fetch-templates", "target": "template-error", "sourceHandle": "error" },
+      { "id": "e25", "source": "select-template", "target": "ask-create-from-template" },
+
+      { "id": "e26", "source": "ask-create-from-template", "target": "ask-catalog-subject", "sourceHandle": "btn_create_yes" },
+      { "id": "e27", "source": "ask-create-from-template", "target": "ask-continue", "sourceHandle": "btn_create_no" },
+
+      { "id": "e28", "source": "ask-catalog-subject", "target": "ask-catalog-description" },
+      { "id": "e29", "source": "ask-catalog-description", "target": "create-catalog-ticket" },
+
+      { "id": "e30", "source": "create-catalog-ticket", "target": "catalog-ticket-success", "sourceHandle": "success" },
+      { "id": "e31", "source": "create-catalog-ticket", "target": "catalog-ticket-error", "sourceHandle": "error" },
+
+      { "id": "e32", "source": "catalog-ticket-success", "target": "ask-continue" },
+      { "id": "e33", "source": "catalog-ticket-error", "target": "ask-continue" },
+
+      { "id": "e34", "source": "template-error", "target": "ask-continue" },
+      { "id": "e35", "source": "catalog-error", "target": "ask-continue" },
+
+      { "id": "e36", "source": "ask-continue", "target": "main-menu", "sourceHandle": "btn_yes" },
+      { "id": "e37", "source": "ask-continue", "target": "goodbye-msg", "sourceHandle": "btn_no" },
+
+      { "id": "e38", "source": "api-general-error", "target": "ask-continue" },
+      { "id": "e39", "source": "requester-error", "target": "goodbye-msg" },
+      { "id": "e40", "source": "token-error", "target": "goodbye-msg" }
+    ]
+  }
+}

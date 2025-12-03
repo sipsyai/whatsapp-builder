@@ -6,6 +6,8 @@ import { WhatsAppFlow } from '../../../entities/whatsapp-flow.entity';
 import { ConfigService } from '@nestjs/config';
 import { DataSourcesService } from '../../data-sources/data-sources.service';
 import { ComponentDataSourceConfigDto } from '../../flows/dto/component-data-source-config.dto';
+import { IntegrationHandlerRegistry } from './integration-handlers/integration-handler.registry';
+import { IntegrationConfigDto, FlowExecutionContextDto } from '../../flows/dto/integration-config.dto';
 
 /**
  * Flow Endpoint Service
@@ -22,6 +24,7 @@ export class FlowEndpointService {
     private readonly flowRepo: Repository<WhatsAppFlow>,
     private readonly configService: ConfigService,
     private readonly dataSourcesService: DataSourcesService,
+    private readonly integrationRegistry: IntegrationHandlerRegistry,
   ) {}
 
   /**
@@ -41,6 +44,7 @@ export class FlowEndpointService {
     let dataSourceId: string | null = null;
     let whatsappFlowId: string | null = null;
     let flowRecord: WhatsAppFlow | null = null;
+    let chatbotUserId: string | undefined; // N+1 optimizasyonu icin
 
     if (flow_token && flow_token.includes('-')) {
       const parts = flow_token.split('-');
@@ -52,6 +56,7 @@ export class FlowEndpointService {
       }
 
       // Load context to get variables and flow configuration
+      // Context'i chatbot ile birlikte yükle (N+1 optimizasyonu)
       if (contextId) {
         try {
           const context = await this.contextRepo.findOne({
@@ -61,6 +66,7 @@ export class FlowEndpointService {
 
           if (context) {
             initialData = context.variables || {};
+            chatbotUserId = context.chatbot?.userId || undefined;
 
             // Find the WhatsApp Flow node to get the flow ID
             if (nodeId && context.chatbot) {
@@ -91,6 +97,48 @@ export class FlowEndpointService {
           );
         }
       }
+    }
+
+    // ============================================================================
+    // Integration Handler-Based Data Fetching (Newest Approach)
+    // ============================================================================
+    const integrationConfigs = (flowRecord?.metadata?.integrationConfigs as IntegrationConfigDto[]) || [];
+
+    if (integrationConfigs.length > 0) {
+      this.logger.debug(`Found ${integrationConfigs.length} integration configs for flow`);
+
+      // Initial configs (dependsOn olmayan) için data fetch et
+      const initialConfigs = integrationConfigs.filter(c => !c.dependsOn);
+      const screenData: Record<string, any> = {};
+
+      for (const config of initialConfigs) {
+        const flowContext: FlowExecutionContextDto = {
+          flowToken: request.flow_token,
+          contextId: contextId || undefined,
+          nodeId: nodeId || undefined,
+          chatbotUserId: chatbotUserId, // N+1 optimizasyonu: onceden yuklenmis deger
+        };
+
+        try {
+          const componentData = await this.integrationRegistry.fetchComponentData(
+            config,
+            {},
+            flowContext
+          );
+          screenData[config.componentName] = componentData;
+          this.logger.debug(`Fetched ${componentData.length} items for ${config.componentName}`);
+        } catch (error) {
+          this.logger.error(`Integration fetch failed for ${config.componentName}: ${error.message}`);
+          screenData[config.componentName] = [];
+        }
+      }
+
+      // İlk screen'i bul ve data ile döndür
+      const initialScreen = flowRecord ? this.getInitialScreen(flowRecord) : 'INIT';
+      return {
+        screen: initialScreen,
+        data: screenData,
+      };
     }
 
     // ============================================================================
@@ -333,10 +381,20 @@ export class FlowEndpointService {
    * Handle data_exchange action - Process form submission and return next screen
    * Called when user submits a screen
    */
-  async handleDataExchange(request: any): Promise<any> {
+  async handleDataExchange(request: any, flowRecord: WhatsAppFlow | null): Promise<any> {
     this.logger.log('Processing data_exchange action');
 
     const { screen, data, flow_token } = request;
+
+    // Handle error notifications from WhatsApp
+    if (data?.error) {
+      this.logger.warn(`Received error notification from WhatsApp: ${data.error} - ${data.error_message}`);
+      return {
+        data: {
+          acknowledged: true,
+        },
+      };
+    }
 
     this.logger.log(`Screen: ${screen}, Data: ${JSON.stringify(data)}`);
 
@@ -345,7 +403,7 @@ export class FlowEndpointService {
     let contextId: string | null = null;
     let nodeId: string | null = null;
     let dataSourceId: string | null = null;
-    let flowRecord: WhatsAppFlow | null = null;
+    let loadedFlowRecord = flowRecord;
 
     if (flow_token && flow_token.includes('-')) {
       const parts = flow_token.split('-');
@@ -355,7 +413,9 @@ export class FlowEndpointService {
       }
     }
 
-    // Load context to get flow configuration
+    // Load context to get flow configuration if flowRecord not provided
+    // Context'i chatbot ile birlikte yükle (N+1 optimizasyonu)
+    let chatbotUserId: string | undefined;
     if (contextId) {
       try {
         const context = await this.contextRepo.findOne({
@@ -364,22 +424,25 @@ export class FlowEndpointService {
         });
 
         if (context && nodeId && context.chatbot) {
-          // Find the WhatsApp Flow node to get the flow ID
-          const flowNode = context.chatbot.nodes?.find((n: any) => n.id === nodeId);
-          if (flowNode?.data?.whatsappFlowId) {
-            // Load the flow to get dataSourceId and dataSourceConfig
-            const flow = await this.flowRepo.findOne({
-              where: { whatsappFlowId: flowNode.data.whatsappFlowId },
-              relations: ['dataSource'],
-            });
-            if (flow) {
-              flowRecord = flow;
-              dataSourceId = flow.dataSourceId || null;
-              this.logger.debug(
-                `Flow loaded: ${flow.name}, dataSourceId: ${dataSourceId}`,
-              );
+          chatbotUserId = context.chatbot.userId || undefined;
+          // Find the WhatsApp Flow node to get the flow ID if not already loaded
+          if (!loadedFlowRecord) {
+            const flowNode = context.chatbot.nodes?.find((n: any) => n.id === nodeId);
+            if (flowNode?.data?.whatsappFlowId) {
+              // Load the flow to get dataSourceId and dataSourceConfig
+              const flow = await this.flowRepo.findOne({
+                where: { whatsappFlowId: flowNode.data.whatsappFlowId },
+                relations: ['dataSource'],
+              });
+              if (flow) {
+                loadedFlowRecord = flow;
+                this.logger.debug(
+                  `Flow loaded: ${flow.name}, dataSourceId: ${flow.dataSourceId}`,
+                );
+              }
             }
           }
+          dataSourceId = loadedFlowRecord?.dataSourceId || null;
         }
       } catch (error) {
         this.logger.warn(
@@ -390,20 +453,72 @@ export class FlowEndpointService {
     }
 
     // ============================================================================
+    // Integration Handler-Based Data Exchange (Newest Approach)
+    // ============================================================================
+    const integrationConfigs = (loadedFlowRecord?.metadata?.integrationConfigs as IntegrationConfigDto[]) || [];
+
+    if (integrationConfigs.length > 0) {
+      const submittedFields = Object.keys(data || {});
+      const screenData: Record<string, any> = { ...data };
+      let hasIntegrationMatch = false;
+
+      for (const fieldName of submittedFields) {
+        // Bu field'a bağlı config'leri bul
+        const dependentConfigs = integrationConfigs.filter(c => c.dependsOn === fieldName);
+
+        if (dependentConfigs.length > 0) {
+          hasIntegrationMatch = true;
+
+          for (const config of dependentConfigs) {
+            const flowContext: FlowExecutionContextDto = {
+              flowToken: flow_token,
+              contextId: contextId || undefined,
+              nodeId: nodeId || undefined,
+              chatbotUserId: chatbotUserId, // N+1 optimizasyonu: onceden yuklenmis deger
+            };
+
+            try {
+              const componentData = await this.integrationRegistry.fetchComponentData(
+                config,
+                data,
+                flowContext
+              );
+              screenData[config.componentName] = componentData;
+              this.logger.debug(`Fetched ${componentData.length} items for ${config.componentName} (depends on ${fieldName})`);
+            } catch (error) {
+              this.logger.error(`Integration fetch failed for ${config.componentName}: ${error.message}`);
+              screenData[config.componentName] = [];
+              screenData.error_message = 'Veri yüklenemedi. Lütfen tekrar deneyin.';
+            }
+          }
+        }
+      }
+
+      if (hasIntegrationMatch) {
+        // Sonraki screen'i bul
+        const nextScreen = this.findNextScreen(loadedFlowRecord, screen);
+        return {
+          screen: nextScreen || screen,
+          data: screenData,
+        };
+      }
+    }
+
+    // ============================================================================
     // Config-Driven Data Exchange (New Generic Approach)
     // ============================================================================
-    const dataSourceConfigs = (flowRecord?.metadata?.dataSourceConfig as ComponentDataSourceConfigDto[]) || [];
+    const dataSourceConfigs = (loadedFlowRecord?.metadata?.dataSourceConfig as ComponentDataSourceConfigDto[]) || [];
 
     if (dataSourceConfigs.length > 0) {
       this.logger.debug(`Found ${dataSourceConfigs.length} data source configs, using config-driven approach`);
 
       try {
         // Check if any config depends on the submitted data
-        const submittedFields = Object.keys(data || {});
-        const screenData: Record<string, any> = { ...data };
+        const submittedFieldsForDS = Object.keys(data || {});
+        const screenDataDS: Record<string, any> = { ...data };
         let hasConfigMatch = false;
 
-        for (const fieldName of submittedFields) {
+        for (const fieldName of submittedFieldsForDS) {
           // Find configs that depend on this submitted field
           const dependentConfigs = this.findDependentConfigs(dataSourceConfigs, fieldName);
 
@@ -416,7 +531,7 @@ export class FlowEndpointService {
             // Fetch data for each dependent config
             for (const config of dependentConfigs) {
               const componentData = await this.fetchComponentData(config, data);
-              screenData[config.componentName] = componentData;
+              screenDataDS[config.componentName] = componentData;
               this.logger.debug(
                 `Fetched ${componentData.length} items for component: ${config.componentName}`,
               );
@@ -427,10 +542,10 @@ export class FlowEndpointService {
         // If we processed any config-driven data, determine next screen and return
         if (hasConfigMatch) {
           // Determine next screen from flowJson
-          let nextScreen = this.findNextScreen(flowRecord, screen);
+          let nextScreenDS = this.findNextScreen(loadedFlowRecord, screen);
 
           // If no next screen found, check if we should complete the flow
-          if (!nextScreen) {
+          if (!nextScreenDS) {
             // Save data to context if available
             if (contextId && data) {
               try {
@@ -455,8 +570,8 @@ export class FlowEndpointService {
           }
 
           return {
-            screen: nextScreen,
-            data: screenData,
+            screen: nextScreenDS,
+            data: screenDataDS,
           };
         }
 
@@ -471,7 +586,7 @@ export class FlowEndpointService {
         }
 
         // Check if current screen is the last screen in flowJson
-        const isLastScreen = this.isLastScreen(flowRecord, screen);
+        const isLastScreen = this.isLastScreen(loadedFlowRecord, screen);
         if (isLastScreen) {
           return {
             screen: 'SUCCESS',
@@ -487,11 +602,11 @@ export class FlowEndpointService {
         }
 
         // Continue to next screen without additional data
-        const nextScreen = this.findNextScreen(flowRecord, screen);
-        if (nextScreen) {
+        const nextScreenContinue = this.findNextScreen(loadedFlowRecord, screen);
+        if (nextScreenContinue) {
           return {
-            screen: nextScreen,
-            data: screenData,
+            screen: nextScreenContinue,
+            data: screenDataDS,
           };
         }
 
@@ -688,19 +803,106 @@ export class FlowEndpointService {
   }
 
   /**
-   * Handle BACK action - Return to previous screen
-   * Optional: you can return the current screen or previous screen data
+   * Handle BACK action - user pressed back button
+   * If the previous screen has refresh_on_back: true, we need to refresh its data
    */
-  async handleBack(request: any): Promise<any> {
-    this.logger.debug('Processing BACK action');
+  async handleBack(request: any, flowRecord: WhatsAppFlow | null): Promise<any> {
+    const { screen, data, flow_token } = request;
 
-    const { screen } = request;
+    this.logger.debug(`Handling BACK action from screen: ${screen}`);
 
-    // Return current screen (user stays on same screen)
-    // Or implement logic to return previous screen
+    if (!flowRecord?.flowJson) {
+      return {
+        screen: screen,
+        data: {},
+      };
+    }
+
+    const flowJson = flowRecord.flowJson as any;
+    const screens = flowJson.screens || [];
+
+    // Find current screen index
+    const currentIndex = screens.findIndex((s: any) => s.id === screen);
+    if (currentIndex <= 0) {
+      // Already at first screen or not found
+      return {
+        screen: screen,
+        data: data || {},
+      };
+    }
+
+    // Get previous screen
+    const previousScreen = screens[currentIndex - 1];
+    const previousScreenId = previousScreen?.id;
+
+    // Check if previous screen has refresh_on_back
+    if (previousScreen?.refresh_on_back === true) {
+      this.logger.debug(`Previous screen ${previousScreenId} has refresh_on_back, fetching fresh data`);
+
+      // Re-fetch data for previous screen using integration handlers
+      const integrationConfigs = (flowRecord?.metadata?.integrationConfigs as IntegrationConfigDto[]) || [];
+
+      if (integrationConfigs.length > 0) {
+        const screenData: Record<string, any> = { ...data };
+
+        // Extract context info from flow_token
+        let contextId: string | undefined;
+        let nodeId: string | undefined;
+        let chatbotUserId: string | undefined;
+
+        if (flow_token && flow_token.includes('-')) {
+          const parts = flow_token.split('-');
+          if (parts.length >= 6) {
+            contextId = parts.slice(0, 5).join('-');
+            nodeId = parts.slice(5).join('-');
+          }
+        }
+
+        // Get chatbot user ID if context exists
+        if (contextId) {
+          const context = await this.contextRepo.findOne({
+            where: { id: contextId },
+            relations: ['chatbot'],
+          });
+          chatbotUserId = context?.chatbot?.userId || undefined;
+        }
+
+        // Find configs for the previous screen (configs without dependsOn are initial data)
+        const initialConfigs = integrationConfigs.filter(c => !c.dependsOn);
+
+        // Fetch fresh data for each initial config
+        for (const config of initialConfigs) {
+          const flowContext: FlowExecutionContextDto = {
+            flowToken: flow_token,
+            contextId,
+            nodeId,
+            chatbotUserId,
+          };
+
+          try {
+            const componentData = await this.integrationRegistry.fetchComponentData(
+              config,
+              data || {},
+              flowContext,
+            );
+            screenData[config.componentName] = componentData;
+            this.logger.debug(`Refreshed ${componentData.length} items for ${config.componentName} on BACK`);
+          } catch (error) {
+            this.logger.error(`Failed to refresh data for ${config.componentName} on BACK: ${error.message}`);
+            // Keep existing data on error
+          }
+        }
+
+        return {
+          screen: previousScreenId,
+          data: screenData,
+        };
+      }
+    }
+
     return {
-      screen: screen,
-      data: {},
+      screen: previousScreenId || screen,
+      data: data || {},
     };
   }
 
@@ -913,39 +1115,53 @@ export class FlowEndpointService {
   }
 
   /**
-   * Find the next screen based on current screen from flowJson
-   * @param flow WhatsApp Flow record
-   * @param currentScreen Current screen ID
-   * @returns Next screen ID or null if not found
+   * Find next screen using routing_model if available, otherwise fallback to sequential
    */
   private findNextScreen(flow: WhatsAppFlow | null, currentScreen: string): string | null {
-    if (!flow?.flowJson?.screens) {
-      return null;
+    if (!flow?.flowJson) return null;
+
+    const flowJson = flow.flowJson as any;
+
+    // First, try to use routing_model
+    if (flowJson.routing_model && flowJson.routing_model[currentScreen]) {
+      const validNextScreens = flowJson.routing_model[currentScreen];
+      if (Array.isArray(validNextScreens) && validNextScreens.length > 0) {
+        // Return first valid next screen
+        return validNextScreens[0];
+      }
+      // Empty array means terminal screen
+      if (Array.isArray(validNextScreens) && validNextScreens.length === 0) {
+        return null;
+      }
     }
 
-    const screens = flow.flowJson.screens;
-    const currentIndex = screens.findIndex((s: any) => s.id === currentScreen);
+    // Fallback: Sequential screen navigation
+    const screens = flowJson.screens;
+    if (!screens || !Array.isArray(screens)) return null;
 
+    const currentIndex = screens.findIndex((s: any) => s.id === currentScreen);
     if (currentIndex === -1 || currentIndex >= screens.length - 1) {
       return null;
     }
 
-    // Check if current screen has navigation action
-    const currentScreenData = screens[currentIndex];
-    if (currentScreenData?.layout?.children) {
-      // Look for Footer with on-click-action navigate
-      const footer = this.findComponentByType(currentScreenData.layout.children, 'Footer');
-      if (footer?.['on-click-action']?.name === 'navigate') {
-        return footer['on-click-action'].next?.name || null;
-      }
-      if (footer?.['on-click-action']?.name === 'data_exchange') {
-        // data_exchange can specify next screen in payload
-        return null; // Server determines next screen
-      }
-    }
-
-    // Default: return next screen in sequence
     return screens[currentIndex + 1]?.id || null;
+  }
+
+  /**
+   * Validate if screen transition is allowed by routing_model
+   */
+  private isValidScreenTransition(flow: WhatsAppFlow | null, fromScreen: string, toScreen: string): boolean {
+    if (!flow?.flowJson) return true; // No flow, allow all
+
+    const flowJson = flow.flowJson as any;
+
+    // If no routing_model, allow all transitions
+    if (!flowJson.routing_model) return true;
+
+    const allowedScreens = flowJson.routing_model[fromScreen];
+    if (!allowedScreens) return true; // Screen not in routing_model, allow
+
+    return Array.isArray(allowedScreens) && allowedScreens.includes(toScreen);
   }
 
   /**
@@ -1036,5 +1252,40 @@ export class FlowEndpointService {
 
     this.logger.warn('No data source configuration available');
     return null;
+  }
+
+  /**
+   * Get chatbot owner's user ID from context
+   * @param contextId Conversation context ID
+   * @returns User ID of the chatbot owner, or null if not found
+   */
+  private async getChatbotOwnerUserId(contextId: string): Promise<string | null> {
+    if (!contextId) return null;
+
+    try {
+      const context = await this.contextRepo.findOne({
+        where: { id: contextId },
+        relations: ['chatbot'],
+      });
+      return context?.chatbot?.userId || null;
+    } catch (error) {
+      this.logger.warn(`Could not get chatbot owner for context ${contextId}`);
+      return null;
+    }
+  }
+
+  /**
+   * Get the initial screen from Flow JSON
+   * @param flowRecord WhatsApp Flow record
+   * @returns Initial screen ID, defaults to 'INIT' if not found
+   */
+  private getInitialScreen(flowRecord: WhatsAppFlow): string {
+    // Flow JSON'dan ilk screen'i bul
+    const flowJson = flowRecord.flowJson as any;
+    if (flowJson?.screens?.length > 0) {
+      return flowJson.screens[0].id;
+    }
+    // Fallback
+    return 'INIT';
   }
 }

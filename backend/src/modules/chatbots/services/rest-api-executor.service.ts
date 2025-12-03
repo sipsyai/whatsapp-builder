@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
+import FormData = require('form-data');
 
 export interface RestApiResult {
   success: boolean;
@@ -14,12 +15,13 @@ export class RestApiExecutorService {
   private readonly logger = new Logger(RestApiExecutorService.name);
 
   /**
-   * Replace {{variable}} and {{variable.nested.path}} in string
+   * Replace {{variable}} and {{variable.nested.path}} and {{array[0].field}} in string
    * Also supports simple math expressions like {{var1}} + {{var2}}
    */
   replaceVariables(template: string, variables: Record<string, any>): string {
     // First replace all variable references with their values
-    let result = template.replace(/\{\{([\w.]+)\}\}/g, (match, varPath) => {
+    // Updated regex to support array notation like {{data[0].id}}
+    let result = template.replace(/\{\{([\w.\[\]0-9]+)\}\}/g, (match, varPath) => {
       const value = this.extractByPath(variables, varPath);
       return value !== undefined ? String(value) : match;
     });
@@ -62,6 +64,16 @@ export class RestApiExecutorService {
   }
 
   /**
+   * Filter array by field value
+   */
+  filterArray(data: any[], filterField: string, filterValue: string): any[] {
+    return data.filter(item => {
+      const fieldValue = this.extractByPath(item, filterField);
+      return fieldValue !== undefined && String(fieldValue) === String(filterValue);
+    });
+  }
+
+  /**
    * Execute REST API call with variable replacement
    */
   async execute(
@@ -72,6 +84,9 @@ export class RestApiExecutorService {
       body?: string;
       timeout?: number;
       responsePath?: string;
+      contentType?: string;
+      filterField?: string;
+      filterValue?: string;
     },
     variables: Record<string, any>,
   ): Promise<RestApiResult> {
@@ -87,22 +102,70 @@ export class RestApiExecutorService {
     }
 
     let body: any;
+    let requestHeaders = { ...headers };
+
     if (config.body) {
       const bodyStr = this.replaceVariables(config.body, variables);
-      try {
-        body = JSON.parse(bodyStr);
-      } catch {
-        body = bodyStr;
+
+      // Handle multipart/form-data
+      if (config.contentType === 'multipart/form-data') {
+        const formData = new FormData();
+        try {
+          // Try to parse as JSON to extract form fields
+          const bodyObj = JSON.parse(bodyStr);
+          for (const [key, value] of Object.entries(bodyObj)) {
+            formData.append(key, typeof value === 'string' ? value : JSON.stringify(value));
+          }
+        } catch {
+          // If not JSON, treat as single field named 'data'
+          formData.append('data', bodyStr);
+        }
+        body = formData;
+        requestHeaders = { ...headers, ...formData.getHeaders() };
+      } else if (config.contentType === 'application/x-www-form-urlencoded') {
+        // Handle URL-encoded form data
+        try {
+          const bodyObj = JSON.parse(bodyStr);
+          const params = new URLSearchParams();
+          for (const [key, value] of Object.entries(bodyObj)) {
+            params.append(key, typeof value === 'string' ? value : JSON.stringify(value));
+          }
+          body = params.toString();
+          requestHeaders['Content-Type'] = 'application/x-www-form-urlencoded';
+        } catch {
+          // If not JSON, use as-is (already in key=value format)
+          body = bodyStr;
+          requestHeaders['Content-Type'] = 'application/x-www-form-urlencoded';
+        }
+      } else {
+        try {
+          body = JSON.parse(bodyStr);
+        } catch {
+          body = bodyStr;
+        }
       }
     }
 
     try {
       this.logger.log(`Executing ${config.method} ${url}`);
+      // Mask sensitive headers before logging
+      const maskedHeaders = { ...requestHeaders };
+      if (maskedHeaders['Authorization']) {
+        maskedHeaders['Authorization'] = maskedHeaders['Authorization'].substring(0, 15) + '***';
+      }
+      if (maskedHeaders['X-API-Key']) {
+        maskedHeaders['X-API-Key'] = '***';
+      }
+      this.logger.log(`Request headers: ${JSON.stringify(maskedHeaders)}`);
+      if (config.body) {
+        const bodyStr = this.replaceVariables(config.body, variables);
+        this.logger.log(`Request body (raw): ${bodyStr.substring(0, 500)}`);
+      }
 
       const response = await axios({
         method: config.method.toLowerCase() as any,
         url,
-        headers,
+        headers: requestHeaders,
         data: body,
         timeout: config.timeout || 30000,
       });
@@ -113,6 +176,13 @@ export class RestApiExecutorService {
       let resultData = response.data;
       if (config.responsePath) {
         resultData = this.extractByPath(response.data, config.responsePath);
+      }
+
+      // Apply filter if specified (for array responses)
+      if (config.filterField && config.filterValue && Array.isArray(resultData)) {
+        const filterValue = this.replaceVariables(config.filterValue, variables);
+        resultData = this.filterArray(resultData, config.filterField, filterValue);
+        this.logger.log(`Filtered array by ${config.filterField}=${filterValue}, found ${resultData.length} matches`);
       }
 
       this.logger.log(`API call successful: ${response.status} (${responseTime}ms)`);
@@ -126,10 +196,18 @@ export class RestApiExecutorService {
     } catch (error) {
       const responseTime = Date.now() - startTime;
       this.logger.error(`API call failed: ${error.message}`);
+      this.logger.error(`Full error response: ${JSON.stringify(error.response?.data)}`);
+
+      // Extract error message from various API error formats
+      let errorMessage = error.message;
+      if (error.response?.data) {
+        const data = error.response.data;
+        errorMessage = data.message || data.error || data.response_status?.messages?.[0]?.message || JSON.stringify(data);
+      }
 
       return {
         success: false,
-        error: error.response?.data?.message || error.message,
+        error: errorMessage,
         statusCode: error.response?.status,
         responseTime,
       };
