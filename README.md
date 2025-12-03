@@ -34,6 +34,11 @@ A powerful WhatsApp chatbot builder with visual flow designer and conversation m
   - Sync flows from Meta/Facebook API
   - Publish and preview flows
   - Use flows in ChatBot nodes
+  - **Integration Handler System** for dynamic dropdown data
+    - Google Calendar integration (availability, events, users)
+    - REST API integration with DataSource support
+    - Variable interpolation and cascading dropdowns
+    - Strategy pattern for extensible handlers
 - Interactive message support (Buttons, Lists)
 - Dynamic list and button generation
 - Webhook handling with signature verification

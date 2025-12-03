@@ -737,8 +737,210 @@ this.logger.debug(`Found ${results.length} items`);
 
 ### Planlanmis Ozellikler
 
-- [ ] Frontend UI ile gorsel integration konfigurasyonu
+- [x] Frontend UI ile integration konfigurasyonu (SaveFlowModal)
+- [ ] Gorsel integration konfigurasyonu (form-based UI)
 - [ ] Integration test endpoint'i
 - [ ] Caching layer (performans iyilestirmesi)
 - [ ] Rate limiting
 - [ ] Integration analytics ve monitoring
+
+---
+
+## Frontend Integration Config UI
+
+WhatsApp Flow Playground'da flow kaydedilirken Integration Configs belirtilebilir.
+
+**Dosya:** `frontend/src/features/flow-builder/components/playground/modals/SaveFlowModal.tsx`
+
+### Kullanim
+
+1. Flow Playground'da "Save" butonuna tiklayin
+2. "Integration Configs" bolumunu aciniz (collapsible)
+3. JSON formatinda integration konfigurasyonlarini girin
+4. Validasyondan gecerse flow kaydedilir
+
+### IntegrationConfig Interface
+
+```typescript
+interface IntegrationConfig {
+  componentName: string;                          // Zorunlu
+  integrationType: 'google_calendar' | 'rest_api'; // Zorunlu
+  sourceType: 'owner' | 'static' | 'variable';
+  sourceVariable?: string;
+  sourceId?: string;
+  action: string;
+  params?: Record<string, unknown>;
+  dependsOn?: string;
+  transformTo: {                                   // Zorunlu
+    idField: string;
+    titleField: string;
+    descriptionField?: string;
+  };
+}
+```
+
+### Validation Kurallari
+
+SaveFlowModal, asagidaki validation'lari uygular:
+
+1. **JSON Format**: Gecerli JSON olmali
+2. **Array Check**: Root element array olmali
+3. **componentName**: Her item icin zorunlu
+4. **integrationType**: `google_calendar` veya `rest_api` olmali
+5. **transformTo**: `idField` ve `titleField` zorunlu
+
+### Ornek Kullanim
+
+```json
+[
+  {
+    "componentName": "barbers",
+    "integrationType": "google_calendar",
+    "sourceType": "static",
+    "action": "list_calendar_users",
+    "transformTo": { "idField": "id", "titleField": "title" }
+  },
+  {
+    "componentName": "time_slots",
+    "integrationType": "google_calendar",
+    "sourceType": "variable",
+    "sourceVariable": "selected_barber",
+    "action": "check_availability",
+    "params": {
+      "workingHoursStart": "09:00",
+      "workingHoursEnd": "18:00",
+      "slotDuration": 30,
+      "dateSource": "variable",
+      "dateVariable": "selected_date"
+    },
+    "dependsOn": "selected_date",
+    "transformTo": { "idField": "id", "titleField": "title" }
+  }
+]
+```
+
+### UI Ozellikleri
+
+- **Collapsible Section**: Varsayilan olarak kapali, tiklayarak acilin
+- **Error Auto-Expand**: Validasyon hatasi varsa bolum otomatik acilir
+- **Example Template**: "View example config" ile ornek gosterimi
+- **ARIA Accessibility**: `aria-expanded`, `aria-controls`, `role="alert"` destegi
+- **Toast Notifications**: Basarili/basarisiz islemler icin bildirim
+
+---
+
+## REST API Executor Iyilestirmeleri
+
+REST API node'u ve handler'i icin ek ozellikler eklenmistir.
+
+**Dosya:** `backend/src/modules/chatbots/services/rest-api-executor.service.ts`
+
+### apiContentType Destegi
+
+Farkli content type'lari desteklenir:
+
+```typescript
+type ContentType = 'application/json' | 'multipart/form-data' | 'application/x-www-form-urlencoded';
+```
+
+### apiFilterField/apiFilterValue
+
+Array response'larini filtrelemek icin:
+
+```typescript
+// Konfigurasyon:
+{
+  "apiFilterField": "status",
+  "apiFilterValue": "active"
+}
+
+// Response'tan sadece status='active' olanlari filtreler
+```
+
+### Array Notation Destegi
+
+Nested array degerlerine erismek icin:
+
+```typescript
+// data[0].id syntax'i desteklenir
+const value = extractValue(data, 'items[0].name');
+```
+
+### Sensitive Data Masking
+
+Log'larda hassas veriler maskelenir:
+
+```typescript
+// Headers loglanirken:
+// Authorization: Bearer ****
+// X-API-Key: ****
+```
+
+### Timeout Limiti
+
+WhatsApp Flow endpoint'leri icin maksimum 10 saniye timeout uygulanir:
+
+```typescript
+timeout: Math.min(configuredTimeout, 10000)
+```
+
+---
+
+## Flow Endpoint Iyilestirmeleri
+
+**Dosya:** `backend/src/modules/webhooks/services/flow-endpoint.service.ts`
+
+### routing_model Validation
+
+Flow JSON'daki routing_model destegi:
+
+```json
+{
+  "screens": [...],
+  "routing_model": {
+    "SCREEN_1": ["SCREEN_2", "SCREEN_3"],
+    "SCREEN_2": ["SUCCESS"]
+  }
+}
+```
+
+### findNextScreen Mantigi
+
+Bir sonraki ekrani belirlemek icin:
+
+1. routing_model varsa, current screen'den gidilebilecek ekranlari kontrol et
+2. routing_model yoksa, Flow JSON'dan siradaki ekrani bul
+3. Gecersiz gecis varsa hata dondur
+
+### Error Notification Handler
+
+WhatsApp'tan gelen hata bildirimleri icin:
+
+```typescript
+if (action === 'error') {
+  this.logger.error(`Flow error: ${JSON.stringify(data)}`);
+  // Error handling logic
+}
+```
+
+### BACK Action ve refresh_on_back
+
+Kullanici geri donduğunde verinin yenilenmesi:
+
+```typescript
+if (action === 'BACK' && currentScreen.refresh_on_back) {
+  // Integration configs'i tekrar calistir
+  await this.fetchIntegrationData(configs, formData, context);
+}
+```
+
+### N+1 Query Optimizasyonu
+
+Flow entity'sini cekterken relations eager load edilir:
+
+```typescript
+const flow = await this.flowsRepository.findOne({
+  where: { id: flowId },
+  relations: ['dataSource', 'user'],  // Eager load
+});
+```
