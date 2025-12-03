@@ -22,17 +22,17 @@ export const VariableInput: React.FC<VariableInputProps> = ({
     if (input) {
       const start = input.selectionStart || value.length;
       const end = input.selectionEnd || value.length;
-      const newValue = value.slice(0, start) + `{{${variable.name}}}` + value.slice(end);
+      const newValue = value.slice(0, start) + `{{${variable.path}}}` + value.slice(end);
       onChange(newValue);
 
       // Move cursor after inserted variable
       setTimeout(() => {
-        const newPos = start + variable.name.length + 4;
+        const newPos = start + variable.path.length + 4;
         input.setSelectionRange(newPos, newPos);
         input.focus();
       }, 0);
     } else {
-      onChange(value + `{{${variable.name}}}`);
+      onChange(value + `{{${variable.path}}}`);
     }
     setShowPicker(false);
   };

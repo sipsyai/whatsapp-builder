@@ -13,7 +13,7 @@ export const VariableTreeItem: React.FC<VariableTreeItemProps> = ({
   nodeColor
 }) => {
   const handleDragStart = (e: React.DragEvent) => {
-    e.dataTransfer.setData('text/plain', `{{${variable.name}}}`);
+    e.dataTransfer.setData('text/plain', `{{${variable.path}}}`);
     e.dataTransfer.effectAllowed = 'copy';
   };
 
@@ -36,7 +36,7 @@ export const VariableTreeItem: React.FC<VariableTreeItemProps> = ({
         {dataTypeIcon[variable.dataType] || 'help'}
       </span>
       <span className="text-sm text-white/80 font-mono flex-1 truncate">
-        {variable.name}
+        {variable.path}
       </span>
       <span className={`material-symbols-outlined text-sm opacity-0 group-hover:opacity-100 transition-opacity ${nodeColor}`}>
         add_circle

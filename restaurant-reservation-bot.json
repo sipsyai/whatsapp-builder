@@ -1,0 +1,130 @@
+{
+  "version": "1.0",
+  "exportedAt": "2025-12-03T16:00:00.000Z",
+  "chatbot": {
+    "name": "Restaurant Reservation Bot",
+    "description": "A chatbot that helps customers make restaurant reservations using auto-generated variables",
+    "nodes": [
+      {
+        "id": "start-1",
+        "type": "start",
+        "data": {
+          "label": "Start",
+          "type": "start"
+        },
+        "position": { "x": 250, "y": 50 }
+      },
+      {
+        "id": "welcome-msg",
+        "type": "message",
+        "data": {
+          "label": "Welcome Message",
+          "type": "message",
+          "content": "Welcome to La Bella Restaurant! We're delighted to help you make a reservation."
+        },
+        "position": { "x": 250, "y": 150 }
+      },
+      {
+        "id": "question-1",
+        "type": "question",
+        "data": {
+          "label": "Ask Name",
+          "type": "question",
+          "questionType": "text",
+          "content": "What name should we put the reservation under?"
+        },
+        "position": { "x": 250, "y": 280 }
+      },
+      {
+        "id": "question-2",
+        "type": "question",
+        "data": {
+          "label": "Ask Guests",
+          "type": "question",
+          "questionType": "buttons",
+          "content": "How many guests will be dining with us?",
+          "headerText": "Party Size",
+          "buttons": [
+            { "id": "guests_2", "title": "2 Guests" },
+            { "id": "guests_4", "title": "4 Guests" },
+            { "id": "guests_6", "title": "6+ Guests" }
+          ]
+        },
+        "position": { "x": 250, "y": 410 }
+      },
+      {
+        "id": "question-3",
+        "type": "question",
+        "data": {
+          "label": "Ask Date",
+          "type": "question",
+          "questionType": "text",
+          "content": "What date would you like to reserve? (YYYY-MM-DD format)"
+        },
+        "position": { "x": 250, "y": 540 }
+      },
+      {
+        "id": "rest-api-1",
+        "type": "rest_api",
+        "data": {
+          "label": "Create Reservation",
+          "type": "rest_api",
+          "apiUrl": "https://httpbin.org/post",
+          "apiMethod": "POST",
+          "apiHeaders": { "Content-Type": "application/json" },
+          "apiBody": "{\"customer_name\": \"{{question_1.response}}\", \"party_size\": \"{{question_2.response}}\", \"reservation_date\": \"{{question_3.response}}\"}",
+          "apiTimeout": 30000
+        },
+        "position": { "x": 250, "y": 670 }
+      },
+      {
+        "id": "condition-1",
+        "type": "condition",
+        "data": {
+          "label": "Check Status",
+          "type": "condition",
+          "conditionVar": "rest_api_1.status",
+          "conditionOp": "eq",
+          "conditionVal": "200"
+        },
+        "position": { "x": 250, "y": 800 }
+      },
+      {
+        "id": "success-msg",
+        "type": "message",
+        "data": {
+          "label": "Success",
+          "type": "message",
+          "content": "Your reservation is confirmed!\n\n- Name: {{question_1.response}}\n- Party Size: {{question_2.response}}\n- Date: {{question_3.response}}\n\nSee you at La Bella Restaurant!"
+        },
+        "position": { "x": 50, "y": 950 }
+      },
+      {
+        "id": "error-msg",
+        "type": "message",
+        "data": {
+          "label": "Error",
+          "type": "message",
+          "content": "Sorry, we couldn't complete your reservation.\n\nError: {{rest_api_1.error}}\n\nPlease call us at (555) 123-4567."
+        },
+        "position": { "x": 450, "y": 950 }
+      }
+    ],
+    "edges": [
+      { "id": "e1", "source": "start-1", "target": "welcome-msg" },
+      { "id": "e2", "source": "welcome-msg", "target": "question-1" },
+      { "id": "e3", "source": "question-1", "target": "question-2" },
+      { "id": "e4", "source": "question-2", "target": "question-3", "sourceHandle": "guests_2" },
+      { "id": "e5", "source": "question-2", "target": "question-3", "sourceHandle": "guests_4" },
+      { "id": "e6", "source": "question-2", "target": "question-3", "sourceHandle": "guests_6" },
+      { "id": "e7", "source": "question-2", "target": "question-3", "sourceHandle": "default" },
+      { "id": "e8", "source": "question-3", "target": "rest-api-1" },
+      { "id": "e9", "source": "rest-api-1", "target": "condition-1", "sourceHandle": "success" },
+      { "id": "e10", "source": "rest-api-1", "target": "error-msg", "sourceHandle": "error" },
+      { "id": "e11", "source": "condition-1", "target": "success-msg", "sourceHandle": "true" },
+      { "id": "e12", "source": "condition-1", "target": "error-msg", "sourceHandle": "false" }
+    ],
+    "isActive": false,
+    "status": "draft"
+  }
+}

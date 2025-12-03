@@ -43,6 +43,7 @@ export const VariablePicker: React.FC<VariablePickerProps> = ({
         ...group,
         variables: group.variables.filter(v =>
           v.name.toLowerCase().includes(lowerQuery) ||
+          v.path.toLowerCase().includes(lowerQuery) ||
           v.nodeLabel.toLowerCase().includes(lowerQuery)
         )
       }))

@@ -38,7 +38,7 @@ I am your comprehensive expert for building conversational chatbot flows in the 
 #### QUESTION Node
 - Asks users for input
 - Pauses flow execution until user responds
-- Saves response to a variable
+- Saves response to AUTO-GENERATED variable: `question_N.response`
 - Three subtypes: TEXT, BUTTONS, LIST
 
 **Properties**:
@@ -46,9 +46,9 @@ I am your comprehensive expert for building conversational chatbot flows in the 
 - `type`: `'question'`
 - `questionType`: `'text'` | `'buttons'` | `'list'`
 - `content`: Question text (supports `{{variables}}`)
-- `variable`: Variable name to store response
 - `headerText`: Optional header (interactive messages)
 - `footerText`: Optional footer (interactive messages)
+- **Note**: NO `variable` property - output is automatically named `question_N.response`
 
 **TEXT Questions**:
 - Free-form text input
@@ -143,7 +143,7 @@ I am your comprehensive expert for building conversational chatbot flows in the 
 #### WHATSAPP_FLOW Node
 - Integrates Meta WhatsApp Flows (interactive forms)
 - Pauses execution until Flow completes
-- Stores Flow response in variable
+- Stores Flow response in AUTO-GENERATED variable: `flow_N.response`
 - Supports both `navigate` and `data_exchange` modes
 
 **Properties**:
@@ -157,7 +157,7 @@ I am your comprehensive expert for building conversational chatbot flows in the 
 - `flowFooterText`: Optional footer text
 - `flowInitialScreen`: Starting screen ID (optional)
 - `flowInitialData`: Initial data object (supports `{{variables}}`)
-- `flowOutputVariable`: Variable to store Flow response
+- **Note**: NO `flowOutputVariable` - output is automatically named `flow_N.response`
 
 **Flow Token**: Generated as `{contextId}-{nodeId}` for tracking
 
@@ -181,7 +181,7 @@ I am your comprehensive expert for building conversational chatbot flows in the 
 - Makes HTTP requests to external APIs
 - Supports GET, POST, PUT, DELETE methods
 - Full variable replacement in URL, headers, body
-- Stores response in variable
+- Stores response in AUTO-GENERATED variables: `rest_api_N.data`, `rest_api_N.error`, `rest_api_N.status`
 - Two output handles: `'success'` and `'error'`
 
 **Properties**:
@@ -191,10 +191,12 @@ I am your comprehensive expert for building conversational chatbot flows in the 
 - `apiMethod`: `'GET'` | `'POST'` | `'PUT'` | `'DELETE'`
 - `apiHeaders`: Request headers object
 - `apiBody`: Request body (JSON string, supports `{{variables}}`)
-- `apiOutputVariable`: Variable to store response
 - `apiResponsePath`: JSONPath to extract (e.g., `'data.items'`)
-- `apiErrorVariable`: Variable to store error message
 - `apiTimeout`: Request timeout in milliseconds (default: 30000)
+- **Note**: NO `apiOutputVariable` or `apiErrorVariable` - outputs are automatically named:
+  - `rest_api_N.data` - Response data (after JSONPath extraction)
+  - `rest_api_N.error` - Error message if failed
+  - `rest_api_N.status` - HTTP status code
 
 **Variable Replacement**: Works in URL, headers, and body
 ```typescript
@@ -236,6 +238,7 @@ apiResponsePath: 'data.items'
 - Supports multiple action types for different use cases
 - Requires chatbot owner to have Google Calendar connected
 - Can read different users' calendars (owner, static user, or from variable)
+- Stores results in AUTO-GENERATED variable: `calendar_N.result`
 - Two output handles: `'success'` and `'error'`
 
 **Properties**:
@@ -245,7 +248,7 @@ apiResponsePath: 'data.items'
 - `calendarUserSource`: Whose calendar to read (`'owner'` | `'static'` | `'variable'`)
 - `calendarUserId`: User ID (when source is `'static'`)
 - `calendarUserVariable`: Variable containing user ID (when source is `'variable'`)
-- `calendarOutputVariable`: Variable to store calendar results
+- **Note**: NO `calendarOutputVariable` - output is automatically named `calendar_N.result`
 
 **Action-Specific Properties**:
 
@@ -391,64 +394,89 @@ For `check_availability`:
 ]
 ```
 
-### 3. Variable System
+### 3. Variable System - AUTOMATIC NAMING
 
-**I can explain variable storage, replacement, and nested access**:
+**I can explain the automatic variable naming system**:
+
+**Automatic Variable Naming**:
+- Variables are now AUTO-GENERATED based on node type and execution order
+- NO manual variable input required in config modals
+- Format: `{nodeType}_{index}.{output}`
+- Index calculated using topological sort (flow order)
+- Each node type has its own counter
+
+**Auto-Generated Variable Names**:
+| Node Type | Variable Format | Available Outputs |
+|-----------|----------------|-------------------|
+| Question | `question_1` | `.response` (user input) |
+| REST API | `rest_api_1` | `.data`, `.error`, `.status` |
+| WhatsApp Flow | `flow_1` | `.response` (form data) |
+| Google Calendar | `calendar_1` | `.result` (events/slots) |
+
+**Examples**:
+- First Question node: `question_1.response`
+- Second Question node: `question_2.response`
+- First REST API: `rest_api_1.data`, `rest_api_1.error`, `rest_api_1.status`
+- Second REST API: `rest_api_2.data`, `rest_api_2.error`, `rest_api_2.status`
+- First WhatsApp Flow: `flow_1.response`
+- First Google Calendar: `calendar_1.result`
 
 **Variable Storage**:
-- Stored in `ConversationContext.variables` (JSONB in database)
+- Stored in `ConversationContext.nodeOutputs` (JSONB in database)
 - Scoped to conversation context
 - Persists throughout chatbot session
 - Accessible by all nodes in the flow
+- OutputVariableBadge component displays auto-generated names
 
 **Variable Replacement Syntax**:
 ```
-{{variable_name}}          // Simple variable
-{{user.name}}              // Nested object property
-{{products[0].name}}       // Array element property
-{{api_response.data.id}}   // Deep nested path
+{{question_1.response}}          // First question response
+{{rest_api_1.data}}              // First API response data
+{{rest_api_1.data.items[0]}}     // Array element from API
+{{flow_1.response.date}}         // WhatsApp Flow field
+{{calendar_1.result[0]}}         // First calendar event
 ```
 
-**Variable Sources**:
-1. **QUESTION nodes**: User responses stored in `variable` property
-2. **WHATSAPP_FLOW nodes**: Flow responses stored in `flowOutputVariable`
-3. **REST_API nodes**: API responses stored in `apiOutputVariable`
-4. **System variables**:
-   - `__awaiting_variable__`: Current question's variable name
-   - `__awaiting_flow_response__`: Current Flow's output variable
-   - `__last_api_status__`: Last API status code
-   - `__last_api_error__`: Last API error message
+**System Variables** (Legacy, still supported):
+- `customer_phone`: Customer's phone number
 
-**Variable Usage Examples**:
+**Variable Usage Examples** (with Auto-Generated Names):
 
 ```typescript
-// MESSAGE node content
-"Hello {{user_name}}, you selected {{selected_product.name}} for {{selected_product.price}} TL"
+// MESSAGE node content - using auto-generated variables
+"Hello! You entered: {{question_1.response}}"
+"API returned: {{rest_api_1.data.items[0].name}}"
+"Calendar shows: {{calendar_1.result.length}} available slots"
 
-// CONDITION node
-conditionVar: 'user_age'
+// CONDITION node - using auto-generated variable paths
+conditionVar: 'question_1.response'
 conditionOp: 'gte'
 conditionVal: '18'
 
-// REST API URL
-apiUrl: 'http://api.example.com/products/{{product_id}}/stock'
+// REST API URL - using auto-generated variables
+apiUrl: 'http://api.example.com/products/{{question_1.response}}/stock'
 
-// REST API body
+// REST API body - using auto-generated variables
 apiBody: JSON.stringify({
-  user_id: '{{user_id}}',
-  product: {
-    id: '{{product.id}}',
-    quantity: '{{order_quantity}}'
-  }
+  user_id: '{{question_1.response}}',
+  selected_item: '{{rest_api_1.data.id}}',
+  quantity: '{{question_2.response}}'
 })
 
-// WhatsApp Flow initial data
+// WhatsApp Flow initial data - using auto-generated variables
 flowInitialData: {
-  customer_name: '{{user_name}}',
-  customer_phone: '{{user_phone}}',
-  selected_category: '{{category_id}}'
+  customer_name: '{{question_1.response}}',
+  customer_phone: '{{customer_phone}}',
+  available_slots: '{{calendar_1.result}}'
 }
 ```
+
+**OutputVariableBadge Component**:
+- Displays in config modals for Question, REST API, WhatsApp Flow, and Google Calendar nodes
+- Shows the auto-generated variable name (e.g., `question_1`)
+- Expandable to show all available outputs with descriptions
+- Copy button to copy full variable path (e.g., `{{question_1.response}}`)
+- Data type icons indicate output types (string, object, array, number)
 
 **Nested Path Extraction**:
 ```typescript
@@ -1335,21 +1363,21 @@ REST API → Returns large array → Question Node with dynamicListSource:
 }
 
 // QUESTION Node - Text
+// Output: question_N.response (auto-generated)
 {
   label: "Ask Name",
   type: "question",
   questionType: "text",
-  content: "What is your name?",
-  variable: "user_name"
+  content: "What is your name?"
 }
 
 // QUESTION Node - Buttons
+// Output: question_N.response (auto-generated)
 {
   label: "Choose Action",
   type: "question",
   questionType: "buttons",
   content: "Select an option:",
-  variable: "user_action",
   headerText: "Main Menu",
   footerText: "Powered by WhatsApp Builder",
   buttons: [
@@ -1360,12 +1388,12 @@ REST API → Returns large array → Question Node with dynamicListSource:
 }
 
 // QUESTION Node - List (Static)
+// Output: question_N.response (auto-generated)
 {
   label: "Product Selection",
   type: "question",
   questionType: "list",
   content: "Choose a product:",
-  variable: "selected_product",
   listButtonText: "View Products",
   listSections: [
     {
@@ -1385,14 +1413,15 @@ REST API → Returns large array → Question Node with dynamicListSource:
 }
 
 // QUESTION Node - List (Dynamic)
+// Output: question_N.response (auto-generated)
+// dynamicListSource uses auto-generated variable (e.g., rest_api_1.data)
 {
   label: "Dynamic Product List",
   type: "question",
   questionType: "list",
   content: "Select from available products:",
-  variable: "selected_product_id",
   listButtonText: "Choose Product",
-  dynamicListSource: "products",
+  dynamicListSource: "rest_api_1.data",
   dynamicLabelField: "name",
   dynamicDescField: "description"
 }
@@ -1407,6 +1436,7 @@ REST API → Returns large array → Question Node with dynamicListSource:
 }
 
 // WHATSAPP_FLOW Node
+// Output: flow_N.response (auto-generated)
 {
   label: "Appointment Form",
   type: "whatsapp_flow",
@@ -1418,13 +1448,13 @@ REST API → Returns large array → Question Node with dynamicListSource:
   flowFooterText: "Takes 2 minutes",
   flowInitialScreen: "WELCOME_SCREEN",
   flowInitialData: {
-    user_id: "{{user_id}}",
-    user_name: "{{user_name}}"
-  },
-  flowOutputVariable: "appointment_data"
+    user_id: "{{question_1.response}}",
+    user_name: "{{question_2.response}}"
+  }
 }
 
 // REST_API Node
+// Outputs: rest_api_N.data, rest_api_N.error, rest_api_N.status (auto-generated)
 {
   label: "Fetch Products",
   type: "rest_api",
@@ -1432,15 +1462,14 @@ REST API → Returns large array → Question Node with dynamicListSource:
   apiMethod: "GET",
   apiHeaders: {
     "Content-Type": "application/json",
-    "Authorization": "Bearer {{api_token}}"
+    "Authorization": "Bearer {{question_1.response}}"
   },
-  apiOutputVariable: "products",
   apiResponsePath: "data.items",
-  apiErrorVariable: "api_error",
   apiTimeout: 30000
 }
 
 // REST_API Node - POST with body
+// Outputs: rest_api_N.data, rest_api_N.error, rest_api_N.status (auto-generated)
 {
   label: "Create Order",
   type: "rest_api",
@@ -1449,32 +1478,31 @@ REST API → Returns large array → Question Node with dynamicListSource:
   apiHeaders: {
     "Content-Type": "application/json"
   },
-  apiBody: "{\"user_id\": \"{{user_id}}\", \"product_id\": \"{{product_id}}\", \"quantity\": \"{{quantity}}\"}",
-  apiOutputVariable: "order_result",
+  apiBody: "{\"user_id\": \"{{question_1.response}}\", \"product_id\": \"{{rest_api_1.data.id}}\", \"quantity\": \"{{question_2.response}}\"}",
   apiResponsePath: "data",
-  apiErrorVariable: "order_error",
   apiTimeout: 30000
 }
 
 // GOOGLE_CALENDAR Node - Get Today's Events
+// Output: calendar_N.result (auto-generated)
 {
   label: "Today's Schedule",
   type: "google_calendar",
   calendarAction: "get_today_events",
-  calendarUserSource: "owner",
-  calendarOutputVariable: "today_events"
+  calendarUserSource: "owner"
 }
 
 // GOOGLE_CALENDAR Node - Get Tomorrow's Events
+// Output: calendar_N.result (auto-generated)
 {
   label: "Tomorrow's Schedule",
   type: "google_calendar",
   calendarAction: "get_tomorrow_events",
-  calendarUserSource: "owner",
-  calendarOutputVariable: "tomorrow_events"
+  calendarUserSource: "owner"
 }
 
 // GOOGLE_CALENDAR Node - Get Events by Date Range
+// Output: calendar_N.result (auto-generated)
 {
   label: "Week Events",
   type: "google_calendar",
@@ -1484,64 +1512,63 @@ REST API → Returns large array → Question Node with dynamicListSource:
   calendarStaticDate: "2024-12-01",
   calendarEndDateSource: "static",
   calendarStaticEndDate: "2024-12-07",
-  calendarMaxResults: 50,
-  calendarOutputVariable: "week_events"
+  calendarMaxResults: 50
 }
 
 // GOOGLE_CALENDAR Node - Check Availability (Full Response)
+// Output: calendar_N.result (auto-generated)
 {
   label: "Check Availability",
   type: "google_calendar",
   calendarAction: "check_availability",
   calendarUserSource: "owner",
   calendarDateSource: "variable",
-  calendarDateVariable: "selected_date",
+  calendarDateVariable: "question_1.response",
   calendarWorkingHoursStart: "09:00",
   calendarWorkingHoursEnd: "18:00",
   calendarSlotDuration: 30,
-  calendarOutputFormat: "full",
-  calendarOutputVariable: "availability"
+  calendarOutputFormat: "full"
 }
 
 // GOOGLE_CALENDAR Node - Check Availability (Slots Only for Lists)
+// Output: calendar_N.result (auto-generated)
 {
   label: "Available Slots",
   type: "google_calendar",
   calendarAction: "check_availability",
   calendarUserSource: "owner",
   calendarDateSource: "variable",
-  calendarDateVariable: "appointment_date",
+  calendarDateVariable: "question_1.response",
   calendarWorkingHoursStart: "10:00",
   calendarWorkingHoursEnd: "19:00",
   calendarSlotDuration: 60,
-  calendarOutputFormat: "slots_only",
-  calendarOutputVariable: "available_slots"
+  calendarOutputFormat: "slots_only"
 }
 
 // GOOGLE_CALENDAR Node - Dynamic User (From Variable)
+// Output: calendar_N.result (auto-generated)
 {
   label: "Stylist Calendar",
   type: "google_calendar",
   calendarAction: "check_availability",
   calendarUserSource: "variable",
-  calendarUserVariable: "selected_stylist_id",
+  calendarUserVariable: "question_1.response",
   calendarDateSource: "variable",
-  calendarDateVariable: "booking_date",
+  calendarDateVariable: "question_2.response",
   calendarWorkingHoursStart: "09:00",
   calendarWorkingHoursEnd: "20:00",
   calendarSlotDuration: 45,
-  calendarOutputFormat: "slots_only",
-  calendarOutputVariable: "stylist_availability"
+  calendarOutputFormat: "slots_only"
 }
 
 // GOOGLE_CALENDAR Node - Static User Selection
+// Output: calendar_N.result (auto-generated)
 {
   label: "Manager Calendar",
   type: "google_calendar",
   calendarAction: "get_today_events",
   calendarUserSource: "static",
-  calendarUserId: "550e8400-e29b-41d4-a716-446655440000",
-  calendarOutputVariable: "manager_schedule"
+  calendarUserId: "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
 

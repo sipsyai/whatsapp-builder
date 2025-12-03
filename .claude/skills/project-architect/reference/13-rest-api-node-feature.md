@@ -81,12 +81,29 @@ interface NodeData {
   apiAuthKeyValue?: string;         // API key value
   apiAuthKeyLocation?: 'header' | 'query';  // Where to add API key
 
-  // Response Configuration
-  apiOutputVariable: string;        // Variable to store success response
+  // Response Configuration (AUTO-GENERATED - Read Only)
+  // NOTE: Output variables are now auto-generated based on flow order
+  // Manual apiOutputVariable and apiErrorVariable fields are DEPRECATED
   apiResponsePath?: string;         // JSON path extraction (e.g., "data.items")
-  apiErrorVariable?: string;        // Variable to store error message
 }
 ```
+
+### Auto-Generated Output Variables
+
+Output variables are automatically generated based on node position in the flow:
+
+| Output | Variable Format | Description |
+|--------|-----------------|-------------|
+| Success Data | `rest_api_N.data` | API response data (after JSON path extraction if configured) |
+| Error Message | `rest_api_N.error` | Error message if request failed |
+| Status Code | `rest_api_N.status` | HTTP status code (number) |
+
+Where `N` is the 1-based index of this REST API node in the flow (determined by topological sort).
+
+**Example:** If this is the 2nd REST API node in the flow:
+- `rest_api_2.data` - Response data
+- `rest_api_2.error` - Error message
+- `rest_api_2.status` - HTTP status code
 
 ### Execution Result
 ```typescript
@@ -199,17 +216,29 @@ private async processRestApiNode(node, context, chatbot) {
 
   const result = await this.restApiExecutor.execute(config, context.variables);
 
+  // Auto-generate variable name based on flow position
+  const nodeIndex = calculateNodeIndex(
+    chatbot.nodes,
+    context.nodeHistory,
+    node.id,
+    'rest_api'
+  );
+  const autoVarName = generateAutoVariableName('rest_api', nodeIndex);
+
+  // Store results in auto-generated variables
+  context.variables[`${autoVarName}.data`] = result.data;
+  context.variables[`${autoVarName}.error`] = result.error || null;
+  context.variables[`${autoVarName}.status`] = result.statusCode;
+
   if (result.success) {
-    context.variables[node.data.apiOutputVariable] = result.data;
     await this.continueToNextNode(node.id, 'success', context);
   } else {
-    if (node.data.apiErrorVariable) {
-      context.variables[node.data.apiErrorVariable] = result.error;
-    }
     await this.continueToNextNode(node.id, 'error', context);
   }
 }
 ```
+
+**Note:** The old `apiOutputVariable` and `apiErrorVariable` fields are deprecated. Variables are now auto-generated as `rest_api_N.data`, `rest_api_N.error`, and `rest_api_N.status`.
 
 ---
 
@@ -246,9 +275,12 @@ Authentication type selector with dynamic UI:
 - Add/Remove header buttons
 
 #### Tab 5: Response
-- **Output Variable**: Variable to store success response
+- **Output Variables (Auto-generated)**: Shows `OutputVariableBadge` with:
+  - `rest_api_N.data` - API response data
+  - `rest_api_N.error` - Error message if failed
+  - `rest_api_N.status` - HTTP status code
 - **JSON Path**: Optional path extraction (e.g., "data.items")
-- **Error Variable**: Variable to store error message
+- **Note**: Manual output/error variable inputs have been removed
 
 #### Tab 6: Test
 - **Run Test Button**: Execute API request
@@ -281,12 +313,12 @@ Authentication type selector with dynamic UI:
 apiUrl: "https://api.shop.com/products?category={{selectedCategory}}"
 apiMethod: "GET"
 apiResponsePath: "data.products"
-apiOutputVariable: "productList"
+// Output: rest_api_1.data (auto-generated)
 ```
 
-Then use `productList` in Question node with dynamic list:
+Then use `rest_api_1.data` in Question node with dynamic list:
 ```typescript
-dynamicListSource: "productList"
+dynamicListSource: "rest_api_1.data"
 dynamicLabelField: "name"
 dynamicDescField: "description"
 ```
@@ -300,7 +332,7 @@ apiAuthType: "bearer"
 apiAuthToken: "{{apiToken}}"
 apiBody: '{"productId": "{{selectedProduct}}", "quantity": 1}'
 apiResponsePath: "data.orderId"
-apiOutputVariable: "orderId"
+// Output: rest_api_1.data contains orderId (auto-generated)
 ```
 
 ### 3. Validate User Input
@@ -308,12 +340,12 @@ apiOutputVariable: "orderId"
 apiUrl: "https://api.example.com/validate/email?email={{userEmail}}"
 apiMethod: "GET"
 apiResponsePath: "isValid"
-apiOutputVariable: "emailValid"
+// Output: rest_api_1.data contains isValid boolean (auto-generated)
 ```
 
-Then use Condition node:
+Then use Condition node with auto-generated variable:
 ```typescript
-conditionVar: "emailValid"
+conditionVar: "rest_api_1.data"  // Auto-generated variable path
 conditionOp: "=="
 conditionVal: "true"
 ```
@@ -325,7 +357,7 @@ apiUrl: "https://api.example.com/items"
 apiMethod: "GET"
 apiQueryParams: { "page": "{{currentPage}}", "limit": "10" }
 apiResponsePath: "data.items"
-apiOutputVariable: "items"
+// Output: rest_api_1.data contains items array (auto-generated)
 
 // Next page button increments currentPage
 // Use math expression: {{currentPage + 1}}
@@ -337,7 +369,7 @@ apiUrl: "https://api.example.com/upload"
 apiMethod: "POST"
 apiContentType: "multipart/form-data"
 apiBody: '{"file_name": "{{fileName}}", "data": "{{fileData}}"}'
-apiOutputVariable: "uploadResult"
+// Output: rest_api_1.data contains upload result (auto-generated)
 ```
 
 ### 6. API Key Authentication
@@ -349,7 +381,7 @@ apiAuthKeyName: "X-API-Key"
 apiAuthKeyValue: "{{weatherApiKey}}"
 apiAuthKeyLocation: "header"
 apiQueryParams: { "city": "{{userCity}}" }
-apiOutputVariable: "weatherData"
+// Output: rest_api_1.data contains weather data (auto-generated)
 ```
 
 ### 7. Basic Auth with PATCH
@@ -361,7 +393,7 @@ apiAuthType: "basic"
 apiAuthUsername: "{{serviceUser}}"
 apiAuthPassword: "{{servicePassword}}"
 apiBody: '{"status": "verified"}'
-apiOutputVariable: "updateResult"
+// Output: rest_api_1.data contains update result (auto-generated)
 ```
 
 ---
@@ -439,11 +471,11 @@ try {
 
 ### Error Variable Usage
 ```typescript
-// In chatbot flow:
-apiErrorVariable: "apiError"
+// Auto-generated error variable (no manual configuration needed):
+// rest_api_N.error is automatically available
 
-// Then in Message node:
-content: "Error: {{apiError}}"
+// Then in Message node, use auto-generated variable:
+content: "Error: {{rest_api_1.error}}"
 ```
 
 ---
@@ -493,6 +525,7 @@ content: "Error: {{apiError}}"
 - Success/error branching
 - Enhanced live testing with response headers
 - Configurable timeout
+- **Auto-generated output variables** (NEW)
 
 ### New in Version 2.1.0 (Postman-Like Features)
 - 6-tab configuration interface
@@ -502,10 +535,18 @@ content: "Error: {{apiError}}"
 - Query Parameters Tab with real-time URL preview
 - Test Tab with status badges, response headers, copy functionality
 
+### New in Version 2.2.0 (Auto Variable Naming)
+- Output variables auto-generated as `rest_api_N.data`, `.error`, `.status`
+- Manual `apiOutputVariable` and `apiErrorVariable` fields deprecated
+- `OutputVariableBadge` component shows all available outputs
+- Index calculated using topological sort (Kahn's algorithm)
+- Copy buttons for easy variable reference
+
 ### Integration Points
 - **ChatBot Execution**: `processRestApiNode()` in flow
 - **Frontend Builder**: Visual node + 6-tab config modal
 - **Test Endpoint**: Real-time API testing with headers
+- **Variable System**: Auto-naming utilities in both frontend and backend
 
 ### File Locations
 - Service: `/backend/src/modules/chatbots/services/rest-api-executor.service.ts`
@@ -515,10 +556,14 @@ content: "Error: {{apiError}}"
 - Types: `/frontend/src/shared/types/index.ts`
 - DTO: `/backend/src/modules/chatbots/dto/node-data.dto.ts`
 - Test DTO: `/backend/src/modules/chatbots/dto/test-rest-api.dto.ts`
+- Auto Variable Utils (Frontend): `/frontend/src/features/builder/utils/autoVariableNaming.ts`
+- Auto Variable Utils (Backend): `/backend/src/modules/chatbots/utils/auto-variable-naming.ts`
+- OutputVariableBadge: `/frontend/src/features/builder/components/OutputVariableBadge.tsx`
 
 ---
 
 **See Also**:
+- [Variable System](08-variable-system.md) - Auto-naming system documentation
 - [Backend Architecture](02-backend-architecture.md#1-chatbotsmodule) - ChatBot execution engine
 - [Frontend Architecture](03-frontend-architecture.md#2-custom-nodes) - Custom node patterns
 - [Dynamic Lists Feature](02-backend-architecture.md#processquestionnode) - Using API data in interactive messages

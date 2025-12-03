@@ -1,21 +1,30 @@
-# Chatbot Variables Reference
+# Chatbot Variables Reference - AUTOMATIC NAMING SYSTEM
 
-This document provides comprehensive documentation for the variable system in the WhatsApp Builder chatbot flow.
+This document provides comprehensive documentation for the **automatic variable naming system** in the WhatsApp Builder chatbot flow.
 
 ## Overview
 
-Variables are the primary mechanism for storing and passing data between nodes in a chatbot flow. They enable:
+Variables are now **AUTO-GENERATED** based on node type and execution order. The system automatically creates variable names in the format `{nodeType}_{index}.{output}`, eliminating the need for manual variable configuration.
 
-- Storing user responses
+**Key Changes:**
+- NO manual variable input in config modals
+- Variables are automatically named: `question_1.response`, `rest_api_1.data`, etc.
+- Index calculated using topological sort (flow order)
+- OutputVariableBadge component displays auto-generated names
+- Each node type has its own counter
+
+Variables enable:
+
+- Storing user responses (auto-stored as `question_N.response`)
 - Passing data between nodes
 - Dynamic message content
 - Conditional logic evaluation
-- API request/response handling
+- API request/response handling (auto-stored as `rest_api_N.data`)
 - Flow state management
 
 ## Variable Storage
 
-Variables are stored in the **Conversation Context** object:
+Variables are stored in the **Conversation Context** object using the new **nodeOutputs** system:
 
 ```typescript
 interface ConversationContext {
@@ -23,11 +32,26 @@ interface ConversationContext {
   conversationId: string;
   chatbotId: string;
   currentNodeId: string;
-  variables: Record<string, any>;  // <-- Variables stored here
+  nodeOutputs: Record<string, NodeOutput>;  // <-- Auto-generated variables stored here
   nodeHistory: string[];
   isActive: boolean;
   status: string;
   // ... other fields
+}
+
+interface NodeOutput {
+  nodeId: string;
+  nodeType: string;
+  nodeLabel?: string;
+  executedAt: string;
+  success: boolean;
+  duration?: number;
+  data?: any;              // API response data
+  error?: string;          // Error message
+  statusCode?: number;     // HTTP status code
+  userResponse?: string;   // Question response
+  flowResponse?: any;      // WhatsApp Flow response
+  outputVariable?: string; // Auto variable name (e.g., question_1)
 }
 ```
 
@@ -36,27 +60,94 @@ interface ConversationContext {
 - **Conversation-scoped:** Variables persist throughout the entire conversation
 - **Context-bound:** Each conversation has its own variable namespace
 - **Persistent:** Variables remain available until conversation ends
-- **Mutable:** Can be overwritten by subsequent nodes
+- **Auto-named:** Each output has a unique auto-generated name
+- **Mutable:** Can be overwritten by subsequent executions of the same node
+
+---
+
+## Auto-Generated Variable Names
+
+The system automatically generates variable names based on node type and execution order:
+
+| Node Type | Base Name | Available Outputs | Example |
+|-----------|-----------|-------------------|---------|
+| Question | `question_N` | `.response` | `question_1.response` |
+| REST API | `rest_api_N` | `.data`, `.error`, `.status` | `rest_api_1.data` |
+| WhatsApp Flow | `flow_N` | `.response` | `flow_1.response` |
+| Google Calendar | `calendar_N` | `.result` | `calendar_1.result` |
+
+### Index Calculation
+
+- Index `N` is calculated using **topological sort** (flow order)
+- Each node type maintains its own counter
+- First Question node in flow = `question_1`, second = `question_2`
+- First REST API node in flow = `rest_api_1`, second = `rest_api_2`
+
+---
+
+## UI Components for Variables
+
+### OutputVariableBadge Component
+
+Displays auto-generated variable names in node configuration modals.
+
+**Features:**
+- Shows base variable name (e.g., `question_1`, `rest_api_1`)
+- Expandable to show all available outputs
+- Copy button for each output path
+- Data type icons (string, number, object, array)
+
+**Appears in:**
+- Question node config: Shows `question_N.response`
+- REST API node config: Shows `.data`, `.error`, `.status`
+- WhatsApp Flow node config: Shows `flow_N.response`
+- Google Calendar node config: Shows `calendar_N.result`
+
+### VariablePicker Component
+
+Dropdown picker to select variables from other nodes.
+
+**Features:**
+- Groups variables by node type
+- Shows node labels for easy identification
+- Displays all available outputs per node
+- Search/filter functionality
+- Drag & drop support
+
+**Used in:**
+- Message content input
+- Condition variable selection
+- API URL and body inputs
+- Calendar date variable selection
+
+### VariableInput Component
+
+Text input with integrated variable picker button.
+
+**Features:**
+- Shows "VAR" badge when input contains variables
+- Click button to open variable picker
+- Insert variables at cursor position
+- Supports multiline mode (textarea)
 
 ---
 
 ## Setting Variables
 
-Variables are set by specific node types:
+Variables are automatically set by node execution:
 
 ### 1. QUESTION Node Variables
 
-QUESTION nodes automatically store user responses in variables.
+QUESTION nodes automatically store user responses with NO manual configuration.
 
-**Configuration:**
+**Configuration (NO variable property):**
 
 ```json
 {
   "type": "question",
   "data": {
     "content": "What is your name?",
-    "questionType": "text",
-    "variable": "user_name"
+    "questionType": "text"
   }
 }
 ```
@@ -67,20 +158,28 @@ QUESTION nodes automatically store user responses in variables.
 
 ```json
 {
-  "variables": {
-    "user_name": "John Doe"
+  "nodeOutputs": {
+    "node-uuid-123": {
+      "nodeId": "node-uuid-123",
+      "nodeType": "question",
+      "outputVariable": "question_1",
+      "userResponse": "John Doe",
+      "executedAt": "2025-12-03T10:00:00Z",
+      "success": true
+    }
   }
 }
 ```
 
-**Button Question:**
+**Access via:** `{{question_1.response}}` → "John Doe"
+
+**Button Question (NO variable property):**
 
 ```json
 {
   "type": "question",
   "data": {
     "questionType": "buttons",
-    "variable": "confirm_booking",
     "buttons": [
       { "id": "btn_yes", "title": "Yes" },
       { "id": "btn_no", "title": "No" }
@@ -95,17 +194,27 @@ QUESTION nodes automatically store user responses in variables.
 
 ```json
 {
-  "variables": {
-    "confirm_booking": "Yes"
+  "nodeOutputs": {
+    "node-uuid-456": {
+      "nodeId": "node-uuid-456",
+      "nodeType": "question",
+      "outputVariable": "question_2",
+      "userResponse": "Yes",
+      "buttonId": "btn_yes",
+      "executedAt": "2025-12-03T10:01:00Z",
+      "success": true
+    }
   }
 }
 ```
 
+**Access via:** `{{question_2.response}}` → "Yes"
+
 ### 2. REST_API Node Variables
 
-REST_API nodes store API responses in variables.
+REST_API nodes automatically store responses with THREE outputs (NO manual configuration).
 
-**Configuration:**
+**Configuration (NO apiOutputVariable property):**
 
 ```json
 {
@@ -113,7 +222,6 @@ REST_API nodes store API responses in variables.
   "data": {
     "apiUrl": "http://api.example.com/products",
     "apiMethod": "GET",
-    "apiOutputVariable": "products",
     "apiResponsePath": "data"
   }
 }
@@ -131,31 +239,45 @@ REST_API nodes store API responses in variables.
 }
 ```
 
-**Result in Context (with responsePath: "data"):**
+**Result in Context:**
 
 ```json
 {
-  "variables": {
-    "products": [
-      { "id": "1", "name": "Laptop", "price": 1500 },
-      { "id": "2", "name": "Phone", "price": 800 }
-    ]
+  "nodeOutputs": {
+    "node-uuid-789": {
+      "nodeId": "node-uuid-789",
+      "nodeType": "rest_api",
+      "outputVariable": "rest_api_1",
+      "data": [
+        { "id": "1", "name": "Laptop", "price": 1500 },
+        { "id": "2", "name": "Phone", "price": 800 }
+      ],
+      "statusCode": 200,
+      "executedAt": "2025-12-03T10:02:00Z",
+      "success": true
+    }
   }
 }
 ```
 
+**Access via:**
+- `{{rest_api_1.data}}` → Array of products (after JSONPath extraction)
+- `{{rest_api_1.status}}` → 200
+- `{{rest_api_1.error}}` → null (no error)
+
 ### 3. WHATSAPP_FLOW Node Variables
 
-WHATSAPP_FLOW nodes store flow completion data.
+WHATSAPP_FLOW nodes automatically store flow completion data (NO manual configuration).
 
-**Configuration:**
+**Configuration (NO flowOutputVariable property):**
 
 ```json
 {
   "type": "whatsapp_flow",
   "data": {
     "whatsappFlowId": "123456789",
-    "flowOutputVariable": "appointment_data"
+    "flowMode": "data_exchange",
+    "flowCta": "Book Now"
   }
 }
 ```
@@ -174,15 +296,83 @@ WHATSAPP_FLOW nodes store flow completion data.
 
 ```json
 {
-  "variables": {
-    "appointment_data": {
-      "screen.BOOKING.form.date": "2025-11-30",
-      "screen.BOOKING.form.time": "14:00",
-      "screen.BOOKING.form.service": "haircut"
+  "nodeOutputs": {
+    "node-uuid-abc": {
+      "nodeId": "node-uuid-abc",
+      "nodeType": "whatsapp_flow",
+      "outputVariable": "flow_1",
+      "flowResponse": {
+        "screen.BOOKING.form.date": "2025-11-30",
+        "screen.BOOKING.form.time": "14:00",
+        "screen.BOOKING.form.service": "haircut"
+      },
+      "executedAt": "2025-12-03T10:03:00Z",
+      "success": true
     }
   }
 }
 ```
+
+**Access via:**
+- `{{flow_1.response}}` → Entire flow response object
+- `{{flow_1.response.screen.BOOKING.form.date}}` → "2025-11-30"
+
+### 4. GOOGLE_CALENDAR Node Variables
+
+GOOGLE_CALENDAR nodes automatically store calendar data (NO manual configuration).
+
+**Configuration (NO calendarOutputVariable property):**
+
+```json
+{
+  "type": "google_calendar",
+  "data": {
+    "calendarAction": "check_availability",
+    "calendarUserSource": "owner",
+    "calendarDateSource": "variable",
+    "calendarDateVariable": "question_1.response",
+    "calendarWorkingHoursStart": "09:00",
+    "calendarWorkingHoursEnd": "18:00",
+    "calendarSlotDuration": 30,
+    "calendarOutputFormat": "slots_only"
+  }
+}
+```
+
+**Calendar Result:**
+
+```json
+[
+  { "title": "09:00 - 09:30", "value": "09:00" },
+  { "title": "10:00 - 10:30", "value": "10:00" },
+  { "title": "14:00 - 14:30", "value": "14:00" }
+]
+```
+
+**Result in Context:**
+
+```json
+{
+  "nodeOutputs": {
+    "node-uuid-xyz": {
+      "nodeId": "node-uuid-xyz",
+      "nodeType": "google_calendar",
+      "outputVariable": "calendar_1",
+      "data": [
+        { "title": "09:00 - 09:30", "value": "09:00" },
+        { "title": "10:00 - 10:30", "value": "10:00" },
+        { "title": "14:00 - 14:30", "value": "14:00" }
+      ],
+      "executedAt": "2025-12-03T10:04:00Z",
+      "success": true
+    }
+  }
+}
+```
+
+**Access via:**
+- `{{calendar_1.result}}` → Array of available slots
+- `{{calendar_1.result[0].title}}` → "09:00 - 09:30"
 
 ---
 
@@ -192,9 +382,9 @@ Variables can be used in multiple places throughout the flow.
 
 ### 1. Variable Replacement in Messages
 
-**Syntax:** `{{variableName}}`
+**Syntax:** `{{auto_variable_name.output}}`
 
-MESSAGE and QUESTION nodes support variable replacement in content:
+MESSAGE and QUESTION nodes support variable replacement using auto-generated variable names:
 
 **Example:**
 
@@ -202,7 +392,7 @@ MESSAGE and QUESTION nodes support variable replacement in content:
 {
   "type": "message",
   "data": {
-    "content": "Hello {{user_name}}! Your order number is {{order_id}}."
+    "content": "Hello {{question_1.response}}! Your order number is {{question_2.response}}."
   }
 }
 ```
@@ -211,9 +401,15 @@ MESSAGE and QUESTION nodes support variable replacement in content:
 
 ```json
 {
-  "variables": {
-    "user_name": "John",
-    "order_id": "12345"
+  "nodeOutputs": {
+    "node-1": {
+      "outputVariable": "question_1",
+      "userResponse": "John"
+    },
+    "node-2": {
+      "outputVariable": "question_2",
+      "userResponse": "12345"
+    }
   }
 }
 ```
@@ -226,9 +422,9 @@ Hello John! Your order number is 12345.
 
 ### 2. Nested Property Access
 
-**Syntax:** `{{object.property}}`
+**Syntax:** `{{auto_variable.output.property}}`
 
-Access nested object properties using dot notation:
+Access nested object properties from auto-generated variables:
 
 **Example:**
 
@@ -236,7 +432,7 @@ Access nested object properties using dot notation:
 {
   "type": "message",
   "data": {
-    "content": "Product: {{product.name}}\nPrice: {{product.price}} TL\nStock: {{product.stock}}"
+    "content": "Product: {{rest_api_1.data.name}}\nPrice: {{rest_api_1.data.price}} TL\nStock: {{rest_api_1.data.stock}}"
   }
 }
 ```
@@ -245,11 +441,14 @@ Access nested object properties using dot notation:
 
 ```json
 {
-  "variables": {
-    "product": {
-      "name": "Laptop",
-      "price": 1500,
-      "stock": 5
+  "nodeOutputs": {
+    "api-node-1": {
+      "outputVariable": "rest_api_1",
+      "data": {
+        "name": "Laptop",
+        "price": 1500,
+        "stock": 5
+      }
     }
   }
 }
@@ -265,9 +464,9 @@ Stock: 5
 
 ### 3. Array Access
 
-**Syntax:** `{{array[index].property}}`
+**Syntax:** `{{auto_variable.output[index].property}}`
 
-Access array elements by index:
+Access array elements from auto-generated variables:
 
 **Example:**
 
@@ -275,7 +474,7 @@ Access array elements by index:
 {
   "type": "message",
   "data": {
-    "content": "First item: {{items[0].name}}\nSecond item: {{items[1].name}}"
+    "content": "First item: {{rest_api_1.data[0].name}}\nSecond item: {{rest_api_1.data[1].name}}"
   }
 }
 ```
@@ -284,11 +483,14 @@ Access array elements by index:
 
 ```json
 {
-  "variables": {
-    "items": [
-      { "name": "Product A", "price": 100 },
-      { "name": "Product B", "price": 200 }
-    ]
+  "nodeOutputs": {
+    "api-node-1": {
+      "outputVariable": "rest_api_1",
+      "data": [
+        { "name": "Product A", "price": 100 },
+        { "name": "Product B", "price": 200 }
+      ]
+    }
   }
 }
 ```
@@ -384,7 +586,7 @@ phone: +905551234567
 
 ## Variables in Conditions
 
-CONDITION nodes evaluate variables to determine flow routing.
+CONDITION nodes evaluate auto-generated variables to determine flow routing.
 
 **Example:**
 
@@ -392,7 +594,7 @@ CONDITION nodes evaluate variables to determine flow routing.
 {
   "type": "condition",
   "data": {
-    "conditionVar": "user_age",
+    "conditionVar": "question_1.response",
     "conditionOp": "gte",
     "conditionVal": "18"
   }
@@ -403,8 +605,11 @@ CONDITION nodes evaluate variables to determine flow routing.
 
 ```json
 {
-  "variables": {
-    "user_age": "25"
+  "nodeOutputs": {
+    "question-node-1": {
+      "outputVariable": "question_1",
+      "userResponse": "25"
+    }
   }
 }
 ```
@@ -803,18 +1008,17 @@ function getNestedValue(obj: Record<string, any>, path: string): any {
 
 ## Dynamic Lists and Buttons
 
-Variables can be used to generate lists and buttons dynamically.
+Auto-generated variables can be used to generate lists and buttons dynamically.
 
 ### Dynamic Buttons
 
-**Configuration:**
+**Configuration (uses auto-generated variable as source):**
 
 ```json
 {
   "type": "question",
   "questionType": "buttons",
-  "variable": "selected_option",
-  "dynamicButtonsSource": "options",
+  "dynamicButtonsSource": "rest_api_1.data",
   "dynamicLabelField": "name"
 }
 ```
@@ -823,12 +1027,15 @@ Variables can be used to generate lists and buttons dynamically.
 
 ```json
 {
-  "variables": {
-    "options": [
-      { "id": "opt_1", "name": "Option One" },
-      { "id": "opt_2", "name": "Option Two" },
-      { "id": "opt_3", "name": "Option Three" }
-    ]
+  "nodeOutputs": {
+    "api-node-1": {
+      "outputVariable": "rest_api_1",
+      "data": [
+        { "id": "opt_1", "name": "Option One" },
+        { "id": "opt_2", "name": "Option Two" },
+        { "id": "opt_3", "name": "Option Three" }
+      ]
+    }
   }
 }
 ```
@@ -847,14 +1054,13 @@ Variables can be used to generate lists and buttons dynamically.
 
 ### Dynamic Lists
 
-**Configuration:**
+**Configuration (uses auto-generated variable as source):**
 
 ```json
 {
   "type": "question",
   "questionType": "list",
-  "variable": "selected_product",
-  "dynamicListSource": "products",
+  "dynamicListSource": "rest_api_1.data",
   "dynamicLabelField": "name",
   "dynamicDescField": "description"
 }
@@ -864,12 +1070,15 @@ Variables can be used to generate lists and buttons dynamically.
 
 ```json
 {
-  "variables": {
-    "products": [
-      { "id": "prod_1", "name": "Laptop", "description": "High-performance", "price": 1500 },
-      { "id": "prod_2", "name": "Phone", "description": "Latest model", "price": 800 },
-      { "id": "prod_3", "name": "Tablet", "description": "Portable", "price": 500 }
-    ]
+  "nodeOutputs": {
+    "api-node-1": {
+      "outputVariable": "rest_api_1",
+      "data": [
+        { "id": "prod_1", "name": "Laptop", "description": "High-performance", "price": 1500 },
+        { "id": "prod_2", "name": "Phone", "description": "Latest model", "price": 800 },
+        { "id": "prod_3", "name": "Tablet", "description": "Portable", "price": 500 }
+      ]
+    }
   }
 }
 ```

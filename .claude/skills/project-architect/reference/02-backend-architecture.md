@@ -67,11 +67,18 @@ backend/src/
 
 **Node Types & Data Fields**:
 - **MESSAGE**: content
-- **QUESTION**: questionType (text/buttons/list), buttons, listSections, headerText, footerText, variable
+- **QUESTION**: questionType (text/buttons/list), buttons, listSections, headerText, footerText
   - **Dynamic Lists/Buttons**: dynamicListSource, dynamicButtonsSource, dynamicLabelField, dynamicDescField
+  - **Output**: `question_N.response` (auto-generated)
 - **CONDITION**: conditionGroup (multi-condition with AND/OR), legacy fields (conditionVar/Op/Val)
-- **WHATSAPP_FLOW**: whatsappFlowId, flowMode, flowCta, flowOutputVariable
-- **REST_API**: apiUrl, apiMethod, apiHeaders, apiBody, apiOutputVariable, apiResponsePath, apiErrorVariable, apiTimeout
+- **WHATSAPP_FLOW**: whatsappFlowId, flowMode, flowCta
+  - **Output**: `flow_N.response` (auto-generated)
+- **REST_API**: apiUrl, apiMethod, apiHeaders, apiBody, apiResponsePath, apiTimeout
+  - **Outputs**: `rest_api_N.data`, `rest_api_N.error`, `rest_api_N.status` (auto-generated)
+- **GOOGLE_CALENDAR**: targetUserType, targetUserId, calendarOperation, dateSource
+  - **Output**: `calendar_N.result` (auto-generated)
+
+**Note**: Manual output variable fields (`variable`, `flowOutputVariable`, `apiOutputVariable`, `apiErrorVariable`) are DEPRECATED. Variables are now auto-generated based on node position in the flow using topological sort.
 
 **Execution Flow**:
 ```
@@ -642,10 +649,12 @@ AppModule
 8. **Dynamic Lists/Buttons**: Data-driven interactive messages with pagination
 9. **REST API Integration**: Variable interpolation, nested paths, math expressions
 10. **Session Tracking**: Enhanced message metadata for bot detection
+11. **Auto Variable Naming**: Output variables auto-generated based on flow position (topological sort)
 
 ---
 
 **See Also**:
+- [Variable System](08-variable-system.md) - Auto-naming system documentation
 - [Database Design](04-database-design.md) - Entity schemas & relationships
 - [Real-time System](05-real-time-system.md) - Socket.IO events
 - [WhatsApp Integration](06-whatsapp-integration.md) - API details

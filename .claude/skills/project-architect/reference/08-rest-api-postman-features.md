@@ -116,11 +116,28 @@ apiQueryParams: Record<string, string>
 // Headers
 apiHeaders: Record<string, string>
 
-// Response
-apiOutputVariable: string
-apiResponsePath: string
-apiErrorVariable: string
+// Response (Auto-Generated)
+apiResponsePath: string        // JSON path extraction (optional)
+// NOT: apiOutputVariable ve apiErrorVariable artik DEPRECATED
+// Cikis degiskenleri otomatik olusturulur: rest_api_N.data, rest_api_N.error, rest_api_N.status
 ```
+
+### Otomatik Degisken Adlandirma (YENİ)
+
+REST API node'unun cikis degiskenleri artik otomatik olarak olusturulur:
+
+| Cikis | Format | Aciklama |
+|-------|--------|----------|
+| `rest_api_N.data` | object | API yanit verisi (JSON path uygulandiktan sonra) |
+| `rest_api_N.error` | string | Hata mesaji (basarisiz durumda) |
+| `rest_api_N.status` | number | HTTP durum kodu |
+
+`N`, flow'daki bu REST API node'unun sirasi (topological sort ile belirlenir).
+
+**Ornek:** Flow'daki 2. REST API node'u icin:
+- `rest_api_2.data` - Yanit verisi
+- `rest_api_2.error` - Hata mesaji
+- `rest_api_2.status` - HTTP durum kodu
 
 ## Kullanım Örnekleri
 
@@ -195,10 +212,12 @@ apiErrorVariable: string
 
 - **Eklendi**: v2.0.0 (REST API Node)
 - **Güncellendi**: v2.1.0 (Postman benzeri özellikler)
+- **Güncellendi**: v2.2.0 (Otomatik degisken adlandirma)
 - **Son Güncelleme**: 2025-12-03
 
 ---
 
 **Ayrıca Bakın**:
+- [08-variable-system.md](./08-variable-system.md) - Otomatik degisken sistemi dokümantasyonu
 - [13-rest-api-node-feature.md](./13-rest-api-node-feature.md) - Detaylı REST API Node dokümantasyonu
 - [chatbot-flow-development/07-rest-api-integration.md](../../chatbot-flow-development/reference/07-rest-api-integration.md) - Chatbot entegrasyon rehberi

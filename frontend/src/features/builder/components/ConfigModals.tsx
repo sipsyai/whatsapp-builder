@@ -4,6 +4,7 @@ import { flowsApi, type WhatsAppFlow } from "../../flows/api";
 import { getActiveDataSources, type DataSource } from "../../data-sources/api";
 import { useAvailableVariables } from '../hooks/useAvailableVariables';
 import { VariableInput } from "./VariablePicker";
+import { OutputVariableBadge } from "./OutputVariableBadge";
 
 // ... Config Components ...
 export const ConfigMessage = ({ data, onClose, onSave }: any) => {
@@ -38,9 +39,8 @@ export const ConfigMessage = ({ data, onClose, onSave }: any) => {
     );
 };
 
-export const ConfigQuestion = ({ data, onClose, onSave }: any) => {
+export const ConfigQuestion = ({ data, nodeId, nodeType, onClose, onSave }: any) => {
     const [content, setContent] = useState(data.content || "");
-    const [variable, setVariable] = useState(data.variable || "");
     const [headerText, setHeaderText] = useState(data.headerText || "");
     const [footerText, setFooterText] = useState(data.footerText || "");
 
@@ -127,10 +127,11 @@ export const ConfigQuestion = ({ data, onClose, onSave }: any) => {
         const saveData: any = {
             ...data,
             content,
-            variable,
             headerText: (isButtons || isList) ? headerText : undefined,
             footerText: (isButtons || isList) ? footerText : undefined
         };
+        // Remove legacy variable field - auto-generated now
+        delete saveData.variable;
 
         if (isButtons) {
             saveData.buttons = buttons;
@@ -379,10 +380,10 @@ export const ConfigQuestion = ({ data, onClose, onSave }: any) => {
                         </div>
                     )}
 
-                    <label className="block pt-4 border-t border-white/10">
-                        <span className="text-sm font-medium text-gray-300">Variable Name</span>
-                        <input className="w-full mt-1 p-2 border rounded bg-black/20 text-white border-white/10" value={variable} onChange={e => setVariable(e.target.value)} placeholder="e.g. user_choice" />
-                    </label>
+                    {/* Output Variable Badge (Auto-generated) */}
+                    <div className="pt-4 border-t border-white/10">
+                        <OutputVariableBadge nodeId={nodeId} nodeType={nodeType} />
+                    </div>
                 </div>
 
                 <div className="mt-4 flex justify-end gap-2 pt-4 border-t border-white/10">
@@ -410,7 +411,7 @@ export const ConfigCondition = ({ data, onClose, onSave }: any) => {
     // Extract available variables from all node types using the hook
     const { allVariables } = useAvailableVariables();
     const availableVariables = useMemo(() =>
-        allVariables.map(v => v.name),
+        allVariables.map(v => v.path),
         [allVariables]
     );
 
@@ -595,8 +596,8 @@ export const ConfigCondition = ({ data, onClose, onSave }: any) => {
                                                     <>
                                                         <option value="">Select variable...</option>
                                                         {allVariables.map(v => (
-                                                            <option key={v.id} value={v.name}>
-                                                                {v.name} ({v.nodeLabel})
+                                                            <option key={v.id} value={v.path}>
+                                                                {v.path} ({v.nodeLabel})
                                                             </option>
                                                         ))}
                                                     </>
@@ -709,7 +710,7 @@ export const ConfigCondition = ({ data, onClose, onSave }: any) => {
     );
 };
 
-export const ConfigWhatsAppFlow = ({ data, onClose, onSave }: any) => {
+export const ConfigWhatsAppFlow = ({ data, nodeId, nodeType, onClose, onSave }: any) => {
     const [flows, setFlows] = useState<WhatsAppFlow[]>([]);
     const [dataSources, setDataSources] = useState<DataSource[]>([]);
     const [loading, setLoading] = useState(true);
@@ -726,7 +727,6 @@ export const ConfigWhatsAppFlow = ({ data, onClose, onSave }: any) => {
     const [bodyText, setBodyText] = useState(data.flowBodyText || "");
     const [headerText, setHeaderText] = useState(data.flowHeaderText || "");
     const [footerText, setFooterText] = useState(data.flowFooterText || "");
-    const [outputVariable, setOutputVariable] = useState(data.flowOutputVariable || "");
     const [initialScreen, setInitialScreen] = useState(data.flowInitialScreen || "");
     const [initialDataJson, setInitialDataJson] = useState(
         data.flowInitialData ? JSON.stringify(data.flowInitialData, null, 2) : ""
@@ -798,7 +798,7 @@ export const ConfigWhatsAppFlow = ({ data, onClose, onSave }: any) => {
             }
         }
 
-        onSave({
+        const saveData = {
             ...data,
             label,
             whatsappFlowId: finalFlowId,
@@ -808,10 +808,12 @@ export const ConfigWhatsAppFlow = ({ data, onClose, onSave }: any) => {
             flowBodyText: bodyText,
             flowHeaderText: headerText || undefined,
             flowFooterText: footerText || undefined,
-            flowOutputVariable: outputVariable || undefined,
             flowInitialScreen: initialScreen || undefined,
             flowInitialData: parsedInitialData,
-        });
+        };
+        // Remove legacy variable field - auto-generated now
+        delete saveData.flowOutputVariable;
+        onSave(saveData);
         onClose();
     };
 
@@ -1028,19 +1030,10 @@ export const ConfigWhatsAppFlow = ({ data, onClose, onSave }: any) => {
                                 />
                             </label>
 
-                            {/* Output Variable */}
-                            <label className="block pt-4 border-t border-white/10">
-                                <span className="text-sm font-medium text-white">Output Variable (Optional)</span>
-                                <input
-                                    className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white border-white/10"
-                                    value={outputVariable}
-                                    onChange={e => setOutputVariable(e.target.value)}
-                                    placeholder="e.g. flow_response"
-                                />
-                                <span className="text-xs text-gray-400">
-                                    Store flow response in this variable for use in subsequent nodes
-                                </span>
-                            </label>
+                            {/* Output Variable Badge (Auto-generated) */}
+                            <div className="pt-4 border-t border-white/10">
+                                <OutputVariableBadge nodeId={nodeId} nodeType={nodeType} />
+                            </div>
 
                             {/* Advanced: Initial Screen (for navigate mode) */}
                             {flowMode === 'navigate' && (

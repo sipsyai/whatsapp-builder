@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { client } from "../../../api/client";
 import { VariableInput } from "./VariablePicker";
+import { OutputVariableBadge } from "./OutputVariableBadge";
 
 type CalendarActionType = 'get_today_events' | 'get_tomorrow_events' | 'get_events' | 'check_availability';
 type DateSourceType = 'variable' | 'static';
@@ -15,6 +16,8 @@ interface CalendarUser {
 
 interface ConfigGoogleCalendarProps {
     data: any;
+    nodeId: string;
+    nodeType: string;
     onClose: () => void;
     onSave: (data: any) => void;
 }
@@ -26,7 +29,7 @@ const ACTION_OPTIONS: { value: CalendarActionType; label: string; description: s
     { value: 'check_availability', label: "Check Availability", description: "Find available time slots on a specific date" },
 ];
 
-export const ConfigGoogleCalendar = ({ data, onClose, onSave }: ConfigGoogleCalendarProps) => {
+export const ConfigGoogleCalendar = ({ data, nodeId, nodeType, onClose, onSave }: ConfigGoogleCalendarProps) => {
     // Form state
     const [action, setAction] = useState<CalendarActionType>(data.calendarAction || 'check_availability');
     const [label, setLabel] = useState(data.label || "Google Calendar");
@@ -48,7 +51,6 @@ export const ConfigGoogleCalendar = ({ data, onClose, onSave }: ConfigGoogleCale
     const [workingHoursStart, setWorkingHoursStart] = useState(data.calendarWorkingHoursStart || "09:00");
     const [workingHoursEnd, setWorkingHoursEnd] = useState(data.calendarWorkingHoursEnd || "18:00");
     const [slotDuration, setSlotDuration] = useState<number>(data.calendarSlotDuration || 30);
-    const [outputVariable, setOutputVariable] = useState(data.calendarOutputVariable || "");
     const [outputFormat, setOutputFormat] = useState<OutputFormatType>(data.calendarOutputFormat || 'full');
     const [useEndDate, setUseEndDate] = useState<boolean>(!!data.calendarEndDateSource || !!data.calendarEndDateVariable || !!data.calendarStaticEndDate);
 
@@ -78,12 +80,13 @@ export const ConfigGoogleCalendar = ({ data, onClose, onSave }: ConfigGoogleCale
             ...data,
             label,
             calendarAction: action,
-            calendarOutputVariable: outputVariable || undefined,
             // Calendar User fields
             calendarUserSource: calendarUserSource,
             calendarUserId: calendarUserSource === 'static' ? calendarUserId : undefined,
             calendarUserVariable: calendarUserSource === 'variable' ? calendarUserVariable : undefined,
         };
+        // Remove legacy variable field - auto-generated now
+        delete baseData.calendarOutputVariable;
 
         // Add action-specific fields
         if (action === 'get_today_events' || action === 'get_tomorrow_events') {
@@ -569,20 +572,8 @@ export const ConfigGoogleCalendar = ({ data, onClose, onSave }: ConfigGoogleCale
                         </>
                     )}
 
-                    {/* Output Variable - always shown */}
-                    <div>
-                        <label className="block text-sm font-medium text-white mb-2">Output Variable</label>
-                        <input
-                            type="text"
-                            value={outputVariable}
-                            onChange={e => setOutputVariable(e.target.value)}
-                            className="w-full p-3 border border-white/20 rounded-lg bg-white/5 text-white"
-                            placeholder="calendar_result"
-                        />
-                        <p className="text-xs text-gray-400 mt-1">
-                            Variable name to store the calendar results
-                        </p>
-                    </div>
+                    {/* Output Variable Badge (Auto-generated) */}
+                    <OutputVariableBadge nodeId={nodeId} nodeType={nodeType} />
 
                     {/* Info Box */}
                     <div className="bg-emerald-500/10 p-4 rounded-lg border border-emerald-500/20">

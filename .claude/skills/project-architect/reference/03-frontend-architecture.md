@@ -89,9 +89,8 @@ interface ConditionGroup {
 ```typescript
 interface NodeData {
     label: string;
-    type?: NodeDataType;  // "start" | "message" | "question" | "condition" | "whatsapp_flow" | "rest_api"
+    type?: NodeDataType;  // "start" | "message" | "question" | "condition" | "whatsapp_flow" | "rest_api" | "google_calendar"
     content?: string;
-    variable?: string;
 
     // Condition Node
     conditionGroup?: ConditionGroup;          // New multi-condition
@@ -103,6 +102,7 @@ interface NodeData {
     buttons?: ButtonItem[];                    // Max 3
     listButtonText?: string;
     listSections?: SectionItem[];              // Max 10
+    // Note: 'variable' field is DEPRECATED - output variables are now auto-generated
 
     // Dynamic Lists/Buttons
     dynamicListSource?, dynamicButtonsSource?: string;
@@ -110,18 +110,40 @@ interface NodeData {
 
     // WhatsApp Flow Node
     whatsappFlowId?: string;
-    flowCta?, flowMode?, flowOutputVariable?: string;
+    flowCta?, flowMode?: string;
+    // Note: 'flowOutputVariable' is DEPRECATED - output as flow_N.response
 
     // REST API Node
     apiUrl?, apiMethod?, apiBody?: string;
     apiHeaders?: Record<string, string>;
-    apiOutputVariable?, apiResponsePath?, apiErrorVariable?: string;
+    apiResponsePath?: string;
     apiTimeout?: number;
+    // Note: 'apiOutputVariable', 'apiErrorVariable' are DEPRECATED
+    // Output variables: rest_api_N.data, rest_api_N.error, rest_api_N.status
+
+    // Google Calendar Node
+    targetUserType?: 'owner' | 'static' | 'variable';
+    targetUserId?: string;
+    targetUserVariable?: string;
+    calendarOperation?: 'list_events' | 'check_availability';
+    dateSource?: 'variable' | 'range';
+    dateVariable?: string;
+    dateRangeStart?, dateRangeEnd?: string;
+    // Note: 'outputVariable' is DEPRECATED - output as calendar_N.result
 
     // Component callbacks
     onConfig?, onDelete?: () => void;
 }
 ```
+
+**Auto-Generated Variables System:**
+Output variables are automatically generated based on node position in the flow:
+- Question nodes: `question_N.response`
+- REST API nodes: `rest_api_N.data`, `rest_api_N.error`, `rest_api_N.status`
+- WhatsApp Flow nodes: `flow_N.response`
+- Google Calendar nodes: `calendar_N.result`
+
+See [Variable System (08-variable-system.md)](08-variable-system.md) for details.
 
 ### Interactive Message Types
 ```typescript
@@ -292,12 +314,13 @@ client.interceptors.response.use(
 - `autoLayout.ts`: Dagre-based layout with 4 directions (TB, LR, BT, RL)
 
 **Key Features**:
-- **5 Node Types**: Start, Message, Question, Condition, WhatsAppFlow, RestApi
+- **7 Node Types**: Start, Message, Question, Condition, WhatsAppFlow, RestApi, GoogleCalendar
 - **Validation**: Real-time error panel, pre-save validation
 - **AI Generation**: Gemini-powered flow from natural language prompt
 - **Auto Layout**: Dagre algorithm with configurable spacing and direction
 - **Dynamic Interactions**: Data-driven buttons/lists from variables or API responses
 - **Multi-Condition Logic**: Up to 5 conditions with AND/OR operators
+- **Auto Variable Naming**: Output variables auto-generated based on flow order (topological sort)
 
 **File Paths**:
 - Builder: `features/builder/components/BuilderPage.tsx`
@@ -308,13 +331,18 @@ client.interceptors.response.use(
 ### 2. Custom Nodes
 **Path**: `/frontend/src/features/nodes/`
 
-**5 Node Types**:
+**7 Node Types**:
 1. **StartNode**: Entry point (blue circle)
 2. **MessageNode**: Send text message (blue box)
 3. **QuestionNode**: Interactive message (green box) - text/buttons/list
+   - Output: `question_N.response` (auto-generated)
 4. **ConditionNode**: Branch logic (yellow diamond) - multi-condition with AND/OR
 5. **WhatsAppFlowNode**: Native WhatsApp Flow (purple box)
-6. **RestApiNode**: **NEW** - REST API integration (orange box)
+   - Output: `flow_N.response` (auto-generated)
+6. **RestApiNode**: REST API integration (cyan box)
+   - Outputs: `rest_api_N.data`, `rest_api_N.error`, `rest_api_N.status` (auto-generated)
+7. **GoogleCalendarNode**: Google Calendar integration (emerald box)
+   - Output: `calendar_N.result` (auto-generated)
 
 **Common Features**:
 - Delete button (top-right "×")
@@ -974,7 +1002,7 @@ frontend/src/features/data-sources/
 
 ### Component Count
 - **Pages**: 9 (Landing, Builder, Chat, ChatBots, Flows, DataSources, Sessions, Users, Settings)
-- **Custom Nodes**: 6 (Start, Message, Question, Condition, WhatsAppFlow, RestApi)
+- **Custom Nodes**: 7 (Start, Message, Question, Condition, WhatsAppFlow, RestApi, GoogleCalendar)
 - **Modals**: 10+ (Config, Create, Preview, Detail)
 
 ### Lines of Code (approx)

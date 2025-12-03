@@ -681,19 +681,19 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
                 <ConfigMessage data={configNode.data} onClose={() => setConfigNode(null)} onSave={updateNodeData} />
             )}
             {configNode && configNode.type === 'question' && (
-                <ConfigQuestion data={configNode.data} onClose={() => setConfigNode(null)} onSave={updateNodeData} />
+                <ConfigQuestion data={configNode.data} nodeId={configNode.id} nodeType={configNode.type} onClose={() => setConfigNode(null)} onSave={updateNodeData} />
             )}
             {configNode && configNode.type === 'condition' && (
                 <ConfigCondition data={configNode.data} onClose={() => setConfigNode(null)} onSave={updateNodeData} />
             )}
             {configNode && configNode.type === 'whatsapp_flow' && (
-                <ConfigWhatsAppFlow data={configNode.data} onClose={() => setConfigNode(null)} onSave={updateNodeData} />
+                <ConfigWhatsAppFlow data={configNode.data} nodeId={configNode.id} nodeType={configNode.type} onClose={() => setConfigNode(null)} onSave={updateNodeData} />
             )}
             {configNode && configNode.type === 'rest_api' && (
-                <ConfigRestApi data={configNode.data} onClose={() => setConfigNode(null)} onSave={updateNodeData} />
+                <ConfigRestApi data={configNode.data} nodeId={configNode.id} nodeType={configNode.type} onClose={() => setConfigNode(null)} onSave={updateNodeData} />
             )}
             {configNode && configNode.type === 'google_calendar' && (
-                <ConfigGoogleCalendar data={configNode.data} onClose={() => setConfigNode(null)} onSave={updateNodeData} />
+                <ConfigGoogleCalendar data={configNode.data} nodeId={configNode.id} nodeType={configNode.type} onClose={() => setConfigNode(null)} onSave={updateNodeData} />
             )}
 
             {showAIModal && (

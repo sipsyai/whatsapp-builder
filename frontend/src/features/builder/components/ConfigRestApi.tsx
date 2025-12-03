@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { client } from "../../../api/client";
 import { VariableInput } from './VariablePicker';
+import { OutputVariableBadge } from './OutputVariableBadge';
 
 type TabType = 'request' | 'auth' | 'params' | 'headers' | 'response' | 'test';
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -17,7 +18,7 @@ interface QueryParam {
     value: string;
 }
 
-export const ConfigRestApi = ({ data, onClose, onSave }: any) => {
+export const ConfigRestApi = ({ data, nodeId, nodeType, onClose, onSave }: any) => {
     const [activeTab, setActiveTab] = useState<TabType>('request');
 
     // Request tab state
@@ -54,9 +55,7 @@ export const ConfigRestApi = ({ data, onClose, onSave }: any) => {
     });
 
     // Response tab state
-    const [apiOutputVariable, setApiOutputVariable] = useState(data.apiOutputVariable || "");
     const [apiResponsePath, setApiResponsePath] = useState(data.apiResponsePath || "");
-    const [apiErrorVariable, setApiErrorVariable] = useState(data.apiErrorVariable || "api_error");
 
     // Test tab state
     const [testResult, setTestResult] = useState<any>(null);
@@ -159,16 +158,14 @@ export const ConfigRestApi = ({ data, onClose, onSave }: any) => {
         const headersObj = buildFinalHeaders();
         const queryParamsObj = buildQueryParams();
 
-        onSave({
+        const saveData = {
             ...data,
             label,
             apiMethod,
             apiUrl,
             apiHeaders: Object.keys(headersObj).length > 0 ? headersObj : undefined,
             apiBody: apiBody || undefined,
-            apiOutputVariable: apiOutputVariable || undefined,
             apiResponsePath: apiResponsePath || undefined,
-            apiErrorVariable: apiErrorVariable || undefined,
             apiTimeout,
             // New fields
             apiContentType: apiContentType !== 'application/json' ? apiContentType : undefined,
@@ -180,7 +177,11 @@ export const ConfigRestApi = ({ data, onClose, onSave }: any) => {
             apiAuthKeyName: authType === 'api_key' ? authKeyName : undefined,
             apiAuthKeyValue: authType === 'api_key' ? authKeyValue : undefined,
             apiAuthKeyLocation: authType === 'api_key' ? authKeyLocation : undefined,
-        });
+        };
+        // Remove legacy variable fields - auto-generated now
+        delete saveData.apiOutputVariable;
+        delete saveData.apiErrorVariable;
+        onSave(saveData);
         onClose();
     };
 
@@ -558,19 +559,8 @@ export const ConfigRestApi = ({ data, onClose, onSave }: any) => {
                     {/* Response Tab */}
                     {activeTab === 'response' && (
                         <div className="space-y-6">
-                            <div>
-                                <label className="block text-sm font-medium text-white mb-2">Output Variable</label>
-                                <input
-                                    type="text"
-                                    value={apiOutputVariable}
-                                    onChange={e => setApiOutputVariable(e.target.value)}
-                                    className="w-full p-3 border border-white/20 rounded-lg bg-white/5 text-white"
-                                    placeholder="api_result"
-                                />
-                                <p className="text-xs text-gray-400 mt-1">
-                                    Variable name to store successful response
-                                </p>
-                            </div>
+                            {/* Output Variable Badge (Auto-generated) */}
+                            <OutputVariableBadge nodeId={nodeId} nodeType={nodeType} />
 
                             <div>
                                 <label className="block text-sm font-medium text-white mb-2">JSON Path (optional)</label>
@@ -583,20 +573,6 @@ export const ConfigRestApi = ({ data, onClose, onSave }: any) => {
                                 />
                                 <p className="text-xs text-gray-400 mt-1">
                                     Extract specific data from response (e.g., "data", "data.items", "data.items[0].name")
-                                </p>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-white mb-2">Error Variable</label>
-                                <input
-                                    type="text"
-                                    value={apiErrorVariable}
-                                    onChange={e => setApiErrorVariable(e.target.value)}
-                                    className="w-full p-3 border border-white/20 rounded-lg bg-white/5 text-white"
-                                    placeholder="api_error"
-                                />
-                                <p className="text-xs text-gray-400 mt-1">
-                                    Variable name to store error message on failure
                                 </p>
                             </div>
                         </div>

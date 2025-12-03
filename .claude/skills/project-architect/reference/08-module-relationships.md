@@ -199,7 +199,7 @@ WebhookProcessorService.processMessages()
   ├─→ Parse nfm_reply (Flow response)
   ├─→ Extract flow_token → parse `{contextId}-{nodeId}`
   ├─→ Load ConversationContext
-  ├─→ Save Flow response to context.variables[flowOutputVariable]
+  ├─→ Save Flow response to auto-generated variable (flow_N.response)
   └─→ ChatBotExecutionService.executeCurrentNode()
         └─→ Continue ChatBot from next node
 ```

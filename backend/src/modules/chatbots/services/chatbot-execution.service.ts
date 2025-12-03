@@ -20,6 +20,11 @@ import { SessionGateway } from '../../websocket/session.gateway';
 import { RestApiExecutorService } from './rest-api-executor.service';
 import { DataSourcesService } from '../../data-sources/data-sources.service';
 import { GoogleOAuthService } from '../../google-oauth/google-oauth.service';
+import {
+  calculateNodeIndex,
+  generateAutoVariableName,
+  getFullVariablePath,
+} from '../utils/auto-variable-naming';
 
 @Injectable()
 export class ChatBotExecutionService {
@@ -1187,19 +1192,26 @@ export class ChatBotExecutionService {
       context.variables,
     );
 
-    // Store result in variables
-    if (result.success) {
-      if (apiOutputVariable) {
-        context.variables[apiOutputVariable] = result.data;
-        this.logger.log(`REST API saved variable ${apiOutputVariable}: ${typeof result.data === 'string' ? result.data.substring(0, 50) : JSON.stringify(result.data).substring(0, 100)}`);
-      }
-      context.variables['__last_api_status__'] = result.statusCode;
-    } else {
-      if (apiErrorVariable) {
-        context.variables[apiErrorVariable] = result.error;
-      }
+    // Calculate auto variable name
+    const nodeIndex = calculateNodeIndex(
+      context.chatbot.nodes,
+      context.nodeHistory,
+      node.id,
+      'rest_api',
+    );
+    const autoVarName = generateAutoVariableName('rest_api', nodeIndex);
+
+    // Store result in variables using auto-generated names
+    context.variables[getFullVariablePath('rest_api', nodeIndex, 'data')] = result.data;
+    context.variables[getFullVariablePath('rest_api', nodeIndex, 'status')] = result.statusCode;
+    context.variables[getFullVariablePath('rest_api', nodeIndex, 'error')] = result.error || null;
+    context.variables['__last_api_status__'] = result.statusCode;
+
+    if (!result.success) {
       context.variables['__last_api_error__'] = result.error;
     }
+
+    this.logger.log(`REST API saved to auto variable ${autoVarName}: data=${typeof result.data === 'string' ? result.data.substring(0, 50) : JSON.stringify(result.data).substring(0, 100)}`);
 
     // Store node output for REST API node
     await this.storeNodeOutput(context, node.id, 'rest_api', node.data?.label || 'REST API', {
@@ -1208,7 +1220,7 @@ export class ChatBotExecutionService {
       data: result.data,
       error: result.error,
       duration: result.responseTime,
-      outputVariable: apiOutputVariable,
+      outputVariable: autoVarName,
     });
 
     // Add to history
@@ -1301,9 +1313,18 @@ export class ChatBotExecutionService {
       calendarOutputFormat: outputFormat = 'full',
 
       // Common (with calendar prefix for frontend compatibility)
-      calendarOutputVariable: outputVariable,
       calendarMaxResults: maxResults = 50,
     } = node.data || {};
+
+    // Calculate auto variable name for calendar node
+    const calNodeIndex = calculateNodeIndex(
+      context.chatbot.nodes,
+      context.nodeHistory,
+      node.id,
+      'google_calendar',
+    );
+    const autoVarName = generateAutoVariableName('google_calendar', calNodeIndex);
+    const autoVarPath = getFullVariablePath('google_calendar', calNodeIndex, 'result');
 
     // Get chatbot for owner reference
     const chatbot = context.chatbot || await this.chatbotRepo.findOne({
@@ -1346,14 +1367,17 @@ export class ChatBotExecutionService {
           : `Calendar user variable '${calendarUserVariable}' is empty or not set`;
 
       this.logger.warn(`No calendar user specified: ${errorMessage}`);
-      if (outputVariable) {
-        context.variables[outputVariable] = {
-          error: true,
-          message: errorMessage,
-          code: 'NO_USER',
-          source: calendarUserSource,
-        };
-      }
+      context.variables[autoVarPath] = {
+        error: true,
+        message: errorMessage,
+        code: 'NO_USER',
+        source: calendarUserSource,
+      };
+      await this.storeNodeOutput(context, node.id, 'google_calendar', node.data?.label || 'Google Calendar', {
+        success: false,
+        error: errorMessage,
+        outputVariable: autoVarName,
+      });
       await this.moveToNextNode(context, node);
       return;
     }
@@ -1381,13 +1405,16 @@ export class ChatBotExecutionService {
 
           if (!startDate) {
             this.logger.warn('Start date not specified for get_events action');
-            if (outputVariable) {
-              context.variables[outputVariable] = {
-                error: true,
-                message: 'Start date is required for get_events action',
-                code: 'MISSING_DATE',
-              };
-            }
+            context.variables[autoVarPath] = {
+              error: true,
+              message: 'Start date is required for get_events action',
+              code: 'MISSING_DATE',
+            };
+            await this.storeNodeOutput(context, node.id, 'google_calendar', node.data?.label || 'Google Calendar', {
+              success: false,
+              error: 'Start date is required for get_events action',
+              outputVariable: autoVarName,
+            });
             await this.moveToNextNode(context, node);
             return;
           }
@@ -1395,13 +1422,17 @@ export class ChatBotExecutionService {
           // Validate date format
           if (!this.isValidDateFormat(startDate)) {
             this.logger.warn(`Invalid start date format: ${startDate}`);
-            if (outputVariable) {
-              context.variables[outputVariable] = {
-                error: true,
-                message: `Invalid start date format: ${startDate}. Expected YYYY-MM-DD`,
-                code: 'INVALID_DATE',
-              };
-            }
+            const invalidStartDateError = `Invalid start date format: ${startDate}. Expected YYYY-MM-DD`;
+            context.variables[autoVarPath] = {
+              error: true,
+              message: invalidStartDateError,
+              code: 'INVALID_DATE',
+            };
+            await this.storeNodeOutput(context, node.id, 'google_calendar', node.data?.label || 'Google Calendar', {
+              success: false,
+              error: invalidStartDateError,
+              outputVariable: autoVarName,
+            });
             await this.moveToNextNode(context, node);
             return;
           }
@@ -1434,13 +1465,17 @@ export class ChatBotExecutionService {
 
           if (!this.isValidDateFormat(targetDate)) {
             this.logger.warn(`Invalid date format: ${targetDate}`);
-            if (outputVariable) {
-              context.variables[outputVariable] = {
-                error: true,
-                message: `Invalid date format: ${targetDate}. Expected YYYY-MM-DD`,
-                code: 'INVALID_DATE',
-              };
-            }
+            const invalidDateError = `Invalid date format: ${targetDate}. Expected YYYY-MM-DD`;
+            context.variables[autoVarPath] = {
+              error: true,
+              message: invalidDateError,
+              code: 'INVALID_DATE',
+            };
+            await this.storeNodeOutput(context, node.id, 'google_calendar', node.data?.label || 'Google Calendar', {
+              success: false,
+              error: invalidDateError,
+              outputVariable: autoVarName,
+            });
             await this.moveToNextNode(context, node);
             return;
           }
@@ -1471,37 +1506,33 @@ export class ChatBotExecutionService {
           break;
       }
 
-      // Store result in output variable
-      if (outputVariable) {
-        context.variables[outputVariable] = result;
-      }
+      // Store result in auto-generated output variable
+      context.variables[autoVarPath] = result;
 
       // Store node output for Google Calendar node (success)
       await this.storeNodeOutput(context, node.id, 'google_calendar', node.data?.label || 'Google Calendar', {
         success: true,
         data: result,
-        outputVariable: outputVariable,
+        outputVariable: autoVarName,
       });
     } catch (error) {
       this.logger.error(`Failed to execute calendar action '${calendarAction}' for user ${targetUserId}: ${error.message}`);
 
-      // Store error in output variable so flow can handle it
-      if (outputVariable) {
-        context.variables[outputVariable] = {
-          error: true,
-          message: error.message || `Failed to execute calendar action: ${calendarAction}`,
-          code: error.name === 'UnauthorizedException' ? 'NOT_CONNECTED' : 'FETCH_ERROR',
-          action: calendarAction,
-          userId: targetUserId,
-          userSource: calendarUserSource,
-        };
-      }
+      // Store error in auto-generated output variable so flow can handle it
+      context.variables[autoVarPath] = {
+        error: true,
+        message: error.message || `Failed to execute calendar action: ${calendarAction}`,
+        code: error.name === 'UnauthorizedException' ? 'NOT_CONNECTED' : 'FETCH_ERROR',
+        action: calendarAction,
+        userId: targetUserId,
+        userSource: calendarUserSource,
+      };
 
       // Store node output for Google Calendar node (error)
       await this.storeNodeOutput(context, node.id, 'google_calendar', node.data?.label || 'Google Calendar', {
         success: false,
         error: error.message,
-        outputVariable: outputVariable,
+        outputVariable: autoVarName,
       });
     }
 
@@ -1631,16 +1662,23 @@ export class ChatBotExecutionService {
       return;
     }
 
-    // Save Flow response to variables
-    const outputVariable = context.variables['__awaiting_flow_response__'];
-    if (outputVariable) {
-      context.variables[outputVariable] = flowResponse;
-      delete context.variables['__awaiting_flow_response__'];
+    // Calculate auto variable name for WhatsApp Flow node
+    const flowNodeIndex = calculateNodeIndex(
+      context.chatbot.nodes,
+      context.nodeHistory,
+      nodeId,
+      'whatsapp_flow',
+    );
+    const autoVarName = generateAutoVariableName('whatsapp_flow', flowNodeIndex);
+    const autoVarPath = getFullVariablePath('whatsapp_flow', flowNodeIndex, 'response');
 
-      this.logger.log(
-        `Saved Flow response to variable '${outputVariable}': ${JSON.stringify(flowResponse)}`,
-      );
-    }
+    // Save Flow response using auto-generated variable
+    context.variables[autoVarPath] = flowResponse;
+    delete context.variables['__awaiting_flow_response__'];
+
+    this.logger.log(
+      `Saved Flow response to auto variable '${autoVarPath}': ${JSON.stringify(flowResponse)}`,
+    );
 
     // Get node info for storeNodeOutput
     const flowNode = this.findNodeById(context.chatbot, nodeId);
@@ -1648,7 +1686,7 @@ export class ChatBotExecutionService {
     // Store node output for WhatsApp Flow node
     await this.storeNodeOutput(context, nodeId, 'whatsapp_flow', flowNode?.data?.label || 'WhatsApp Flow', {
       flowResponse: flowResponse,
-      outputVariable: outputVariable,
+      outputVariable: autoVarName,
     });
 
     // Add node to history
@@ -1750,14 +1788,15 @@ export class ChatBotExecutionService {
       return;
     }
 
-    // Get the variable name to save response
-    const variable =
-      context.variables['__awaiting_variable__'] || currentNode.data?.variable;
-
-    if (!variable) {
-      this.logger.warn('No variable defined for this question node');
-      return;
-    }
+    // Calculate auto variable name for question node
+    const nodeIndex = calculateNodeIndex(
+      context.chatbot.nodes,
+      context.nodeHistory,
+      currentNode.id,
+      'question',
+    );
+    const autoVarName = generateAutoVariableName('question', nodeIndex);
+    const autoVarPath = getFullVariablePath('question', nodeIndex, 'response');
 
     // Save user response to variables
     // For LIST questions, save the row ID instead of the display text
@@ -1771,17 +1810,18 @@ export class ChatBotExecutionService {
       valueToSave = buttonId;
     }
 
-    context.variables[variable] = valueToSave;
+    // Store using auto-generated variable name
+    context.variables[autoVarPath] = valueToSave;
     delete context.variables['__awaiting_variable__'];
 
-    this.logger.log(`Saved response to variable ${variable}: ${valueToSave}`);
+    this.logger.log(`Saved response to auto variable ${autoVarPath}: ${valueToSave}`);
 
     // Store node output for question node
     await this.storeNodeOutput(context, currentNode.id, 'question', currentNode.data?.label || 'Question', {
       userResponse: valueToSave,
       buttonId: buttonId,
       listRowId: listRowId,
-      outputVariable: variable,
+      outputVariable: autoVarName,
     });
 
     // Add current node to history
@@ -1818,7 +1858,7 @@ export class ChatBotExecutionService {
             context.variables[pageVarName] = newPage;
 
             // Don't save user message as variable value, and don't move to next node
-            delete context.variables[variable];
+            delete context.variables[autoVarPath];
 
             this.logger.log(`Pagination: navigating to page ${newPage} for ${dynamicListSource}`);
 

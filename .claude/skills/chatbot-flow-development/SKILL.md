@@ -165,32 +165,49 @@ Connect to Google Calendar for appointment and scheduling:
 - Service provider availability checks
 - Multi-person scheduling
 
-### 4. Variable Management - Dynamic Content
+### 4. Variable Management - AUTOMATIC NAMING SYSTEM
 
-Variables power dynamic conversations:
+Variables are now AUTO-GENERATED - no manual naming required:
 
-**Built-in Variables**
-- `{{user_name}}`: User's WhatsApp name
-- `{{user_phone}}`: User's phone number
-- `{{timestamp}}`: Current date/time
+**Automatic Variable Format**
+- Format: `{nodeType}_{index}.{output}`
+- Index based on topological sort (flow order)
+- Each node type has its own counter
 
-**Custom Variables**
-- Capture from question nodes
-- Set from API responses
-- Extract from WhatsApp Flow responses
-- Use in conditions and messages
+**Auto-Generated Variable Names**
+| Node Type | Variable | Available Outputs |
+|-----------|----------|-------------------|
+| Question | `question_1` | `.response` |
+| REST API | `rest_api_1` | `.data`, `.error`, `.status` |
+| WhatsApp Flow | `flow_1` | `.response` |
+| Google Calendar | `calendar_1` | `.result` |
+
+**Examples**
+- First Question: `{{question_1.response}}`
+- Second Question: `{{question_2.response}}`
+- First API call: `{{rest_api_1.data}}`, `{{rest_api_1.error}}`, `{{rest_api_1.status}}`
+- First Calendar: `{{calendar_1.result}}`
+- First Flow: `{{flow_1.response}}`
+
+**Built-in System Variables**
+- `{{customer_phone}}`: Customer's phone number
 
 **Variable Scoping**
-- Stored in conversation context
+- Stored in conversation context (`nodeOutputs` JSONB)
 - Persist across conversation
 - Accessible in all nodes
 - Can be updated/overwritten
 
 **Interpolation Syntax**
-- Messages: `Hello {{name}}, your order {{order_id}} is ready!`
-- Conditions: `{{age}} >= 18 && {{country}} == "TR"`
-- API URLs: `https://api.example.com/users/{{user_id}}`
-- API Bodies: `{"email": "{{email}}", "phone": "{{phone}}"}`
+- Messages: `Hello! You entered: {{question_1.response}}`
+- Conditions: `{{question_1.response}} >= 18`
+- API URLs: `https://api.example.com/users/{{question_1.response}}`
+- API Bodies: `{"email": "{{question_1.response}}", "data": "{{rest_api_1.data}}"}`
+
+**UI Components**
+- **OutputVariableBadge**: Shows auto-generated variable name in config modals
+- **VariablePicker**: Dropdown to select variables from other nodes
+- **VariableInput**: Text input with variable picker button
 
 ## When to Use This Skill
 
