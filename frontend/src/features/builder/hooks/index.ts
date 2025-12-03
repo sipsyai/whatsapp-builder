@@ -1,0 +1,1 @@
+export { useAvailableVariables } from './useAvailableVariables';

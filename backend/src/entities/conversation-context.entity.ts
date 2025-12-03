@@ -10,6 +10,23 @@ import {
 import { Conversation } from './conversation.entity';
 import { ChatBot } from './chatbot.entity';
 
+export interface NodeOutput {
+  nodeId: string;
+  nodeType: string;
+  nodeLabel?: string;
+  executedAt: string;
+  success: boolean;
+  duration?: number;
+  data?: any;
+  error?: string;
+  statusCode?: number;
+  userResponse?: string;
+  buttonId?: string;
+  listRowId?: string;
+  flowResponse?: any;
+  outputVariable?: string;
+}
+
 @Entity('conversation_contexts')
 export class ConversationContext {
   @PrimaryGeneratedColumn('uuid')
@@ -37,6 +54,9 @@ export class ConversationContext {
 
   @Column({ type: 'jsonb', default: '[]' })
   nodeHistory: string[];
+
+  @Column({ type: 'jsonb', default: '{}' })
+  nodeOutputs: Record<string, NodeOutput>;
 
   @Column({ type: 'boolean', default: true })
   isActive: boolean;

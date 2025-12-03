@@ -2,7 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
-import { ConversationContext } from '../../../entities/conversation-context.entity';
+import { ConversationContext, NodeOutput } from '../../../entities/conversation-context.entity';
 import { ChatBot } from '../../../entities/chatbot.entity';
 import { Conversation } from '../../../entities/conversation.entity';
 import { User } from '../../../entities/user.entity';
@@ -47,6 +47,26 @@ export class ChatBotExecutionService {
     private readonly configService: ConfigService,
     private readonly googleOAuthService: GoogleOAuthService,
   ) {}
+
+  /**
+   * Store node output in context for tracking execution results
+   */
+  private async storeNodeOutput(
+    context: ConversationContext,
+    nodeId: string,
+    nodeType: string,
+    nodeLabel: string,
+    output: Partial<NodeOutput>,
+  ): Promise<void> {
+    context.nodeOutputs[nodeId] = {
+      nodeId,
+      nodeType,
+      nodeLabel,
+      executedAt: new Date().toISOString(),
+      success: true,
+      ...output,
+    };
+  }
 
   /**
    * Start chatbot execution for a new conversation
@@ -1181,6 +1201,16 @@ export class ChatBotExecutionService {
       context.variables['__last_api_error__'] = result.error;
     }
 
+    // Store node output for REST API node
+    await this.storeNodeOutput(context, node.id, 'rest_api', node.data?.label || 'REST API', {
+      success: result.success,
+      statusCode: result.statusCode,
+      data: result.data,
+      error: result.error,
+      duration: result.responseTime,
+      outputVariable: apiOutputVariable,
+    });
+
     // Add to history
     context.nodeHistory.push(node.id);
 
@@ -1445,6 +1475,13 @@ export class ChatBotExecutionService {
       if (outputVariable) {
         context.variables[outputVariable] = result;
       }
+
+      // Store node output for Google Calendar node (success)
+      await this.storeNodeOutput(context, node.id, 'google_calendar', node.data?.label || 'Google Calendar', {
+        success: true,
+        data: result,
+        outputVariable: outputVariable,
+      });
     } catch (error) {
       this.logger.error(`Failed to execute calendar action '${calendarAction}' for user ${targetUserId}: ${error.message}`);
 
@@ -1459,6 +1496,13 @@ export class ChatBotExecutionService {
           userSource: calendarUserSource,
         };
       }
+
+      // Store node output for Google Calendar node (error)
+      await this.storeNodeOutput(context, node.id, 'google_calendar', node.data?.label || 'Google Calendar', {
+        success: false,
+        error: error.message,
+        outputVariable: outputVariable,
+      });
     }
 
     // Move to next node
@@ -1598,6 +1642,15 @@ export class ChatBotExecutionService {
       );
     }
 
+    // Get node info for storeNodeOutput
+    const flowNode = this.findNodeById(context.chatbot, nodeId);
+
+    // Store node output for WhatsApp Flow node
+    await this.storeNodeOutput(context, nodeId, 'whatsapp_flow', flowNode?.data?.label || 'WhatsApp Flow', {
+      flowResponse: flowResponse,
+      outputVariable: outputVariable,
+    });
+
     // Add node to history
     context.nodeHistory.push(nodeId);
 
@@ -1722,6 +1775,14 @@ export class ChatBotExecutionService {
     delete context.variables['__awaiting_variable__'];
 
     this.logger.log(`Saved response to variable ${variable}: ${valueToSave}`);
+
+    // Store node output for question node
+    await this.storeNodeOutput(context, currentNode.id, 'question', currentNode.data?.label || 'Question', {
+      userResponse: valueToSave,
+      buttonId: buttonId,
+      listRowId: listRowId,
+      outputVariable: variable,
+    });
 
     // Add current node to history
     context.nodeHistory.push(context.currentNodeId);

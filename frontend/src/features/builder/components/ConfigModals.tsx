@@ -1,8 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
 import type { ButtonItem, Condition, ConditionGroup } from "@/shared/types";
-import { useReactFlow } from "@xyflow/react";
 import { flowsApi, type WhatsAppFlow } from "../../flows/api";
 import { getActiveDataSources, type DataSource } from "../../data-sources/api";
+import { useAvailableVariables } from '../hooks/useAvailableVariables';
+import { VariableInput } from "./VariablePicker";
 
 // ... Config Components ...
 export const ConfigMessage = ({ data, onClose, onSave }: any) => {
@@ -17,7 +18,15 @@ export const ConfigMessage = ({ data, onClose, onSave }: any) => {
                     </header>
                     <label className="block">
                         <span className="text-sm font-medium text-white">Content</span>
-                        <textarea className="w-full mt-2 p-3 rounded-lg border bg-black/20 text-white min-h-[150px]" value={content} onChange={e => setContent(e.target.value)} placeholder="Type message..." />
+                        <div className="mt-2">
+                            <VariableInput
+                                value={content}
+                                onChange={setContent}
+                                placeholder="Type message... Use {{variable}} for dynamic content"
+                                multiline
+                                rows={6}
+                            />
+                        </div>
                     </label>
                 </div>
                 <div className="p-4 border-t border-white/10 flex justify-end gap-3">
@@ -160,10 +169,16 @@ export const ConfigQuestion = ({ data, onClose, onSave }: any) => {
                     )}
 
                     {/* Common: Body/Question Text */}
-                    <label className="block">
-                        <span className="text-sm font-medium text-gray-300">Body Text (Required)</span>
-                        <textarea className="w-full mt-1 p-2 border rounded bg-black/20 text-white border-white/10 min-h-[80px]" value={content} onChange={e => setContent(e.target.value)} placeholder="Ask a question..." maxLength={1024} />
-                    </label>
+                    <div className="block">
+                        <span className="text-sm font-medium text-gray-300 block mb-1">Body Text (Required)</span>
+                        <VariableInput
+                            value={content}
+                            onChange={setContent}
+                            placeholder="Ask a question... Use {{variable}} for dynamic content"
+                            multiline
+                            rows={3}
+                        />
+                    </div>
 
                     {/* Common: Footer (Optional) */}
                     {(isButtons || isList) && (
@@ -380,8 +395,6 @@ export const ConfigQuestion = ({ data, onClose, onSave }: any) => {
 };
 
 export const ConfigCondition = ({ data, onClose, onSave }: any) => {
-    const reactFlowInstance = useReactFlow();
-
     // Operators available
     const operators = [
         { value: "==", label: "Equal To (==)" },
@@ -394,19 +407,12 @@ export const ConfigCondition = ({ data, onClose, onSave }: any) => {
         { value: "not_contains", label: "Does Not Contain" },
     ];
 
-    // Extract available variables from question nodes in the flow
-    const availableVariables = useMemo(() => {
-        const nodes = reactFlowInstance.getNodes();
-        const vars: string[] = [];
-
-        nodes.forEach(node => {
-            if (node.type === 'question' && node.data?.variable && typeof node.data.variable === 'string') {
-                vars.push(node.data.variable as string);
-            }
-        });
-
-        return vars;
-    }, [reactFlowInstance]);
+    // Extract available variables from all node types using the hook
+    const { allVariables } = useAvailableVariables();
+    const availableVariables = useMemo(() =>
+        allVariables.map(v => v.name),
+        [allVariables]
+    );
 
     // Initialize conditions from data
     const initConditions = (): Condition[] => {
@@ -581,15 +587,17 @@ export const ConfigCondition = ({ data, onClose, onSave }: any) => {
                                                 className="w-full mt-1 p-2 rounded border bg-black/20 text-white border-white/10"
                                                 value={condition.variable}
                                                 onChange={e => updateCondition(index, 'variable', e.target.value)}
-                                                disabled={availableVariables.length === 0}
+                                                disabled={allVariables.length === 0}
                                             >
-                                                {availableVariables.length === 0 ? (
+                                                {allVariables.length === 0 ? (
                                                     <option value="">No variables available</option>
                                                 ) : (
                                                     <>
                                                         <option value="">Select variable...</option>
-                                                        {availableVariables.map(v => (
-                                                            <option key={v} value={v}>{v}</option>
+                                                        {allVariables.map(v => (
+                                                            <option key={v.id} value={v.name}>
+                                                                {v.name} ({v.nodeLabel})
+                                                            </option>
                                                         ))}
                                                     </>
                                                 )}
@@ -1051,12 +1059,15 @@ export const ConfigWhatsAppFlow = ({ data, onClose, onSave }: any) => {
 
                                     <label className="block">
                                         <span className="text-xs font-medium text-gray-300">Initial Data (JSON)</span>
-                                        <textarea
-                                            className="w-full mt-1 p-2 rounded border bg-black/20 text-white border-white/10 text-sm font-mono min-h-[80px]"
-                                            value={initialDataJson}
-                                            onChange={e => setInitialDataJson(e.target.value)}
-                                            placeholder='{"customer_name": "{{name}}", "order_id": "{{order_id}}"}'
-                                        />
+                                        <div className="mt-1">
+                                            <VariableInput
+                                                value={initialDataJson}
+                                                onChange={setInitialDataJson}
+                                                placeholder='{"customer_name": "{{name}}", "order_id": "{{order_id}}"}'
+                                                multiline
+                                                rows={4}
+                                            />
+                                        </div>
                                         <span className="text-xs text-gray-400">
                                             Use {"{{variable}}"} syntax for dynamic values
                                         </span>

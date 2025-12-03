@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { client } from "../../../api/client";
+import { VariableInput } from "./VariablePicker";
 
 type CalendarActionType = 'get_today_events' | 'get_tomorrow_events' | 'get_events' | 'check_availability';
 type DateSourceType = 'variable' | 'static';
@@ -299,12 +300,10 @@ export const ConfigGoogleCalendar = ({ data, onClose, onSave }: ConfigGoogleCale
                         {/* Show variable input if 'variable' selected */}
                         {calendarUserSource === 'variable' && (
                             <div className="mt-3">
-                                <input
-                                    type="text"
-                                    placeholder="e.g., selected_stylist_id"
+                                <VariableInput
                                     value={calendarUserVariable}
-                                    onChange={(e) => setCalendarUserVariable(e.target.value)}
-                                    className="w-full p-3 border border-white/20 rounded-lg bg-white/5 text-white"
+                                    onChange={setCalendarUserVariable}
+                                    placeholder="e.g., {{selected_stylist_id}}"
                                 />
                                 <p className="text-xs text-gray-400 mt-1">
                                     Variable containing the user ID whose calendar to read
@@ -354,12 +353,10 @@ export const ConfigGoogleCalendar = ({ data, onClose, onSave }: ConfigGoogleCale
                             {dateSource === 'variable' && (
                                 <div>
                                     <label className="block text-sm font-medium text-white mb-2">Date Variable</label>
-                                    <input
-                                        type="text"
+                                    <VariableInput
                                         value={dateVariable}
-                                        onChange={e => setDateVariable(e.target.value)}
-                                        className="w-full p-3 border border-white/20 rounded-lg bg-white/5 text-white"
-                                        placeholder="selected_date"
+                                        onChange={setDateVariable}
+                                        placeholder="e.g., {{selected_date}}"
                                     />
                                     <p className="text-xs text-gray-400 mt-1">
                                         Variable containing the date (e.g., from user input)
@@ -443,12 +440,10 @@ export const ConfigGoogleCalendar = ({ data, onClose, onSave }: ConfigGoogleCale
                                     {endDateSource === 'variable' && (
                                         <div>
                                             <label className="block text-sm font-medium text-white mb-2">End Date Variable</label>
-                                            <input
-                                                type="text"
+                                            <VariableInput
                                                 value={endDateVariable}
-                                                onChange={e => setEndDateVariable(e.target.value)}
-                                                className="w-full p-3 border border-white/20 rounded-lg bg-white/5 text-white"
-                                                placeholder="end_date"
+                                                onChange={setEndDateVariable}
+                                                placeholder="e.g., {{end_date}}"
                                             />
                                             <p className="text-xs text-gray-400 mt-1">
                                                 Variable containing the end date

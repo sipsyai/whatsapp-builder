@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { client } from "../../../api/client";
+import { VariableInput } from './VariablePicker';
 
 type TabType = 'request' | 'auth' | 'params' | 'headers' | 'response' | 'test';
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -274,12 +275,10 @@ export const ConfigRestApi = ({ data, onClose, onSave }: any) => {
 
                             <div>
                                 <label className="block text-sm font-medium text-white mb-2">URL</label>
-                                <input
-                                    type="text"
+                                <VariableInput
                                     value={apiUrl}
-                                    onChange={e => setApiUrl(e.target.value)}
-                                    className="w-full p-3 border border-white/20 rounded-lg bg-white/5 text-white font-mono text-sm"
-                                    placeholder="https://api.example.com/endpoint"
+                                    onChange={setApiUrl}
+                                    placeholder="https://api.example.com/{{endpoint}}"
                                 />
                                 <p className="text-xs text-gray-400 mt-1">
                                     Use {'{{variable}}'} for dynamic values
@@ -305,13 +304,12 @@ export const ConfigRestApi = ({ data, onClose, onSave }: any) => {
                                         <label className="block text-sm font-medium text-white mb-2">
                                             Request Body {apiContentType === 'application/json' ? '(JSON)' : '(Key-Value as JSON)'}
                                         </label>
-                                        <textarea
+                                        <VariableInput
                                             value={apiBody}
-                                            onChange={e => setApiBody(e.target.value)}
-                                            className="w-full p-3 border border-white/20 rounded-lg bg-white/5 text-white font-mono text-sm h-32"
-                                            placeholder={apiContentType === 'application/json'
-                                                ? '{"key": "value"}'
-                                                : '{"field1": "value1", "field2": "value2"}'}
+                                            onChange={setApiBody}
+                                            placeholder='{"key": "{{variable}}"}'
+                                            multiline
+                                            rows={8}
                                         />
                                         {apiContentType !== 'application/json' && (
                                             <p className="text-xs text-gray-400 mt-1">
@@ -355,12 +353,10 @@ export const ConfigRestApi = ({ data, onClose, onSave }: any) => {
                                 <div className="p-4 bg-white/5 rounded-lg border border-white/10 space-y-4">
                                     <div>
                                         <label className="block text-sm font-medium text-white mb-2">Token</label>
-                                        <input
-                                            type="password"
+                                        <VariableInput
                                             value={authToken}
-                                            onChange={e => setAuthToken(e.target.value)}
-                                            className="w-full p-3 border border-white/20 rounded-lg bg-white/5 text-white font-mono"
-                                            placeholder="Enter bearer token"
+                                            onChange={setAuthToken}
+                                            placeholder="Bearer token or {{token_variable}}"
                                         />
                                         <p className="text-xs text-gray-400 mt-1">
                                             Use {'{{variable}}'} for dynamic tokens
@@ -459,7 +455,7 @@ export const ConfigRestApi = ({ data, onClose, onSave }: any) => {
                             </p>
 
                             {queryParams.map((param, index) => (
-                                <div key={index} className="flex gap-2">
+                                <div key={index} className="flex gap-2 items-start">
                                     <input
                                         type="text"
                                         value={param.key}
@@ -467,13 +463,13 @@ export const ConfigRestApi = ({ data, onClose, onSave }: any) => {
                                         className="flex-1 p-3 border border-white/20 rounded-lg bg-white/5 text-white"
                                         placeholder="Parameter Name"
                                     />
-                                    <input
-                                        type="text"
-                                        value={param.value}
-                                        onChange={e => updateQueryParam(index, 'value', e.target.value)}
-                                        className="flex-1 p-3 border border-white/20 rounded-lg bg-white/5 text-white"
-                                        placeholder="Value or {{variable}}"
-                                    />
+                                    <div className="flex-1">
+                                        <VariableInput
+                                            value={param.value}
+                                            onChange={(val) => updateQueryParam(index, 'value', val)}
+                                            placeholder="Value or {{variable}}"
+                                        />
+                                    </div>
                                     <button
                                         onClick={() => removeQueryParam(index)}
                                         className="p-3 text-red-500 hover:bg-red-500/10 rounded-lg"
@@ -525,7 +521,7 @@ export const ConfigRestApi = ({ data, onClose, onSave }: any) => {
                             </p>
 
                             {headers.map((header, index) => (
-                                <div key={index} className="flex gap-2">
+                                <div key={index} className="flex gap-2 items-start">
                                     <input
                                         type="text"
                                         value={header.key}
@@ -533,13 +529,13 @@ export const ConfigRestApi = ({ data, onClose, onSave }: any) => {
                                         className="flex-1 p-3 border border-white/20 rounded-lg bg-white/5 text-white"
                                         placeholder="Header Key"
                                     />
-                                    <input
-                                        type="text"
-                                        value={header.value}
-                                        onChange={e => updateHeader(index, 'value', e.target.value)}
-                                        className="flex-1 p-3 border border-white/20 rounded-lg bg-white/5 text-white"
-                                        placeholder="Header Value"
-                                    />
+                                    <div className="flex-1">
+                                        <VariableInput
+                                            value={header.value}
+                                            onChange={(val) => updateHeader(index, 'value', val)}
+                                            placeholder="Value or {{variable}}"
+                                        />
+                                    </div>
                                     <button
                                         onClick={() => removeHeader(index)}
                                         className="p-3 text-red-500 hover:bg-red-500/10 rounded-lg"
