@@ -185,16 +185,18 @@ export const SessionTimeline = ({ messages, session }: SessionTimelineProps) => 
   }, [timelineEvents]);
 
   return (
-    <div className="bg-bg-gray-800 rounded-lg shadow-sm border border-gray-700 h-full flex flex-col">
+    <div className="bg-gray-900 rounded-lg shadow-lg border border-gray-700/50 h-full flex flex-col">
       {/* Header */}
-      <div className="flex items-center gap-2 p-4 border-b border-gray-700">
-        <span className="material-symbols-outlined text-indigo-600">
-          timeline
-        </span>
-        <h3 className="font-semibold text-gray-900">
+      <div className="flex items-center gap-3 p-4 border-b border-gray-700/50 bg-gray-800/50">
+        <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+          <span className="material-symbols-outlined text-emerald-400 text-lg">
+            timeline
+          </span>
+        </div>
+        <h3 className="font-semibold text-gray-100">
           Session Timeline
         </h3>
-        <span className="text-xs text-gray-500 bg-bg-gray-700 px-2 py-0.5 rounded-full">
+        <span className="text-xs text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
           {timelineEvents.length} events
         </span>
       </div>
@@ -203,20 +205,20 @@ export const SessionTimeline = ({ messages, session }: SessionTimelineProps) => 
       <div className="flex-1 overflow-y-auto p-4">
         {groupedEvents.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-500">
-            <span className="material-symbols-outlined text-4xl mb-2">hourglass_empty</span>
-            <p className="text-sm">No events yet</p>
+            <span className="material-symbols-outlined text-4xl mb-2 text-gray-600">hourglass_empty</span>
+            <p className="text-sm text-gray-400">No events yet</p>
           </div>
         ) : (
           <div className="space-y-6">
             {groupedEvents.map((group) => (
               <div key={group.date}>
                 {/* Date header */}
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="h-px flex-1 bg-gray-700"></div>
-                  <span className="text-xs font-medium text-gray-500 px-2">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="h-px flex-1 bg-gradient-to-r from-transparent via-gray-700 to-transparent"></div>
+                  <span className="text-xs font-medium text-gray-400 px-3 py-1 bg-gray-800 rounded-full border border-gray-700/50">
                     {group.date}
                   </span>
-                  <div className="h-px flex-1 bg-gray-700"></div>
+                  <div className="h-px flex-1 bg-gradient-to-r from-transparent via-gray-700 to-transparent"></div>
                 </div>
 
                 {/* Events */}
@@ -228,32 +230,52 @@ export const SessionTimeline = ({ messages, session }: SessionTimelineProps) => 
                     >
                       {/* Timeline line and icon */}
                       <div className="flex flex-col items-center">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-bg-gray-700 ${event.iconColor}`}>
-                          <span className="material-symbols-outlined text-lg">
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shadow-lg ${
+                          event.iconColor.includes('green') ? 'bg-emerald-500/20 ring-1 ring-emerald-500/30' :
+                          event.iconColor.includes('blue') ? 'bg-blue-500/20 ring-1 ring-blue-500/30' :
+                          event.iconColor.includes('purple') ? 'bg-purple-500/20 ring-1 ring-purple-500/30' :
+                          event.iconColor.includes('amber') ? 'bg-amber-500/20 ring-1 ring-amber-500/30' :
+                          event.iconColor.includes('orange') ? 'bg-orange-500/20 ring-1 ring-orange-500/30' :
+                          event.iconColor.includes('red') ? 'bg-red-500/20 ring-1 ring-red-500/30' :
+                          event.iconColor.includes('indigo') ? 'bg-indigo-500/20 ring-1 ring-indigo-500/30' :
+                          'bg-gray-700/50 ring-1 ring-gray-600/30'
+                        }`}>
+                          <span className={`material-symbols-outlined text-lg ${
+                            event.iconColor.includes('green') ? 'text-emerald-400' :
+                            event.iconColor.includes('blue') ? 'text-blue-400' :
+                            event.iconColor.includes('purple') ? 'text-purple-400' :
+                            event.iconColor.includes('amber') ? 'text-amber-400' :
+                            event.iconColor.includes('orange') ? 'text-orange-400' :
+                            event.iconColor.includes('red') ? 'text-red-400' :
+                            event.iconColor.includes('indigo') ? 'text-indigo-400' :
+                            'text-gray-400'
+                          }`}>
                             {event.icon}
                           </span>
                         </div>
                         {index < group.events.length - 1 && (
-                          <div className="w-0.5 flex-1 bg-gray-700 mt-1"></div>
+                          <div className="w-0.5 flex-1 bg-gradient-to-b from-gray-600 to-gray-700/30 mt-2"></div>
                         )}
                       </div>
 
                       {/* Event content */}
                       <div className="flex-1 pb-3">
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">
-                              {event.title}
-                            </p>
-                            {event.description && (
-                              <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
-                                {event.description}
+                        <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700/30 hover:border-gray-600/50 transition-colors">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="text-sm font-medium text-gray-100">
+                                {event.title}
                               </p>
-                            )}
+                              {event.description && (
+                                <p className="text-xs text-gray-400 mt-1 line-clamp-2">
+                                  {event.description}
+                                </p>
+                              )}
+                            </div>
+                            <span className="text-xs text-emerald-400/80 whitespace-nowrap font-mono bg-gray-900/50 px-2 py-0.5 rounded">
+                              {formatTime(event.timestamp)}
+                            </span>
                           </div>
-                          <span className="text-xs text-gray-400 whitespace-nowrap">
-                            {formatTime(event.timestamp)}
-                          </span>
                         </div>
                       </div>
                     </div>
@@ -267,11 +289,11 @@ export const SessionTimeline = ({ messages, session }: SessionTimelineProps) => 
 
       {/* Footer - Current status */}
       {session.isActive && (
-        <div className="border-t border-gray-700 p-3 bg-bg-gray-750">
+        <div className="border-t border-gray-700/50 p-3 bg-gray-800/30">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-            <span className="text-xs text-gray-600">
-              Session is active • Current node: <span className="font-medium text-gray-900">{session.currentNodeLabel}</span>
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-lg shadow-emerald-500/50"></div>
+            <span className="text-xs text-gray-400">
+              Session is active <span className="text-gray-600 mx-1">|</span> Current node: <span className="font-medium text-emerald-400">{session.currentNodeLabel}</span>
             </span>
           </div>
         </div>

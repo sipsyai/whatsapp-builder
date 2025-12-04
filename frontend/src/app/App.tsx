@@ -164,14 +164,14 @@ const App = () => {
 
   return (
     <ReactFlowProvider>
-      <div className="h-screen flex overflow-hidden">
+      <div className="h-screen flex">
         {/* Sidebar Navigation - shown on all pages except landing */}
         {view !== "landing" && (
           <SideBar currentView={view} onNavigate={(newView) => setView(newView as ExtendedViewState)} />
         )}
 
         {/* Main Content */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-y-auto">
           {view === "landing" && <LandingPage onStart={() => setView("chatbots")} />}
           {view === "builder" && <BuilderPage
             onSwitchToChat={() => setView("chat")}

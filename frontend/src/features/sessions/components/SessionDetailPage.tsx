@@ -147,19 +147,19 @@ export const SessionDetailPage = ({ sessionId, onBack }: SessionDetailPageProps)
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
       case 'running':
-        return 'bg-green-100 text-green-800';
+        return 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
       case 'waiting_input':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-amber-500/20 text-amber-400 border border-amber-500/30';
       case 'waiting_flow':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-500/20 text-blue-400 border border-blue-500/30';
       case 'completed':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-500/20 text-gray-300 border border-gray-500/30';
       case 'expired':
-        return 'bg-orange-100 text-orange-800';
+        return 'bg-orange-500/20 text-orange-400 border border-orange-500/30';
       case 'stopped':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-500/20 text-red-400 border border-red-500/30';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-500/20 text-gray-300 border border-gray-500/30';
     }
   };
 
@@ -185,8 +185,8 @@ export const SessionDetailPage = ({ sessionId, onBack }: SessionDetailPageProps)
     return (
       <div className="flex items-center justify-center h-full bg-gray-900">
         <div className="flex flex-col items-center gap-3">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
-          <p className="text-sm text-gray-600">Loading session details...</p>
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-500"></div>
+          <p className="text-sm text-gray-300">Loading session details...</p>
         </div>
       </div>
     );
@@ -197,7 +197,7 @@ export const SessionDetailPage = ({ sessionId, onBack }: SessionDetailPageProps)
       <div className="flex items-center justify-center h-full bg-gray-900">
         <div className="flex flex-col items-center gap-4">
           <span className="material-symbols-outlined text-red-500 text-5xl">error</span>
-          <p className="text-gray-900 font-medium">
+          <p className="text-gray-100 font-medium">
             {error || 'Session not found'}
           </p>
           <button
@@ -214,12 +214,12 @@ export const SessionDetailPage = ({ sessionId, onBack }: SessionDetailPageProps)
   return (
     <div className="flex flex-col h-full bg-gray-900">
       {/* Header */}
-      <div className="bg-bg-gray-800 border-b border-gray-700 px-6 py-4">
+      <div className="bg-gradient-to-r from-gray-800/90 to-gray-800/70 border-b border-gray-600/50 px-6 py-4 backdrop-blur-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
               onClick={onBack}
-              className="text-gray-600 hover:text-gray-900 transition-colors"
+              className="text-gray-400 hover:text-emerald-400 transition-colors p-1 rounded-lg hover:bg-gray-700/50"
             >
               <span className="material-symbols-outlined">arrow_back</span>
             </button>
@@ -227,43 +227,43 @@ export const SessionDetailPage = ({ sessionId, onBack }: SessionDetailPageProps)
             <div className="flex flex-col">
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-gray-600">
+                  <span className="material-symbols-outlined text-emerald-400">
                     person
                   </span>
-                  <h1 className="text-xl font-bold text-gray-900">
+                  <h1 className="text-xl font-bold text-gray-50">
                     {session.customerName}
                   </h1>
                 </div>
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-gray-300 bg-gray-700/50 px-2 py-0.5 rounded">
                   {session.customerPhone}
                 </span>
               </div>
 
-              <div className="flex items-center gap-3 mt-1">
+              <div className="flex items-center gap-3 mt-1.5">
                 <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-sm text-gray-500">
+                  <span className="material-symbols-outlined text-sm text-purple-400">
                     smart_toy
                   </span>
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-gray-300">
                     {session.chatbotName}
                   </span>
                 </div>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeColor(session.status)}`}>
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeColor(session.status)}`}>
                   {formatStatusLabel(session.status)}
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             {/* Session stats */}
             <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-1 text-gray-600">
-                <span className="material-symbols-outlined text-sm">chat</span>
+              <div className="flex items-center gap-1.5 text-gray-300 bg-gray-700/40 px-3 py-1.5 rounded-lg">
+                <span className="material-symbols-outlined text-sm text-emerald-400">chat</span>
                 <span>{session.messageCount} messages</span>
               </div>
-              <div className="flex items-center gap-1 text-gray-600">
-                <span className="material-symbols-outlined text-sm">account_tree</span>
+              <div className="flex items-center gap-1.5 text-gray-300 bg-gray-700/40 px-3 py-1.5 rounded-lg">
+                <span className="material-symbols-outlined text-sm text-purple-400">account_tree</span>
                 <span>{session.nodeCount} nodes</span>
               </div>
             </div>
@@ -272,7 +272,7 @@ export const SessionDetailPage = ({ sessionId, onBack }: SessionDetailPageProps)
             {session.isActive && (
               <button
                 onClick={handleStopSession}
-                className="px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors flex items-center gap-1"
+                className="px-4 py-2 bg-red-600/90 text-white text-sm rounded-lg hover:bg-red-600 transition-all duration-200 flex items-center gap-1.5 shadow-lg shadow-red-900/30 hover:shadow-red-900/50"
               >
                 <span className="material-symbols-outlined text-sm">stop_circle</span>
                 Stop Session
@@ -283,12 +283,12 @@ export const SessionDetailPage = ({ sessionId, onBack }: SessionDetailPageProps)
 
         {/* Current node info */}
         {session.currentNodeLabel && (
-          <div className="mt-3 flex items-center gap-2 text-sm">
-            <span className="material-symbols-outlined text-purple-600 text-sm">
+          <div className="mt-3 flex items-center gap-2 text-sm bg-gray-700/30 px-3 py-2 rounded-lg w-fit">
+            <span className="material-symbols-outlined text-purple-400 text-sm">
               location_on
             </span>
-            <span className="text-gray-600">Current Node:</span>
-            <span className="font-medium text-gray-900">
+            <span className="text-gray-400">Current Node:</span>
+            <span className="font-medium text-gray-100">
               {session.currentNodeLabel}
             </span>
           </div>
@@ -298,7 +298,7 @@ export const SessionDetailPage = ({ sessionId, onBack }: SessionDetailPageProps)
       {/* Main content - Split view */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left side - Conversation Log (60%) */}
-        <div className="w-[60%] border-r border-gray-700">
+        <div className="w-[60%] border-r border-gray-600/50">
           <ConversationLog messages={messages} isActive={session.isActive} />
         </div>
 

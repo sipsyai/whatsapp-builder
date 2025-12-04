@@ -138,8 +138,8 @@ export const ConversationLog = ({ messages, isActive }: ConversationLogProps) =>
                   <div className="mt-2 space-y-1.5 bg-gray-900 p-2 rounded">
                     {Object.entries(displayData).map(([key, value]) => (
                       <div key={key} className="flex justify-between gap-2">
-                        <span className="text-gray-500 font-medium">{key}:</span>
-                        <span className="text-gray-900 text-right">
+                        <span className="text-gray-400 font-medium">{key}:</span>
+                        <span className="text-gray-100 text-right">
                           {typeof value === 'object' ? JSON.stringify(value) : String(value)}
                         </span>
                       </div>
@@ -256,15 +256,15 @@ export const ConversationLog = ({ messages, isActive }: ConversationLogProps) =>
   return (
     <div className="flex flex-col h-full bg-gray-900">
       {/* Header */}
-      <div className="bg-bg-gray-800 border-b border-gray-700 px-4 py-3">
+      <div className="bg-gray-800/80 border-b border-gray-600/50 px-4 py-3 backdrop-blur-sm">
         <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-            <span className="material-symbols-outlined">chat</span>
+          <h2 className="font-semibold text-gray-100 flex items-center gap-2">
+            <span className="material-symbols-outlined text-emerald-400">chat</span>
             Conversation Log
           </h2>
           <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${isActive ? 'bg-green-500' : 'bg-gray-400'}`} />
-            <span className="text-xs text-gray-500">
+            <div className={`w-2.5 h-2.5 rounded-full ${isActive ? 'bg-emerald-500 shadow-lg shadow-emerald-500/50 animate-pulse' : 'bg-gray-500'}`} />
+            <span className={`text-xs font-medium ${isActive ? 'text-emerald-400' : 'text-gray-400'}`}>
               {isActive ? 'Active' : 'Ended'}
             </span>
           </div>
@@ -284,8 +284,8 @@ export const ConversationLog = ({ messages, isActive }: ConversationLogProps) =>
               <div key={date}>
                 {/* Date separator */}
                 <div className="flex items-center justify-center mb-4">
-                  <div className="bg-bg-gray-800 px-3 py-1 rounded-full shadow-sm">
-                    <span className="text-xs font-medium text-gray-600">
+                  <div className="bg-gray-700/60 border border-gray-600/40 px-4 py-1.5 rounded-full shadow-md">
+                    <span className="text-xs font-medium text-gray-200">
                       {date}
                     </span>
                   </div>
@@ -304,15 +304,15 @@ export const ConversationLog = ({ messages, isActive }: ConversationLogProps) =>
                         className={`flex ${isFromBot ? 'justify-start' : 'justify-end'}`}
                       >
                         <div
-                          className={`max-w-[75%] rounded-lg px-3 py-2 shadow-sm ${
+                          className={`max-w-[75%] rounded-lg px-3.5 py-2.5 shadow-lg ${
                             isFromBot
-                              ? 'bg-bg-gray-800 text-gray-900 rounded-tl-none'
-                              : 'bg-green-600 text-white rounded-tr-none'
+                              ? 'bg-gray-700/70 border border-gray-600/50 text-gray-100 rounded-tl-none'
+                              : 'bg-gradient-to-br from-emerald-600 to-emerald-700 text-white rounded-tr-none shadow-emerald-900/30'
                           }`}
                         >
                           {/* Sender name for bot messages */}
                           {isFromBot && message.senderName && (
-                            <p className="text-xs font-semibold text-blue-600 mb-1">
+                            <p className="text-xs font-semibold text-blue-400 mb-1">
                               {message.senderName}
                             </p>
                           )}
@@ -321,14 +321,14 @@ export const ConversationLog = ({ messages, isActive }: ConversationLogProps) =>
                           <div className="mb-1">{renderMessageContent(message)}</div>
 
                           {/* Timestamp and status */}
-                          <div className="flex items-center justify-end gap-1 mt-1">
-                            <span className={`text-[10px] ${isFromBot ? 'text-gray-500' : 'text-white/80'}`}>
+                          <div className="flex items-center justify-end gap-1.5 mt-1.5">
+                            <span className={`text-[11px] ${isFromBot ? 'text-gray-400' : 'text-white/70'}`}>
                               {formatTime(message.timestamp)}
                             </span>
                             {!isFromBot && message.status && (
                               <span
                                 className={`material-symbols-outlined text-[14px] ${
-                                  message.status === 'read' ? 'text-blue-300' : 'text-white/60'
+                                  message.status === 'read' ? 'text-sky-300' : 'text-white/50'
                                 }`}
                               >
                                 {message.status === 'read' ? 'done_all' : 'done'}

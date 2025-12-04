@@ -206,7 +206,7 @@ export const ChatBotsListPage: React.FC<ChatBotsListPageProps> = ({ onNavigate, 
     }
 
     return (
-        <div className="h-full bg-background overchatbot-y-auto">
+        <div className="h-full bg-background overflow-y-auto">
             <div className="max-w-7xl mx-auto p-8">
                 {/* Toast Notification */}
                 {toast && (
@@ -377,14 +377,14 @@ export const ChatBotsListPage: React.FC<ChatBotsListPageProps> = ({ onNavigate, 
                             {Array.isArray(chatbots) && chatbots.map((chatbot) => (
                                 <div
                                     key={chatbot.id}
-                                    className={`bg-surface rounded-2xl border overchatbot-hidden hover:shadow-2xl transition-all duration-300 group hover:scale-105 ${
+                                    className={`bg-surface rounded-2xl border overflow-hidden hover:shadow-2xl transition-all duration-300 group hover:scale-105 ${
                                         chatbot.isActive
                                             ? 'border-l-4 border-l-green-500 border-zinc-800'
                                             : 'border-zinc-800 opacity-75'
                                     }`}
                                 >
                                     {/* ChatBot Preview/Header */}
-                                    <div className="h-32 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent relative overchatbot-hidden">
+                                    <div className="h-32 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent relative overflow-hidden">
                                         <div className="absolute inset-0 flex items-center justify-center">
                                             <span className="material-symbols-outlined text-6xl text-primary/30">smart_toy</span>
                                         </div>
