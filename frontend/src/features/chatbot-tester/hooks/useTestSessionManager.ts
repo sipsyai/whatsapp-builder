@@ -150,9 +150,21 @@ export function useTestSessionManager(
       });
     };
 
-    const handleVariableChanged = (data: { sessionId: string; key: string; value: unknown }) => {
+    const handleVariableChanged = (data: {
+      testSessionId?: string;
+      sessionId?: string;
+      key?: string;
+      variableName?: string;
+      newValue: unknown;
+      oldValue?: unknown;
+      source?: string;
+    }) => {
       console.log('[TestSession] Variable changed:', data);
-      dispatch({ type: 'SET_VARIABLE', payload: { key: data.key, value: data.value } });
+      // Support both 'key' (old gateway) and 'variableName' (new gateway)
+      const variableKey = data.key || data.variableName;
+      if (variableKey && data.newValue !== undefined) {
+        dispatch({ type: 'SET_VARIABLE', payload: { key: variableKey, value: data.newValue } });
+      }
     };
 
     const handleVariablesUpdated = (data: { sessionId: string; variables: Record<string, unknown> }) => {

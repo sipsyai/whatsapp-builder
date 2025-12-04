@@ -564,6 +564,25 @@ export class TestSessionService {
   }
 
   /**
+   * Add a message to the test session state
+   * Called by TestExecutionAdapterService when emitting bot responses
+   */
+  addMessage(
+    sessionId: string,
+    message: SimulatedMessageDto,
+  ): void {
+    const testState = this.testSessionState.get(sessionId);
+
+    if (!testState) {
+      this.logger.warn(`Cannot add message: test state not found for session ${sessionId}`);
+      return;
+    }
+
+    testState.messages.push(message);
+    this.logger.debug(`Added message to session ${sessionId}: ${message.type} - ${typeof message.content === 'string' ? message.content.substring(0, 50) : 'object'}`);
+  }
+
+  /**
    * Update loop detection stats after node execution
    * Called by TestExecutionAdapterService
    */

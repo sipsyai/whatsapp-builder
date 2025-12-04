@@ -4,8 +4,16 @@ import { Repository } from 'typeorm';
 import { ConversationContext } from '../../../entities/conversation-context.entity';
 import { ChatBot } from '../../../entities/chatbot.entity';
 import { ChatBotExecutionService } from '../../chatbots/services/chatbot-execution.service';
+import { RestApiExecutorService } from '../../chatbots/services/rest-api-executor.service';
 import { TestSessionGateway } from '../../websocket/test-session.gateway';
+import { TestSessionService } from './test-session.service';
 import { NodeDataType } from '../../chatbots/dto/node-data.dto';
+import {
+  calculateNodeIndex,
+  generateAutoVariableName,
+  getFullVariablePath,
+} from '../../chatbots/utils/auto-variable-naming';
+import { v4 as uuidv4 } from 'uuid';
 import {
   LoopDetectionStats,
   LoopDetectionConfig,
@@ -58,6 +66,9 @@ export class TestExecutionAdapterService {
     private readonly chatbotExecutionService: ChatBotExecutionService,
     @Inject(forwardRef(() => TestSessionGateway))
     private readonly testSessionGateway: TestSessionGateway,
+    @Inject(forwardRef(() => TestSessionService))
+    private readonly testSessionService: TestSessionService,
+    private readonly restApiExecutor: RestApiExecutorService,
   ) {}
 
   // ============================================
@@ -451,7 +462,9 @@ export class TestExecutionAdapterService {
 
     // Update context
     context.nodeHistory.push(node.id);
-    context.currentNodeId = nextNode?.id || null;
+    if (nextNode) {
+      context.currentNodeId = nextNode.id;
+    }
     await this.contextRepo.save(context);
 
     return {
@@ -473,7 +486,17 @@ export class TestExecutionAdapterService {
     const content = node.data?.content || '';
     const message = this.replaceVariables(content, context.variables);
 
-    // Emit simulated bot response
+    // Add message to TestSessionService state (for state recovery)
+    this.testSessionService.addMessage(context.id, {
+      id: uuidv4(),
+      direction: 'outgoing',
+      type: 'text',
+      content: message,
+      timestamp: new Date(),
+      nodeId: node.id,
+    });
+
+    // Emit simulated bot response via WebSocket
     this.testSessionGateway.emitBotResponse(
       context.id,
       [{ content: message, type: 'text' }],
@@ -484,7 +507,9 @@ export class TestExecutionAdapterService {
 
     // Update context
     context.nodeHistory.push(node.id);
-    context.currentNodeId = nextNode?.id || null;
+    if (nextNode) {
+      context.currentNodeId = nextNode.id;
+    }
     await this.contextRepo.save(context);
 
     return {
@@ -529,7 +554,17 @@ export class TestExecutionAdapterService {
       };
     }
 
-    // Emit simulated bot response
+    // Add message to TestSessionService state (for state recovery)
+    this.testSessionService.addMessage(context.id, {
+      id: uuidv4(),
+      direction: 'outgoing',
+      type: msgType,
+      content: msgType === 'interactive' ? { text: message, ...additionalContent } : message,
+      timestamp: new Date(),
+      nodeId: node.id,
+    });
+
+    // Emit simulated bot response via WebSocket
     this.testSessionGateway.emitBotResponse(
       context.id,
       [{ content: message, type: msgType, ...additionalContent }],
@@ -602,7 +637,9 @@ export class TestExecutionAdapterService {
 
     // Update context
     context.nodeHistory.push(node.id);
-    context.currentNodeId = nextNode?.id || null;
+    if (nextNode) {
+      context.currentNodeId = nextNode.id;
+    }
     await this.contextRepo.save(context);
 
     return {
@@ -622,42 +659,112 @@ export class TestExecutionAdapterService {
   ): Promise<{ success: boolean; output?: any; nextNodeId?: string | null }> {
     this.logger.log(`Test: Executing REST_API node ${node.id}`);
 
-    // For test mode, we can either:
-    // 1. Actually make the API call (useful for testing integrations)
-    // 2. Return mock data
-    // Currently implementing option 1 - actual API call
+    const {
+      apiUrl, apiMethod, apiHeaders, apiBody, apiResponsePath,
+      apiTimeout, apiContentType, apiFilterField, apiFilterValue,
+      apiQueryParams, apiAuthType, apiAuthToken, apiAuthUsername, apiAuthPassword,
+      apiAuthKeyName, apiAuthKeyValue, apiAuthKeyLocation
+    } = node.data || {};
 
-    // Use the original service's REST API executor logic
-    // This requires access to the RestApiExecutorService
+    if (!apiUrl) {
+      this.logger.error('REST API URL not specified');
+      // Find error edge
+      const errorNode = this.findNextNode(context.chatbot, node.id, 'error');
+      const nextNode = errorNode || this.findNextNode(context.chatbot, node.id);
 
-    // For now, emit a placeholder and find next node
-    const sourceHandle = 'success'; // Assume success for test
-    const nextNode = this.findNextNode(context.chatbot, node.id, sourceHandle);
-
-    if (!nextNode) {
-      // Try default edge
-      const defaultNode = this.findNextNode(context.chatbot, node.id);
-      if (defaultNode) {
-        context.nodeHistory.push(node.id);
-        context.currentNodeId = defaultNode.id;
-        await this.contextRepo.save(context);
-
-        return {
-          success: true,
-          output: { skipped: true, reason: 'Test mode - API call simulated' },
-          nextNodeId: defaultNode.id,
-        };
+      context.nodeHistory.push(node.id);
+      if (nextNode) {
+        context.currentNodeId = nextNode.id;
       }
+      await this.contextRepo.save(context);
+
+      return {
+        success: false,
+        output: { error: 'REST API URL is required' },
+        nextNodeId: nextNode?.id || null,
+      };
+    }
+
+    // Actually execute the REST API call
+    const result = await this.restApiExecutor.execute(
+      {
+        url: apiUrl,
+        method: apiMethod || 'GET',
+        headers: apiHeaders,
+        body: apiBody,
+        timeout: apiTimeout,
+        responsePath: apiResponsePath,
+        contentType: apiContentType,
+        filterField: apiFilterField,
+        filterValue: apiFilterValue,
+        authType: apiAuthType,
+        authToken: apiAuthToken,
+        authUsername: apiAuthUsername,
+        authPassword: apiAuthPassword,
+        authKeyName: apiAuthKeyName,
+        authKeyValue: apiAuthKeyValue,
+        authKeyLocation: apiAuthKeyLocation,
+        queryParams: apiQueryParams,
+      },
+      context.variables,
+    );
+
+    // Calculate auto variable name (like production)
+    const nodeIndex = calculateNodeIndex(
+      context.chatbot.nodes,
+      context.nodeHistory,
+      node.id,
+      'rest_api',
+    );
+    const autoVarName = generateAutoVariableName('rest_api', nodeIndex);
+
+    // Store variables (like production)
+    const dataVarPath = getFullVariablePath('rest_api', nodeIndex, 'data');
+    const statusVarPath = getFullVariablePath('rest_api', nodeIndex, 'status');
+    const errorVarPath = getFullVariablePath('rest_api', nodeIndex, 'error');
+
+    // Store in context
+    context.variables[dataVarPath] = result.data;
+    context.variables[statusVarPath] = result.statusCode;
+    context.variables[errorVarPath] = result.error || null;
+    context.variables['__last_api_status__'] = result.statusCode;
+
+    if (!result.success) {
+      context.variables['__last_api_error__'] = result.error;
+    }
+
+    this.logger.log(`Test: REST API saved to ${autoVarName}: ${typeof result.data === 'string' ? result.data.substring(0, 50) : JSON.stringify(result.data).substring(0, 100)}`);
+
+    // Emit variable changes via WebSocket (key, oldValue, newValue, source)
+    this.testSessionGateway.emitVariableChanged(context.id, dataVarPath, undefined, result.data, 'api');
+    this.testSessionGateway.emitVariableChanged(context.id, statusVarPath, undefined, result.statusCode, 'api');
+    this.testSessionGateway.emitVariableChanged(context.id, errorVarPath, undefined, result.error || null, 'api');
+
+    // Find next node based on success/error
+    const sourceHandle = result.success ? 'success' : 'error';
+    let nextNode = this.findNextNode(context.chatbot, node.id, sourceHandle);
+
+    // Fallback to default edge if no specific handle found
+    if (!nextNode) {
+      nextNode = this.findNextNode(context.chatbot, node.id);
     }
 
     // Update context
     context.nodeHistory.push(node.id);
-    context.currentNodeId = nextNode?.id || null;
+    if (nextNode) {
+      context.currentNodeId = nextNode.id;
+    }
     await this.contextRepo.save(context);
 
     return {
-      success: true,
-      output: { skipped: true, reason: 'Test mode - API call simulated' },
+      success: result.success,
+      output: {
+        data: result.data,
+        statusCode: result.statusCode,
+        error: result.error,
+        responseTime: result.responseTime,
+        outputVariable: autoVarName,
+      },
       nextNodeId: nextNode?.id || null,
     };
   }
@@ -729,7 +836,9 @@ export class TestExecutionAdapterService {
 
     // Update context
     context.nodeHistory.push(node.id);
-    context.currentNodeId = nextNode?.id || null;
+    if (nextNode) {
+      context.currentNodeId = nextNode.id;
+    }
     await this.contextRepo.save(context);
 
     return {
@@ -853,7 +962,9 @@ export class TestExecutionAdapterService {
 
     // Update context
     context.nodeHistory.push(currentNode.id);
-    context.currentNodeId = nextNode?.id || null;
+    if (nextNode) {
+      context.currentNodeId = nextNode.id;
+    }
     context.status = 'running';
     await this.contextRepo.save(context);
 
@@ -928,7 +1039,9 @@ export class TestExecutionAdapterService {
 
     // Update context
     context.nodeHistory.push(currentNode.id);
-    context.currentNodeId = nextNode?.id || null;
+    if (nextNode) {
+      context.currentNodeId = nextNode.id;
+    }
     context.status = 'running';
     await this.contextRepo.save(context);
 
@@ -1071,15 +1184,25 @@ export class TestExecutionAdapterService {
 
   /**
    * Replace variables in text
+   * Supports:
+   * - Simple: {{variable}}
+   * - Nested: {{product.name}}
+   * - Array access: {{rest_api_1.data[0]}}
+   * - Array + nested: {{rest_api_1.data[0].name}}
    */
   private replaceVariables(
     text: string,
     variables: Record<string, any>,
   ): string {
-    return text.replace(/\{\{([\w.]+)\}\}/g, (match, varPath) => {
+    // Updated regex to support array notation: [\w.\[\]]+
+    return text.replace(/\{\{([\w.\[\]]+)\}\}/g, (match, varPath) => {
       const value = this.getNestedValue(variables, varPath);
       if (value === undefined || value === null) {
         return match;
+      }
+      // Handle arrays and objects - stringify them
+      if (Array.isArray(value) || typeof value === 'object') {
+        return JSON.stringify(value);
       }
       return String(value);
     });
@@ -1087,8 +1210,50 @@ export class TestExecutionAdapterService {
 
   /**
    * Get nested value from object using dot notation
+   * e.g., getNestedValue({product: {name: 'Test'}}, 'product.name') => 'Test'
+   * Also supports flat keys like 'rest_api_1.data' stored directly in variables
+   * And array notation like 'rest_api_1.data[0].name'
    */
   private getNestedValue(obj: Record<string, any>, path: string): any {
+    // First, try flat key lookup (for auto-generated variables like 'rest_api_1.data')
+    if (obj[path] !== undefined) {
+      return obj[path];
+    }
+
+    // Check if path contains array notation with more parts after it
+    // e.g., 'rest_api_1.data[0].name' -> try 'rest_api_1.data' first, then '[0].name'
+    const arrayAccessMatch = path.match(/^([\w.]+)\[(\d+)\](.*)$/);
+    if (arrayAccessMatch) {
+      const [, basePath, indexStr, remainder] = arrayAccessMatch;
+      const index = parseInt(indexStr);
+
+      // Get the base value (might be a flat key like 'rest_api_1.data')
+      let baseValue = obj[basePath];
+      if (baseValue === undefined) {
+        // Try nested lookup for base path
+        baseValue = this.getNestedValueSimple(obj, basePath);
+      }
+
+      if (Array.isArray(baseValue) && baseValue[index] !== undefined) {
+        const arrayElement = baseValue[index];
+        // If there's more path after the array access
+        if (remainder && remainder.startsWith('.')) {
+          const remainingPath = remainder.substring(1); // Remove leading dot
+          return this.getNestedValueSimple(arrayElement, remainingPath);
+        }
+        return arrayElement;
+      }
+      return undefined;
+    }
+
+    // Standard nested path lookup
+    return this.getNestedValueSimple(obj, path);
+  }
+
+  /**
+   * Simple nested value lookup without flat key support
+   */
+  private getNestedValueSimple(obj: any, path: string): any {
     const parts = path.split('.');
     let current: any = obj;
 
@@ -1096,7 +1261,13 @@ export class TestExecutionAdapterService {
       if (current === undefined || current === null) {
         return undefined;
       }
-      current = current[part];
+      // Handle array index notation like items[0]
+      const arrayMatch = part.match(/^(\w+)\[(\d+)\]$/);
+      if (arrayMatch) {
+        current = current[arrayMatch[1]]?.[parseInt(arrayMatch[2])];
+      } else {
+        current = current[part];
+      }
     }
 
     return current;
