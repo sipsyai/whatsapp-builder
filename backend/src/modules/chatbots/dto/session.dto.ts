@@ -86,6 +86,35 @@ export class MessageDto {
   createdAt: Date;
 }
 
+// TestMetadata DTO
+export class TestMetadataDto {
+  @ApiProperty({ description: 'User ID who started the test', example: '123e4567-e89b-12d3-a456-426614174000' })
+  @IsUUID()
+  selectedUserId: string;
+
+  @ApiProperty({ description: 'Simulated phone number', example: '+905551234567' })
+  @IsString()
+  testPhoneNumber: string;
+
+  @ApiProperty({ description: 'Test started at', example: '2025-11-25T10:00:00Z' })
+  @IsString()
+  startedAt: string;
+
+  @ApiProperty({ description: 'Test mode', enum: ['simulate', 'live'], example: 'simulate' })
+  @IsString()
+  testMode: 'simulate' | 'live';
+
+  @ApiPropertyOptional({ description: 'Test notes', example: 'Testing new flow' })
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @ApiPropertyOptional({ description: 'User agent', example: 'Mozilla/5.0...' })
+  @IsOptional()
+  @IsString()
+  userAgent?: string;
+}
+
 // ChatbotSessionDto - for list views
 export class ChatbotSessionDto {
   @ApiProperty({ description: 'Context ID', example: '123e4567-e89b-12d3-a456-426614174000' })
@@ -151,6 +180,15 @@ export class ChatbotSessionDto {
   @ApiProperty({ description: 'Whether session is active', example: true })
   @IsBoolean()
   isActive: boolean;
+
+  @ApiProperty({ description: 'Whether this is a test session', example: false })
+  @IsBoolean()
+  isTestSession: boolean;
+
+  @ApiPropertyOptional({ description: 'Test metadata (only for test sessions)', type: TestMetadataDto, nullable: true })
+  @IsOptional()
+  @Type(() => TestMetadataDto)
+  testMetadata: TestMetadataDto | null;
 }
 
 // ChatbotSessionDetailDto - extends ChatbotSessionDto for detail views
@@ -290,6 +328,26 @@ export class QuerySessionsDto {
   @Type(() => Date)
   @IsDate()
   endDate?: Date;
+
+  @ApiPropertyOptional({
+    description: 'Include test sessions in results (default: false)',
+    example: false,
+    default: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  includeTestSessions?: boolean = false;
+
+  @ApiPropertyOptional({
+    description: 'Show only test sessions (default: false)',
+    example: false,
+    default: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  onlyTestSessions?: boolean = false;
 }
 
 // PaginatedSessionsDto - response with pagination metadata

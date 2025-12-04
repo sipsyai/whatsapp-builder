@@ -312,32 +312,67 @@ https://api.example.com/products?page=6
 
 ## Response Handling
 
-### Storing Full Response
+### Auto-Generated Output Variables
 
-If `apiOutputVariable` is set without `apiResponsePath`, the entire response is stored:
+REST API node output variables are **automatically generated** based on flow order. No manual configuration is needed.
+
+| Output | Variable Format | Description |
+|--------|-----------------|-------------|
+| Success Data | `rest_api_N.data` | API response (after JSON path extraction if configured) |
+| Error Message | `rest_api_N.error` | Error message if request failed |
+| Status Code | `rest_api_N.status` | HTTP status code (number) |
+
+Where `N` is the 1-based index of this REST API node in the flow (determined by topological sort).
+
+**Example:** For the 2nd REST API node in the flow:
+- `{{rest_api_2.data}}` - Response data
+- `{{rest_api_2.error}}` - Error message
+- `{{rest_api_2.status}}` - HTTP status code
+
+### Accessing Array Data
+
+When the API returns an array, you can access specific elements using bracket notation:
 
 **API Response:**
 ```json
 {
   "status": "success",
   "data": {
-    "items": [{"id": 1, "name": "Product 1"}]
+    "items": [
+      {"id": 1, "name": "Product A", "price": 100},
+      {"id": 2, "name": "Product B", "price": 200}
+    ]
   }
 }
 ```
 
-**Node Configuration:**
+**With `apiResponsePath: "data.items"`:**
+
+| Template | Result |
+|----------|--------|
+| `{{rest_api_1.data}}` | Entire array (auto-formatted for display) |
+| `{{rest_api_1.data[0]}}` | First item object |
+| `{{rest_api_1.data[0].name}}` | `"Product A"` |
+| `{{rest_api_1.data[1].price}}` | `200` |
+| `{{rest_api_1.status}}` | `200` |
+
+### Variable Storage (Flat Keys)
+
+**Important:** Auto-generated variables are stored as **flat keys**, not nested objects:
+
 ```json
 {
-  "apiOutputVariable": "api_result"
+  "rest_api_1.data": [{"id": 1, "name": "Product A"}],
+  "rest_api_1.status": 200,
+  "rest_api_1.error": null
 }
 ```
 
-**Result:** `api_result` contains the full response object.
+The variable substitution system handles this automatically by performing flat key lookup first.
 
 ### Extracting with Response Path
 
-Use `apiResponsePath` to extract specific parts of the response.
+Use `apiResponsePath` to extract specific parts of the response before storing.
 
 **API Response:**
 ```json
@@ -355,18 +390,23 @@ Use `apiResponsePath` to extract specific parts of the response.
 **Node Configuration:**
 ```json
 {
-  "apiOutputVariable": "categories",
   "apiResponsePath": "data.categories"
 }
 ```
 
-**Result:** `categories` contains:
+**Result:** `rest_api_1.data` contains:
 ```json
 [
   {"id": "cat1", "name": "Electronics"},
   {"id": "cat2", "name": "Clothing"}
 ]
 ```
+
+**Accessing in Messages:**
+```
+First category: {{rest_api_1.data[0].name}}
+```
+Output: `First category: Electronics`
 
 ### Complex Path Extraction
 
@@ -839,11 +879,20 @@ Error 500: Internal server error at line 234
 
 ---
 
-**Last Updated**: 2025-12-03
-**Document Version**: 2.0
+**Last Updated**: 2025-12-04
+**Document Version**: 2.1
+
+**Version History**:
+| Version | Date | Changes |
+|---------|------|---------|
+| 2.0 | 2025-12-03 | Auto-generated output variables |
+| 2.1 | 2025-12-04 | Array notation support, flat key fix documentation |
+
 **Related**:
 - [08-examples.md](./08-examples.md) for complete chatbot examples
+- [03-chatbot-variables.md](./03-chatbot-variables.md) for variable system details
 - Backend: `/backend/src/modules/chatbots/services/rest-api-executor.service.ts`
+- Backend: `/backend/src/modules/chatbots/services/chatbot-execution.service.ts`
 - Frontend: `/frontend/src/features/builder/components/ConfigRestApi.tsx`
 - Test Endpoint: `POST /api/chatbots/test-rest-api`
 - Types: `/frontend/src/shared/types/index.ts`

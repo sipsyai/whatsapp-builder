@@ -18,7 +18,11 @@ import { QuestionTypeModal } from "./QuestionTypeModal";
 import { ConfigMessage, ConfigQuestion, ConfigCondition, ConfigWhatsAppFlow } from "./ConfigModals";
 import { ConfigRestApi } from "./ConfigRestApi";
 import { ConfigGoogleCalendar } from "./ConfigGoogleCalendar";
-import { FlowTester } from "./FlowTester";
+import { TesterPanel } from "../../chatbot-tester/components/TesterPanel";
+import { useTestExecution } from "../hooks/useTestExecution";
+import { AnimatedTestEdge } from "../../edges/AnimatedTestEdge";
+import { TestProgressMiniMap } from "./TestProgressMiniMap";
+import "../styles/test-mode.css";
 import type { NodeDataType } from "../../../shared/types";
 import type { ChatBot } from "../../chatbots/api";
 import { validateFlow, type ValidationError } from "../utils/flowValidation";
@@ -37,6 +41,7 @@ const nodeTypes = {
 
 const edgeTypes = {
     deletable: DeletableEdge,
+    animatedTest: AnimatedTestEdge,
 };
 
 interface BuilderPageProps {
@@ -73,7 +78,16 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
     const [showValidationPanel, setShowValidationPanel] = useState(false);
 
     // Test Mode State
-    const [testMode, setTestMode] = useState(false);
+    const [isTesterPanelOpen, setIsTesterPanelOpen] = useState(false);
+
+    // Test Execution Hook (for ReactFlow visualization)
+    const {
+        executionState,
+        setTestMode: setExecutionTestMode,
+        getEnhancedNodes,
+        getEnhancedEdges,
+        resetExecution,
+    } = useTestExecution(nodes, edges);
 
     // Auto Layout State
     const [isLayouting, setIsLayouting] = useState(false);
@@ -457,11 +471,18 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
                         <span className="material-symbols-outlined text-sm">chat</span> Preview
                     </button>
                     <button
-                        onClick={() => setTestMode(!testMode)}
-                        className={`px-4 py-2 ${testMode ? 'bg-primary text-[#112217]' : 'bg-orange-600 text-white'} rounded-lg flex items-center gap-2 text-sm font-bold hover:opacity-90 transition-all`}
+                        onClick={() => {
+                            if (currentFlowId) {
+                                setIsTesterPanelOpen(true);
+                                setExecutionTestMode(true);
+                            } else {
+                                alert('Please save the flow first before testing.');
+                            }
+                        }}
+                        className={`px-4 py-2 ${isTesterPanelOpen ? 'bg-primary text-[#112217]' : 'bg-orange-600 text-white'} rounded-lg flex items-center gap-2 text-sm font-bold hover:opacity-90 transition-all`}
                     >
-                        <span className="material-symbols-outlined text-sm">{testMode ? 'edit' : 'science'}</span>
-                        {testMode ? 'Edit Mode' : 'Test Mode'}
+                        <span className="material-symbols-outlined text-sm">{isTesterPanelOpen ? 'close' : 'science'}</span>
+                        {isTesterPanelOpen ? 'Close Tester' : 'Test Bot'}
                     </button>
                     <button
                         onClick={() => {
@@ -529,17 +550,9 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
             </header>
 
             <div className="flex flex-1 overflow-hidden">
-                {/* Test Mode Full Screen */}
-                {testMode ? (
-                    <FlowTester
-                        flowId={currentFlowId || 'new-flow'}
-                        nodes={nodes}
-                        edges={edges}
-                    />
-                ) : (
-                    <>
-                        {/* Sidebar */}
-                        <aside className="w-72 bg-background border-r border-[#23482f] p-4 z-10 overflow-y-auto">
+                {/* Sidebar - hidden when tester panel is open for more space */}
+                {!isTesterPanelOpen && (
+                    <aside className="w-72 bg-background border-r border-[#23482f] p-4 z-10 overflow-y-auto">
                     {/* Flow Info Section */}
                     <div className="mb-6 pb-4 border-b border-zinc-700">
                         <h3 className="text-sm font-bold text-gray-500 mb-3 uppercase tracking-wider">Flow Details</h3>
@@ -640,36 +653,49 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
                         </p>
                     </div>
                 </aside>
+                )}
 
                 {/* React Flow Canvas */}
                 <div className="flex-1 h-full" ref={reactFlowWrapper}>
                     <ReactFlow
-                        nodes={nodesWithHandler}
-                        edges={edges}
-                        onNodesChange={onNodesChange}
-                        onEdgesChange={onEdgesChange}
-                        onConnect={onConnect}
+                        nodes={isTesterPanelOpen ? getEnhancedNodes() : nodesWithHandler}
+                        edges={isTesterPanelOpen ? getEnhancedEdges() : edges}
+                        onNodesChange={isTesterPanelOpen ? undefined : onNodesChange}
+                        onEdgesChange={isTesterPanelOpen ? undefined : onEdgesChange}
+                        onConnect={isTesterPanelOpen ? undefined : onConnect}
                         onInit={setReactFlowInstance}
-                        onDrop={onDrop}
-                        onDragOver={onDragOver}
-                        onNodeClick={onNodeClick}
+                        onDrop={isTesterPanelOpen ? undefined : onDrop}
+                        onDragOver={isTesterPanelOpen ? undefined : onDragOver}
+                        onNodeClick={isTesterPanelOpen ? undefined : onNodeClick}
                         nodeTypes={nodeTypes}
                         edgeTypes={edgeTypes}
-                        defaultEdgeOptions={{ type: 'deletable' }}
-                        isValidConnection={isValidConnection}
+                        defaultEdgeOptions={{ type: isTesterPanelOpen ? 'animatedTest' : 'deletable' }}
+                        isValidConnection={isTesterPanelOpen ? undefined : isValidConnection}
+                        nodesDraggable={!isTesterPanelOpen}
+                        nodesConnectable={!isTesterPanelOpen}
+                        elementsSelectable={!isTesterPanelOpen}
                         fitView
                         minZoom={0.5}
                         maxZoom={2}
                         panOnScroll={false}
                         zoomOnDoubleClick={true}
-                        className="bg-[#0a160e]"
+                        className={`bg-[#0a160e] ${isTesterPanelOpen ? 'test-mode-active' : ''}`}
                     >
-                        <Background color="#333" gap={20} />
+                        <Background color={isTesterPanelOpen ? "#1a472a" : "#333"} gap={20} />
                         <Controls />
+                        {/* Show TestProgressMiniMap when tester is open */}
+                        {isTesterPanelOpen && (
+                            <TestProgressMiniMap
+                                executionState={{
+                                    currentNodeId: executionState.currentNodeId,
+                                    executedNodeIds: executionState.executedNodeIds,
+                                    totalNodes: nodes.length,
+                                    status: executionState.status === 'waiting' ? 'paused' : executionState.status,
+                                }}
+                            />
+                        )}
                     </ReactFlow>
                 </div>
-                    </>
-                )}
             </div>
 
             {/* Overlays */}
@@ -775,6 +801,20 @@ export const BuilderPage = ({ onSwitchToChat, initialFlow, onFlowSaved }: Builde
                         </button>
                     </div>
                 </div>
+            )}
+
+            {/* Tester Panel - Side Drawer */}
+            {currentFlowId && (
+                <TesterPanel
+                    chatbotId={currentFlowId}
+                    chatbotName={currentFlowName}
+                    isOpen={isTesterPanelOpen}
+                    onClose={() => {
+                        setIsTesterPanelOpen(false);
+                        setExecutionTestMode(false);
+                        resetExecution();
+                    }}
+                />
             )}
 
         </div>

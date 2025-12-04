@@ -84,18 +84,9 @@ export const validateFlow = (
   });
 
   // 4. Variable name check (for Question nodes)
-  nodes.forEach(node => {
-    if (node.type === 'question') {
-      const variable = node.data.variable as string | undefined;
-      if (!variable || variable.trim() === '') {
-        errors.push({
-          nodeId: node.id,
-          message: 'Question node must have a variable name',
-          severity: 'error'
-        });
-      }
-    }
-  });
+  // NOTE: Variable names are now auto-generated based on node type and topological order
+  // Format: question_N.response where N is the index in flow order
+  // No manual variable input required - validation skipped
 
   // 5. Button/List content validation
   nodes.forEach(node => {

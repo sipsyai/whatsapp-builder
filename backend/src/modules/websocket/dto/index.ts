@@ -6,3 +6,4 @@ export * from './session-started.dto';
 export * from './session-status.dto';
 export * from './session-completed.dto';
 export * from './join-session.dto';
+export * from './test-session.dto';

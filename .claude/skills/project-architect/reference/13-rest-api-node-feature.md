@@ -123,6 +123,15 @@ interface RestApiResult {
 
 ### RestApiExecutorService.replaceVariables()
 
+**Regex Pattern (Updated)**:
+```typescript
+// Old regex (did not support array brackets)
+/\{\{([\w.]+)\}\}/g
+
+// New regex (supports array brackets)
+/\{\{([\w.\[\]]+)\}\}/g
+```
+
 **Supported Patterns**:
 ```typescript
 // Simple variable
@@ -131,8 +140,15 @@ interface RestApiResult {
 // Nested path
 {{user.profile.email}} → "john@example.com"
 
-// Array access
-{{items[0].title}} → "First Item"
+// Flat key (auto-generated variables)
+{{rest_api_1.data}} → entire API response
+{{rest_api_1.status}} → 200
+{{question_1.response}} → "user input"
+
+// Array access with flat keys
+{{rest_api_1.data[0]}} → first element
+{{rest_api_1.data[0].name}} → "Product A"
+{{rest_api_1.data[1].price}} → 200
 
 // Math expressions
 {{page + 1}} → 3 (if page=2)
@@ -140,12 +156,19 @@ interface RestApiResult {
 {{index - 1}} → 4 (if index=5)
 ```
 
-**Implementation**: Uses regex and `eval()` for math (sandboxed to variables only)
+**Implementation**: Uses regex with flat key lookup first, then nested path resolution
+
+**Flat Key vs Nested Path Resolution**:
+Auto-generated variables are stored as flat keys (e.g., `"rest_api_1.data": [...]`), not nested objects. The `getNestedValue` function handles this by:
+1. First trying flat key lookup
+2. Then handling array notation
+3. Finally trying nested path resolution
 
 **Used In**:
 - URL: `https://api.example.com/users/{{userId}}/posts`
 - Headers: `Authorization: Bearer {{accessToken}}`
 - Body: `{"page": {{page + 1}}, "email": "{{user.email}}"}`
+- Messages: `First product: {{rest_api_1.data[0].name}}`
 
 ---
 
@@ -541,6 +564,16 @@ content: "Error: {{rest_api_1.error}}"
 - `OutputVariableBadge` component shows all available outputs
 - Index calculated using topological sort (Kahn's algorithm)
 - Copy buttons for easy variable reference
+
+### New in Version 2.2.1 (Bug Fix + Array Notation)
+- **Bug Fix**: Flat key lookup added to `getNestedValue` function
+  - Auto-generated variables like `rest_api_1.data` are stored as flat keys
+  - Old code tried nested path resolution (looking for `rest_api_1.data` property)
+  - New code first checks if exact path exists as a flat key
+- **Array Notation**: Added array bracket support in variable templates
+  - Updated regex: `/\{\{([\w.\[\]]+)\}\}/g`
+  - Supports: `{{rest_api_1.data[0]}}`, `{{rest_api_1.data[0].name}}`
+  - Works with flat key base path + array index + optional property chain
 
 ### Integration Points
 - **ChatBot Execution**: `processRestApiNode()` in flow

@@ -22,6 +22,7 @@ import { HealthModule } from './modules/health/health.module';
 import { DataSourcesModule } from './modules/data-sources/data-sources.module';
 import { GoogleOAuthModule } from './modules/google-oauth/google-oauth.module';
 import { CalendarModule } from './modules/calendar/calendar.module';
+import { ChatbotTestingModule } from './modules/chatbot-testing/chatbot-testing.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { CalendarModule } from './modules/calendar/calendar.module';
     DataSourcesModule,
     GoogleOAuthModule,
     CalendarModule,
+    ChatbotTestingModule,
   ],
   controllers: [AppController],
   providers: [

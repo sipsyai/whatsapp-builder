@@ -1,0 +1,585 @@
+/**
+ * ReactFlow Test Mode Styles
+ *
+ * Node states, edge states, animations, and test mode overlays
+ * Compatible with Tailwind CSS and dark mode
+ */
+
+/* ============================================
+   CSS Variables (Tailwind Compatible)
+   ============================================ */
+:root {
+  /* Node state colors */
+  --test-mode-current: #f59e0b;
+  --test-mode-current-glow: rgba(245, 158, 11, 0.4);
+  --test-mode-executed: #22c55e;
+  --test-mode-executed-glow: rgba(34, 197, 94, 0.3);
+  --test-mode-pending: #9ca3af;
+  --test-mode-waiting: #3b82f6;
+  --test-mode-waiting-glow: rgba(59, 130, 246, 0.4);
+  --test-mode-error: #ef4444;
+  --test-mode-error-glow: rgba(239, 68, 68, 0.4);
+
+  /* Edge colors */
+  --test-mode-edge-executed: #22c55e;
+  --test-mode-edge-pending: #6b7280;
+  --test-mode-edge-animating: #3b82f6;
+
+  /* Badge colors */
+  --test-mode-badge-running-bg: #fef3c7;
+  --test-mode-badge-running-text: #92400e;
+  --test-mode-badge-completed-bg: #dcfce7;
+  --test-mode-badge-completed-text: #166534;
+  --test-mode-badge-error-bg: #fee2e2;
+  --test-mode-badge-error-text: #991b1b;
+  --test-mode-badge-waiting-bg: #dbeafe;
+  --test-mode-badge-waiting-text: #1e40af;
+}
+
+/* Dark mode variables */
+.dark {
+  --test-mode-current: #fbbf24;
+  --test-mode-current-glow: rgba(251, 191, 36, 0.5);
+  --test-mode-executed: #4ade80;
+  --test-mode-executed-glow: rgba(74, 222, 128, 0.4);
+  --test-mode-pending: #6b7280;
+  --test-mode-waiting: #60a5fa;
+  --test-mode-waiting-glow: rgba(96, 165, 250, 0.5);
+  --test-mode-error: #f87171;
+  --test-mode-error-glow: rgba(248, 113, 113, 0.5);
+
+  --test-mode-edge-executed: #4ade80;
+  --test-mode-edge-pending: #4b5563;
+  --test-mode-edge-animating: #60a5fa;
+
+  --test-mode-badge-running-bg: #422006;
+  --test-mode-badge-running-text: #fcd34d;
+  --test-mode-badge-completed-bg: #052e16;
+  --test-mode-badge-completed-text: #86efac;
+  --test-mode-badge-error-bg: #450a0a;
+  --test-mode-badge-error-text: #fca5a5;
+  --test-mode-badge-waiting-bg: #172554;
+  --test-mode-badge-waiting-text: #93c5fd;
+}
+
+/* ============================================
+   Node States
+   ============================================ */
+
+/* Current Node - Amber border with pulse animation */
+.node-current {
+  border: 2px solid var(--test-mode-current) !important;
+  box-shadow: 0 0 0 4px var(--test-mode-current-glow);
+  animation: pulseBorder 1.5s ease-in-out infinite;
+  position: relative;
+  z-index: 10;
+}
+
+.node-current::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 2px solid var(--test-mode-current);
+  opacity: 0;
+  animation: pulseRing 1.5s ease-in-out infinite;
+}
+
+/* Executed Node - Green border with checkmark indicator */
+.node-executed {
+  border: 2px solid var(--test-mode-executed) !important;
+  box-shadow: 0 0 0 2px var(--test-mode-executed-glow);
+  position: relative;
+}
+
+.node-executed::after {
+  content: '';
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 20px;
+  height: 20px;
+  background-color: var(--test-mode-executed);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white' width='14' height='14'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 14px 14px;
+  z-index: 20;
+}
+
+/* Pending Node - Reduced opacity and grayscale */
+.node-pending {
+  opacity: 0.5;
+  filter: grayscale(0.6);
+  border: 2px dashed var(--test-mode-pending) !important;
+  transition: opacity 0.3s ease, filter 0.3s ease;
+}
+
+.node-pending:hover {
+  opacity: 0.7;
+  filter: grayscale(0.3);
+}
+
+/* Waiting Node - Blue border with waiting pulse */
+.node-waiting {
+  border: 2px solid var(--test-mode-waiting) !important;
+  animation: waitingPulse 2s ease-in-out infinite;
+  position: relative;
+}
+
+.node-waiting::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% + 16px);
+  height: calc(100% + 16px);
+  border: 2px solid var(--test-mode-waiting);
+  border-radius: inherit;
+  opacity: 0;
+  animation: waitingRipple 2s ease-out infinite;
+}
+
+/* Error Node - Red border with error indicator */
+.node-error {
+  border: 2px solid var(--test-mode-error) !important;
+  box-shadow: 0 0 0 4px var(--test-mode-error-glow);
+  animation: errorShake 0.5s ease-in-out;
+  position: relative;
+}
+
+.node-error::after {
+  content: '';
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 20px;
+  height: 20px;
+  background-color: var(--test-mode-error);
+  border-radius: 50%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white' width='14' height='14'%3E%3Cpath d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 14px 14px;
+  z-index: 20;
+}
+
+/* ============================================
+   Animations
+   ============================================ */
+
+/* Pulse Border Animation - Scale pulse for current node */
+@keyframes pulseBorder {
+  0%, 100% {
+    box-shadow: 0 0 0 4px var(--test-mode-current-glow);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 8px var(--test-mode-current-glow);
+    transform: scale(1.01);
+  }
+}
+
+/* Pulse Ring Animation - Expanding ring effect */
+@keyframes pulseRing {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.15);
+    opacity: 0;
+  }
+}
+
+/* Waiting Pulse Animation - Box-shadow pulse for waiting node */
+@keyframes waitingPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 2px var(--test-mode-waiting-glow);
+  }
+  50% {
+    box-shadow: 0 0 0 6px var(--test-mode-waiting-glow);
+  }
+}
+
+/* Waiting Ripple Animation - Expanding border effect */
+@keyframes waitingRipple {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.4;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 0;
+  }
+}
+
+/* Error Shake Animation */
+@keyframes errorShake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-4px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(4px);
+  }
+}
+
+/* Flow Particle Animation for edges */
+@keyframes flowParticle {
+  0% {
+    stroke-dashoffset: 24;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================
+   Edge States
+   ============================================ */
+
+/* Executed Edge - Green, solid */
+.edge-executed {
+  stroke: var(--test-mode-edge-executed) !important;
+  stroke-width: 2px;
+  stroke-dasharray: none;
+  filter: drop-shadow(0 0 2px var(--test-mode-executed-glow));
+}
+
+.edge-executed .react-flow__edge-path {
+  stroke: var(--test-mode-edge-executed) !important;
+  stroke-width: 2px;
+}
+
+/* Pending Edge - Gray, dashed */
+.edge-pending {
+  stroke: var(--test-mode-edge-pending) !important;
+  stroke-width: 1.5px;
+  stroke-dasharray: 5 5;
+  opacity: 0.6;
+}
+
+.edge-pending .react-flow__edge-path {
+  stroke: var(--test-mode-edge-pending) !important;
+  stroke-dasharray: 5 5;
+}
+
+/* Animating Edge - Flow particle animation */
+.edge-animating {
+  stroke: var(--test-mode-edge-animating) !important;
+  stroke-width: 2px;
+  stroke-dasharray: 8 8;
+  animation: flowParticle 0.8s linear infinite;
+  filter: drop-shadow(0 0 3px var(--test-mode-waiting-glow));
+}
+
+.edge-animating .react-flow__edge-path {
+  stroke: var(--test-mode-edge-animating) !important;
+  stroke-width: 2.5px;
+  stroke-dasharray: 8 8;
+  animation: flowParticle 0.8s linear infinite;
+}
+
+/* Edge arrow markers */
+.edge-executed marker path {
+  fill: var(--test-mode-edge-executed);
+}
+
+.edge-animating marker path {
+  fill: var(--test-mode-edge-animating);
+}
+
+/* ============================================
+   Test Mode Badge
+   ============================================ */
+
+.test-mode-badge {
+  position: absolute;
+  top: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  white-space: nowrap;
+  z-index: 30;
+  animation: fadeIn 0.2s ease-out;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Running badge */
+.test-mode-badge--running {
+  background-color: var(--test-mode-badge-running-bg);
+  color: var(--test-mode-badge-running-text);
+  border: 1px solid var(--test-mode-current);
+}
+
+.test-mode-badge--running::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  background-color: var(--test-mode-current);
+  border-radius: 50%;
+  animation: pulseDot 1s ease-in-out infinite;
+}
+
+/* Completed badge */
+.test-mode-badge--completed {
+  background-color: var(--test-mode-badge-completed-bg);
+  color: var(--test-mode-badge-completed-text);
+  border: 1px solid var(--test-mode-executed);
+}
+
+.test-mode-badge--completed::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2322c55e' width='12' height='12'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+/* Waiting badge */
+.test-mode-badge--waiting {
+  background-color: var(--test-mode-badge-waiting-bg);
+  color: var(--test-mode-badge-waiting-text);
+  border: 1px solid var(--test-mode-waiting);
+}
+
+.test-mode-badge--waiting::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--test-mode-waiting);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spinLoader 1s linear infinite;
+}
+
+/* Error badge */
+.test-mode-badge--error {
+  background-color: var(--test-mode-badge-error-bg);
+  color: var(--test-mode-badge-error-text);
+  border: 1px solid var(--test-mode-error);
+}
+
+.test-mode-badge--error::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ef4444' width='12' height='12'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+/* Badge animations */
+@keyframes pulseDot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
+}
+
+@keyframes spinLoader {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============================================
+   Test Mode Container Styles
+   ============================================ */
+
+.test-mode-active .react-flow__node {
+  transition: border-color 0.3s ease,
+              box-shadow 0.3s ease,
+              opacity 0.3s ease,
+              filter 0.3s ease;
+}
+
+.test-mode-active .react-flow__edge {
+  transition: stroke 0.3s ease,
+              stroke-dasharray 0.3s ease,
+              opacity 0.3s ease;
+}
+
+/* Test mode panel overlay */
+.test-mode-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* Test mode info panel */
+.test-mode-info-panel {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(255, 255, 255, 0.95);
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  z-index: 50;
+  pointer-events: auto;
+}
+
+.dark .test-mode-info-panel {
+  background-color: rgba(31, 41, 55, 0.95);
+  border-color: #374151;
+}
+
+/* Test mode step counter */
+.test-mode-step-counter {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.dark .test-mode-step-counter {
+  color: #d1d5db;
+}
+
+/* Test mode progress bar */
+.test-mode-progress {
+  width: 200px;
+  height: 6px;
+  background-color: #e5e7eb;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.dark .test-mode-progress {
+  background-color: #374151;
+}
+
+.test-mode-progress-bar {
+  height: 100%;
+  background-color: var(--test-mode-executed);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* ============================================
+   Node Type Specific Adjustments
+   ============================================ */
+
+/* StartNode specific */
+.react-flow__node-start.node-current {
+  border-radius: 50%;
+}
+
+.react-flow__node-start.node-current::before {
+  border-radius: 50%;
+}
+
+/* ConditionNode specific - diamond shape adjustment */
+.react-flow__node-condition.node-current,
+.react-flow__node-condition.node-executed,
+.react-flow__node-condition.node-error {
+  transform: rotate(0deg);
+}
+
+/* WhatsAppFlowNode specific */
+.react-flow__node-whatsappFlow.node-waiting {
+  border-color: var(--test-mode-waiting) !important;
+}
+
+/* RestApiNode specific */
+.react-flow__node-restApi.node-waiting::after {
+  content: '';
+  position: absolute;
+  bottom: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: var(--test-mode-waiting);
+  white-space: nowrap;
+}
+
+/* ============================================
+   Reduced Motion Support
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .node-current,
+  .node-waiting,
+  .edge-animating,
+  .test-mode-badge--running::before,
+  .test-mode-badge--waiting::before {
+    animation: none;
+  }
+
+  .node-current {
+    box-shadow: 0 0 0 4px var(--test-mode-current-glow);
+  }
+
+  .node-waiting {
+    box-shadow: 0 0 0 4px var(--test-mode-waiting-glow);
+  }
+
+  .edge-animating {
+    stroke-dasharray: 8 8;
+  }
+}
+
+/* ============================================
+   High Contrast Mode Support
+   ============================================ */
+
+@media (forced-colors: active) {
+  .node-current,
+  .node-executed,
+  .node-waiting,
+  .node-error {
+    border-width: 3px !important;
+    forced-color-adjust: none;
+  }
+
+  .test-mode-badge {
+    border-width: 2px;
+  }
+}

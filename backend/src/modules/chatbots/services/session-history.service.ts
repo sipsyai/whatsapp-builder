@@ -59,6 +59,8 @@ export class SessionHistoryService {
         sortOrder = 'DESC',
         startDate,
         endDate,
+        includeTestSessions = false,
+        onlyTestSessions = false,
       } = query;
 
       // Build the base query
@@ -67,6 +69,20 @@ export class SessionHistoryService {
         .leftJoinAndSelect('context.chatbot', 'chatbot')
         .leftJoinAndSelect('context.conversation', 'conversation')
         .leftJoinAndSelect('conversation.participants', 'participants');
+
+      // Apply test session filter
+      if (onlyTestSessions) {
+        // Show only test sessions
+        queryBuilder.andWhere('context.isTestSession = :isTestSession', {
+          isTestSession: true,
+        });
+      } else if (!includeTestSessions) {
+        // Exclude test sessions (default behavior)
+        queryBuilder.andWhere('context.isTestSession = :isTestSession', {
+          isTestSession: false,
+        });
+      }
+      // If includeTestSessions is true, don't filter - show all sessions
 
       // Apply status filter
       if (status === SessionFilter.ACTIVE) {
@@ -155,16 +171,25 @@ export class SessionHistoryService {
   }
 
   /**
-   * Get all active sessions
+   * Get all active sessions (excludes test sessions by default)
    */
-  async getActiveSessions(): Promise<ChatbotSessionDto[]> {
+  async getActiveSessions(includeTestSessions = false): Promise<ChatbotSessionDto[]> {
     try {
-      const contexts = await this.contextRepository
+      const queryBuilder = this.contextRepository
         .createQueryBuilder('context')
         .leftJoinAndSelect('context.chatbot', 'chatbot')
         .leftJoinAndSelect('context.conversation', 'conversation')
         .leftJoinAndSelect('conversation.participants', 'participants')
-        .where('context.isActive = :isActive', { isActive: true })
+        .where('context.isActive = :isActive', { isActive: true });
+
+      // Exclude test sessions by default
+      if (!includeTestSessions) {
+        queryBuilder.andWhere('context.isTestSession = :isTestSession', {
+          isTestSession: false,
+        });
+      }
+
+      const contexts = await queryBuilder
         .orderBy('context.updatedAt', 'DESC')
         .getMany();
 
@@ -185,17 +210,26 @@ export class SessionHistoryService {
   }
 
   /**
-   * Get completed sessions with limit
+   * Get completed sessions with limit (excludes test sessions by default)
    */
-  async getCompletedSessions(limit: number = 50): Promise<ChatbotSessionDto[]> {
+  async getCompletedSessions(limit: number = 50, includeTestSessions = false): Promise<ChatbotSessionDto[]> {
     try {
-      const contexts = await this.contextRepository
+      const queryBuilder = this.contextRepository
         .createQueryBuilder('context')
         .leftJoinAndSelect('context.chatbot', 'chatbot')
         .leftJoinAndSelect('context.conversation', 'conversation')
         .leftJoinAndSelect('conversation.participants', 'participants')
         .where('context.isActive = :isActive', { isActive: false })
-        .andWhere('context.completedAt IS NOT NULL')
+        .andWhere('context.completedAt IS NOT NULL');
+
+      // Exclude test sessions by default
+      if (!includeTestSessions) {
+        queryBuilder.andWhere('context.isTestSession = :isTestSession', {
+          isTestSession: false,
+        });
+      }
+
+      const contexts = await queryBuilder
         .orderBy('context.completedAt', 'DESC')
         .limit(limit)
         .getMany();
@@ -239,10 +273,18 @@ export class SessionHistoryService {
       // Get message count
       const messageCount = await this.getSessionMessageCount(context);
 
-      // Get customer info
-      const customer = this.extractCustomerInfo(
-        context.conversation.participants,
-      );
+      // Get customer info (use testMetadata for test sessions)
+      let customer: { phone: string; name: string };
+      if (context.isTestSession && context.testMetadata) {
+        customer = {
+          phone: context.testMetadata.testPhoneNumber,
+          name: `Test User (${context.testMetadata.testMode})`,
+        };
+      } else {
+        customer = this.extractCustomerInfo(
+          context.conversation?.participants || [],
+        );
+      }
 
       // Get current node label
       const currentNodeLabel = this.getNodeLabel(
@@ -266,6 +308,8 @@ export class SessionHistoryService {
         nodeCount: context.nodeHistory?.length || 0,
         messageCount,
         isActive: context.isActive,
+        isTestSession: context.isTestSession,
+        testMetadata: context.testMetadata,
         nodeHistory: context.nodeHistory,
         variables: context.variables,
         messages,
@@ -416,7 +460,7 @@ export class SessionHistoryService {
   }
 
   /**
-   * Delete a session (only completed sessions can be deleted)
+   * Delete a session (test sessions can always be deleted, production sessions must be inactive)
    */
   async deleteSession(sessionId: string): Promise<void> {
     const queryRunner = this.dataSource.createQueryRunner();
@@ -432,10 +476,11 @@ export class SessionHistoryService {
         throw new NotFoundException(`Session with ID ${sessionId} not found`);
       }
 
-      // Only allow deleting completed/inactive sessions
-      if (context.isActive) {
+      // Test sessions can always be deleted (even if active)
+      // Production sessions can only be deleted when inactive
+      if (!context.isTestSession && context.isActive) {
         throw new BadRequestException(
-          'Cannot delete an active session. Please stop the session first.',
+          'Cannot delete an active production session. Please stop the session first.',
         );
       }
 
@@ -444,7 +489,8 @@ export class SessionHistoryService {
 
       await queryRunner.commitTransaction();
 
-      this.logger.log(`Deleted session ${sessionId}`);
+      const sessionType = context.isTestSession ? 'test' : 'production';
+      this.logger.log(`Deleted ${sessionType} session ${sessionId}`);
     } catch (error) {
       await queryRunner.rollbackTransaction();
       if (
@@ -491,9 +537,18 @@ export class SessionHistoryService {
     context: ConversationContext,
     messageCount: number,
   ): ChatbotSessionDto {
-    const customer = this.extractCustomerInfo(
-      context.conversation?.participants || [],
-    );
+    // For test sessions, use testMetadata for customer info
+    let customer: { phone: string; name: string };
+    if (context.isTestSession && context.testMetadata) {
+      customer = {
+        phone: context.testMetadata.testPhoneNumber,
+        name: `Test User (${context.testMetadata.testMode})`,
+      };
+    } else {
+      customer = this.extractCustomerInfo(
+        context.conversation?.participants || [],
+      );
+    }
 
     const currentNodeLabel = this.getNodeLabel(
       context.chatbot?.nodes || [],
@@ -516,6 +571,8 @@ export class SessionHistoryService {
       nodeCount: context.nodeHistory?.length || 0,
       messageCount,
       isActive: context.isActive,
+      isTestSession: context.isTestSession,
+      testMetadata: context.testMetadata,
     };
   }
 

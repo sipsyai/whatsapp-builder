@@ -310,3 +310,126 @@ The system maintains some backward compatibility:
 - Old node configurations with manual variable names are ignored
 - Variables are always generated automatically based on flow position
 - Legacy `variable` fields in NodeData are still present in type definitions but unused
+
+---
+
+## Variable Substitution Technical Details
+
+### Regex Pattern
+
+The variable substitution regex has been updated to support array notation:
+
+```typescript
+// Old regex (did not support array brackets)
+/\{\{([\w.]+)\}\}/g
+
+// New regex (supports array brackets)
+/\{\{([\w.\[\]]+)\}\}/g
+```
+
+**Supported Syntax:**
+- Simple: `{{variable_name}}`
+- Nested: `{{object.property}}`
+- Array index: `{{array[0]}}`
+- Combined: `{{rest_api_1.data[0].name}}`
+
+### Flat Key vs Nested Path Resolution (Bug Fix)
+
+**Problem (Fixed):** Auto-generated variables like `rest_api_1.data` are stored as **flat keys**, but the old `getNestedValue` function tried to resolve them as nested paths (looking for `rest_api_1` object with `data` property).
+
+**Solution:** The `getNestedValue` function now performs a **flat key lookup first** before attempting nested path resolution.
+
+```typescript
+// Variables stored as flat keys:
+{
+  "rest_api_1.data": [...],
+  "rest_api_1.status": 200,
+  "rest_api_1.error": null
+}
+
+// NOT as nested objects:
+{
+  "rest_api_1": {
+    "data": [...],
+    "status": 200,
+    "error": null
+  }
+}
+```
+
+### getNestedValue Algorithm
+
+```typescript
+private getNestedValue(obj: Record<string, any>, path: string): any {
+  // STEP 1: Try flat key lookup first (for auto-generated variables)
+  if (obj[path] !== undefined) {
+    return obj[path];
+  }
+
+  // STEP 2: Handle array notation with possible nested path after
+  // e.g., 'rest_api_1.data[0].name'
+  const arrayAccessMatch = path.match(/^([\w.]+)\[(\d+)\](.*)$/);
+  if (arrayAccessMatch) {
+    const [, basePath, indexStr, remainder] = arrayAccessMatch;
+    const index = parseInt(indexStr);
+
+    // Get the base value (might be a flat key)
+    let baseValue = obj[basePath];
+    if (baseValue === undefined) {
+      baseValue = this.getNestedValueSimple(obj, basePath);
+    }
+
+    if (Array.isArray(baseValue) && baseValue[index] !== undefined) {
+      const arrayElement = baseValue[index];
+      if (remainder && remainder.startsWith('.')) {
+        return this.getNestedValueSimple(arrayElement, remainder.substring(1));
+      }
+      return arrayElement;
+    }
+    return undefined;
+  }
+
+  // STEP 3: Standard nested path lookup
+  return this.getNestedValueSimple(obj, path);
+}
+```
+
+### Array Access Examples
+
+| Template | Variables | Result |
+|----------|-----------|--------|
+| `{{rest_api_1.data}}` | `{"rest_api_1.data": [{...}]}` | Entire array (auto-formatted) |
+| `{{rest_api_1.data[0]}}` | `{"rest_api_1.data": [{"id": 1}]}` | `{"id": 1}` |
+| `{{rest_api_1.data[0].id}}` | `{"rest_api_1.data": [{"id": 1}]}` | `1` |
+| `{{rest_api_1.status}}` | `{"rest_api_1.status": 200}` | `200` |
+| `{{calendar_1.result[2].value}}` | `{"calendar_1.result": [...]}` | Third slot value |
+
+### Array Auto-Formatting
+
+When an entire array is referenced (e.g., `{{rest_api_1.data}}`), it's automatically formatted for display:
+
+```typescript
+// Input array:
+[
+  { "name": "Product A", "price": 100 },
+  { "name": "Product B", "price": 200 }
+]
+
+// Formatted output:
+"1. Product A - 100 TL
+2. Product B - 200 TL"
+```
+
+**Auto-Detection Fields for Display:**
+- Primary: `name`, `title`, `label`, `displayName`
+- Secondary: `description`, `price`, `stock`
+- ID fallback: `id`, `sku`
+
+---
+
+## Version History
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 2.2.0 | 2025-12-03 | Auto variable naming system |
+| 2.2.1 | 2025-12-04 | Flat key lookup fix, array notation support |

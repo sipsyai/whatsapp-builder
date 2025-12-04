@@ -1,10 +1,180 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import type { ButtonItem, Condition, ConditionGroup } from "@/shared/types";
 import { flowsApi, type WhatsAppFlow } from "../../flows/api";
 import { getActiveDataSources, type DataSource } from "../../data-sources/api";
 import { useAvailableVariables } from '../hooks/useAvailableVariables';
 import { VariableInput } from "./VariablePicker";
 import { OutputVariableBadge } from "./OutputVariableBadge";
+
+// ConditionVariableInput - Supports both variable selection and nested path input
+interface ConditionVariableInputProps {
+    value: string;
+    onChange: (value: string) => void;
+    variables: Array<{
+        id: string;
+        path: string;
+        nodeLabel: string;
+        dataType: string;
+        description?: string;
+    }>;
+}
+
+const ConditionVariableInput: React.FC<ConditionVariableInputProps> = ({
+    value,
+    onChange,
+    variables
+}) => {
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    // Filter suggestions based on current input
+    const filteredSuggestions = useMemo(() => {
+        if (!value) return variables;
+        const lowerValue = value.toLowerCase();
+        return variables.filter(v =>
+            v.path.toLowerCase().includes(lowerValue) ||
+            v.nodeLabel.toLowerCase().includes(lowerValue)
+        );
+    }, [value, variables]);
+
+    // Close suggestions when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+                setShowSuggestions(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const handleSelectVariable = (variablePath: string) => {
+        onChange(variablePath);
+        setShowSuggestions(false);
+        inputRef.current?.focus();
+    };
+
+    // Get data type icon
+    const getDataTypeIcon = (dataType: string) => {
+        const icons: Record<string, string> = {
+            string: 'text_fields',
+            number: 'numbers',
+            boolean: 'toggle_on',
+            object: 'data_object',
+            array: 'data_array'
+        };
+        return icons[dataType] || 'help';
+    };
+
+    // Check if current value has nested path beyond available variables
+    const hasNestedPath = value && !variables.some(v => v.path === value);
+
+    return (
+        <div ref={containerRef} className="relative">
+            <label className="block">
+                <span className="text-xs font-medium text-gray-300 flex items-center gap-2">
+                    Variable Path
+                    {hasNestedPath && (
+                        <span className="text-xs bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded">
+                            nested
+                        </span>
+                    )}
+                </span>
+                <div className="relative mt-1">
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        value={value}
+                        onChange={(e) => onChange(e.target.value)}
+                        onFocus={() => setShowSuggestions(true)}
+                        placeholder="e.g., rest_api_1.data.user.name"
+                        className="w-full p-2 pr-10 rounded border bg-black/20 text-white border-white/10 font-mono text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                    />
+                    <button
+                        type="button"
+                        onClick={() => setShowSuggestions(!showSuggestions)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-white/10 rounded transition-colors"
+                        title="Show available variables"
+                    >
+                        <span className="material-symbols-outlined text-primary text-lg">
+                            {showSuggestions ? 'expand_less' : 'expand_more'}
+                        </span>
+                    </button>
+                </div>
+            </label>
+
+            {/* Suggestions Dropdown */}
+            {showSuggestions && (
+                <div className="absolute z-50 w-full mt-1 bg-[#102216] border border-white/20 rounded-lg shadow-2xl max-h-64 overflow-y-auto">
+                    {/* Quick Selection Header */}
+                    <div className="p-2 border-b border-white/10 bg-white/5">
+                        <p className="text-xs text-white/60">
+                            Select a variable or type a nested path (e.g., <code className="text-primary">rest_api_1.data.items[0].name</code>)
+                        </p>
+                    </div>
+
+                    {/* Variable List */}
+                    {filteredSuggestions.length > 0 ? (
+                        <div className="py-1">
+                            {filteredSuggestions.map((variable) => (
+                                <button
+                                    key={variable.id}
+                                    type="button"
+                                    onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        handleSelectVariable(variable.path);
+                                    }}
+                                    className="w-full flex items-center gap-2 px-3 py-2 hover:bg-white/10 transition-colors text-left cursor-pointer"
+                                >
+                                    <span className="material-symbols-outlined text-sm text-white/40">
+                                        {getDataTypeIcon(variable.dataType)}
+                                    </span>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-sm font-mono text-white truncate">
+                                            {variable.path}
+                                        </div>
+                                        <div className="text-xs text-white/50 truncate">
+                                            {variable.nodeLabel}
+                                            {variable.description && ` - ${variable.description}`}
+                                        </div>
+                                    </div>
+                                    {variable.dataType === 'object' && (
+                                        <span className="text-xs text-blue-400 bg-blue-400/10 px-1.5 py-0.5 rounded">
+                                            expandable
+                                        </span>
+                                    )}
+                                    {variable.dataType === 'array' && (
+                                        <span className="text-xs text-purple-400 bg-purple-400/10 px-1.5 py-0.5 rounded">
+                                            [index]
+                                        </span>
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="p-4 text-center">
+                            <p className="text-sm text-white/60">No matching variables</p>
+                            <p className="text-xs text-white/40 mt-1">
+                                You can still type a custom path
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Help Section */}
+                    <div className="p-2 border-t border-white/10 bg-white/5">
+                        <div className="text-xs text-white/50 space-y-1">
+                            <p><span className="text-primary">Tip:</span> For nested data, add path after variable:</p>
+                            <p className="font-mono text-white/70">rest_api_1.data<span className="text-primary">.user.name</span></p>
+                            <p className="font-mono text-white/70">rest_api_1.data<span className="text-primary">.items[0].id</span></p>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
 
 // ... Config Components ...
 export const ConfigMessage = ({ data, onClose, onSave }: any) => {
@@ -409,11 +579,7 @@ export const ConfigCondition = ({ data, onClose, onSave }: any) => {
     ];
 
     // Extract available variables from all node types using the hook
-    const { allVariables } = useAvailableVariables();
-    const availableVariables = useMemo(() =>
-        allVariables.map(v => v.path),
-        [allVariables]
-    );
+    const { allVariables, isEmpty: noVariablesAvailable } = useAvailableVariables();
 
     // Initialize conditions from data
     const initConditions = (): Condition[] => {
@@ -433,7 +599,7 @@ export const ConfigCondition = ({ data, onClose, onSave }: any) => {
         // Default empty condition
         return [{
             id: 'cond-0',
-            variable: availableVariables[0] || '',
+            variable: '',
             operator: '==',
             value: ''
         }];
@@ -451,7 +617,7 @@ export const ConfigCondition = ({ data, onClose, onSave }: any) => {
             ...conditions,
             {
                 id: `cond-${conditions.length}`,
-                variable: availableVariables[0] || '',
+                variable: '',
                 operator: '==',
                 value: ''
             }
@@ -534,14 +700,14 @@ export const ConfigCondition = ({ data, onClose, onSave }: any) => {
                         </label>
 
                         {/* Available Variables Info */}
-                        {availableVariables.length === 0 && (
+                        {noVariablesAvailable && (
                             <div className="bg-amber-900/20 border border-amber-800 rounded-lg p-4">
                                 <div className="flex items-start gap-2">
                                     <span className="material-symbols-outlined text-amber-400 text-lg">warning</span>
                                     <div className="flex-1">
                                         <p className="text-sm font-medium text-amber-300">No variables available</p>
                                         <p className="text-xs text-amber-400 mt-1">
-                                            Add Question nodes with variable names before this condition node to make them available for comparison.
+                                            Add Question, REST API, or WhatsApp Flow nodes before this condition node to make variables available for comparison.
                                         </p>
                                     </div>
                                 </div>
@@ -556,7 +722,6 @@ export const ConfigCondition = ({ data, onClose, onSave }: any) => {
                                     <button
                                         onClick={addCondition}
                                         className="text-xs text-primary hover:underline flex items-center gap-1"
-                                        disabled={availableVariables.length === 0}
                                     >
                                         <span className="material-symbols-outlined text-sm">add</span>
                                         Add Condition
@@ -581,29 +746,12 @@ export const ConfigCondition = ({ data, onClose, onSave }: any) => {
                                     </div>
 
                                     <div className="space-y-3">
-                                        {/* Variable Selection */}
-                                        <label className="block">
-                                            <span className="text-xs font-medium text-gray-300">Variable</span>
-                                            <select
-                                                className="w-full mt-1 p-2 rounded border bg-black/20 text-white border-white/10"
-                                                value={condition.variable}
-                                                onChange={e => updateCondition(index, 'variable', e.target.value)}
-                                                disabled={allVariables.length === 0}
-                                            >
-                                                {allVariables.length === 0 ? (
-                                                    <option value="">No variables available</option>
-                                                ) : (
-                                                    <>
-                                                        <option value="">Select variable...</option>
-                                                        {allVariables.map(v => (
-                                                            <option key={v.id} value={v.path}>
-                                                                {v.path} ({v.nodeLabel})
-                                                            </option>
-                                                        ))}
-                                                    </>
-                                                )}
-                                            </select>
-                                        </label>
+                                        {/* Variable Selection with Nested Path Support */}
+                                        <ConditionVariableInput
+                                            value={condition.variable}
+                                            onChange={(value) => updateCondition(index, 'variable', value)}
+                                            variables={allVariables}
+                                        />
 
                                         {/* Operator Selection */}
                                         <label className="block">

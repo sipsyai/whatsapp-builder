@@ -2097,13 +2097,18 @@ export class ChatBotExecutionService {
 
   /**
    * Replace variables in text with values from context
-   * Supports nested paths like {{product.name}} and {{product.stock}}
+   * Supports:
+   * - Simple: {{variable}}
+   * - Nested: {{product.name}}
+   * - Array access: {{rest_api_1.data[0]}}
+   * - Array + nested: {{rest_api_1.data[0].name}}
    */
   private replaceVariables(
     text: string,
     variables: Record<string, any>,
   ): string {
-    return text.replace(/\{\{([\w.]+)\}\}/g, (match, varPath) => {
+    // Updated regex to support array notation: [\w.\[\]]+
+    return text.replace(/\{\{([\w.\[\]]+)\}\}/g, (match, varPath) => {
       const value = this.getNestedValue(variables, varPath);
       if (value === undefined || value === null) {
         return match;
@@ -2122,8 +2127,49 @@ export class ChatBotExecutionService {
   /**
    * Get nested value from object using dot notation
    * e.g., getNestedValue({product: {name: 'Test'}}, 'product.name') => 'Test'
+   * Also supports flat keys like 'rest_api_1.data' stored directly in variables
+   * And array notation like 'rest_api_1.data[0].name'
    */
   private getNestedValue(obj: Record<string, any>, path: string): any {
+    // First, try flat key lookup (for auto-generated variables like 'rest_api_1.data')
+    if (obj[path] !== undefined) {
+      return obj[path];
+    }
+
+    // Check if path contains array notation with more parts after it
+    // e.g., 'rest_api_1.data[0].name' -> try 'rest_api_1.data' first, then '[0].name'
+    const arrayAccessMatch = path.match(/^([\w.]+)\[(\d+)\](.*)$/);
+    if (arrayAccessMatch) {
+      const [, basePath, indexStr, remainder] = arrayAccessMatch;
+      const index = parseInt(indexStr);
+
+      // Get the base value (might be a flat key like 'rest_api_1.data')
+      let baseValue = obj[basePath];
+      if (baseValue === undefined) {
+        // Try nested lookup for base path
+        baseValue = this.getNestedValueSimple(obj, basePath);
+      }
+
+      if (Array.isArray(baseValue) && baseValue[index] !== undefined) {
+        const arrayElement = baseValue[index];
+        // If there's more path after the array access
+        if (remainder && remainder.startsWith('.')) {
+          const remainingPath = remainder.substring(1); // Remove leading dot
+          return this.getNestedValueSimple(arrayElement, remainingPath);
+        }
+        return arrayElement;
+      }
+      return undefined;
+    }
+
+    // Standard nested path lookup
+    return this.getNestedValueSimple(obj, path);
+  }
+
+  /**
+   * Simple nested value lookup without flat key support
+   */
+  private getNestedValueSimple(obj: any, path: string): any {
     const parts = path.split('.');
     let current: any = obj;
 

@@ -33,11 +33,15 @@ export const socket = createAuthenticatedSocket('/messages');
 // Connect to /sessions namespace for chatbot session updates
 export const sessionSocket = createAuthenticatedSocket('/sessions');
 
+// Connect to /test-sessions namespace for chatbot testing
+export const testSessionSocket = createAuthenticatedSocket('/test-sessions');
+
 // Helper to update auth token on existing sockets (call after login)
 export const updateSocketAuth = () => {
     const token = getAuthToken();
     socket.auth = { token };
     sessionSocket.auth = { token };
+    testSessionSocket.auth = { token };
 };
 
 // Helper to reconnect sockets with new auth
@@ -50,5 +54,9 @@ export const reconnectSockets = () => {
     if (sessionSocket.connected) {
         sessionSocket.disconnect();
         sessionSocket.connect();
+    }
+    if (testSessionSocket.connected) {
+        testSessionSocket.disconnect();
+        testSessionSocket.connect();
     }
 };

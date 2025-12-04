@@ -945,7 +945,8 @@ function replaceVariables(
   text: string,
   variables: Record<string, any>
 ): string {
-  return text.replace(/\{\{([\w.]+)\}\}/g, (match, varPath) => {
+  // Updated regex to support array notation: [\w.\[\]]+
+  return text.replace(/\{\{([\w.\[\]]+)\}\}/g, (match, varPath) => {
     const value = getNestedValue(variables, varPath);
 
     if (value === undefined || value === null) {
@@ -968,10 +969,50 @@ function replaceVariables(
 }
 ```
 
-### Nested Value Resolution
+### Nested Value Resolution (with Flat Key Support)
+
+**Important:** Auto-generated variables like `rest_api_1.data` are stored as **flat keys** in the variables object, not as nested paths. The `getNestedValue` function handles both cases:
 
 ```typescript
 function getNestedValue(obj: Record<string, any>, path: string): any {
+  // STEP 1: Try flat key lookup first (for auto-generated variables)
+  // Variables like 'rest_api_1.data' are stored directly as keys
+  if (obj[path] !== undefined) {
+    return obj[path];
+  }
+
+  // STEP 2: Handle array notation with possible nested path after
+  // e.g., 'rest_api_1.data[0].name' -> try 'rest_api_1.data' first, then '[0].name'
+  const arrayAccessMatch = path.match(/^([\w.]+)\[(\d+)\](.*)$/);
+  if (arrayAccessMatch) {
+    const [, basePath, indexStr, remainder] = arrayAccessMatch;
+    const index = parseInt(indexStr);
+
+    // Get the base value (might be a flat key like 'rest_api_1.data')
+    let baseValue = obj[basePath];
+    if (baseValue === undefined) {
+      // Try nested lookup for base path
+      baseValue = getNestedValueSimple(obj, basePath);
+    }
+
+    if (Array.isArray(baseValue) && baseValue[index] !== undefined) {
+      const arrayElement = baseValue[index];
+      // If there's more path after the array access (e.g., '.name')
+      if (remainder && remainder.startsWith('.')) {
+        const remainingPath = remainder.substring(1); // Remove leading dot
+        return getNestedValueSimple(arrayElement, remainingPath);
+      }
+      return arrayElement;
+    }
+    return undefined;
+  }
+
+  // STEP 3: Standard nested path lookup (for user-defined nested objects)
+  return getNestedValueSimple(obj, path);
+}
+
+// Simple nested value lookup without flat key support
+function getNestedValueSimple(obj: any, path: string): any {
   const parts = path.split('.');
   let current: any = obj;
 
@@ -979,30 +1020,54 @@ function getNestedValue(obj: Record<string, any>, path: string): any {
     if (current === undefined || current === null) {
       return undefined;
     }
-
-    // Handle array notation: items[0]
-    const arrayMatch = part.match(/^(\w+)\[(\d+)\]$/);
-    if (arrayMatch) {
-      const [, arrayName, index] = arrayMatch;
-      current = current[arrayName]?.[parseInt(index)];
-    } else {
-      current = current[part];
-    }
+    current = current[part];
   }
 
   return current;
 }
 ```
 
-**Examples:**
+### Variable Storage: Flat Keys vs Nested Paths
 
-| Path | Variables | Result |
-|------|-----------|--------|
-| `user_name` | `{user_name: "John"}` | `"John"` |
-| `user.name` | `{user: {name: "John"}}` | `"John"` |
-| `items[0].name` | `{items: [{name: "A"}]}` | `"A"` |
-| `product.price` | `{product: {price: 100}}` | `"100"` |
-| `missing_var` | `{}` | `"{{missing_var}}"` |
+**Flat Keys (Auto-Generated Variables):**
+Auto-generated variables are stored with their full path as the key:
+
+```json
+{
+  "variables": {
+    "rest_api_1.data": [{"id": 1, "name": "Product A"}],
+    "rest_api_1.status": 200,
+    "rest_api_1.error": null,
+    "question_1.response": "John Doe"
+  }
+}
+```
+
+**Nested Objects (User-Defined):**
+Manually structured data uses actual nested objects:
+
+```json
+{
+  "variables": {
+    "user": {
+      "name": "John",
+      "email": "john@example.com"
+    }
+  }
+}
+```
+
+### Examples with Flat Keys and Array Access
+
+| Path | Variables | Result | Explanation |
+|------|-----------|--------|-------------|
+| `rest_api_1.data` | `{"rest_api_1.data": [...]}` | `[...]` | Flat key lookup |
+| `rest_api_1.data[0]` | `{"rest_api_1.data": [{...}]}` | `{...}` | Flat key + array index |
+| `rest_api_1.data[0].name` | `{"rest_api_1.data": [{"name": "A"}]}` | `"A"` | Flat key + array + property |
+| `rest_api_1.status` | `{"rest_api_1.status": 200}` | `200` | Flat key (number) |
+| `user.name` | `{"user": {"name": "John"}}` | `"John"` | Nested object path |
+| `question_1.response` | `{"question_1.response": "Yes"}` | `"Yes"` | Flat key |
+| `missing_var` | `{}` | `"{{missing_var}}"` | Placeholder preserved |
 
 ---
 

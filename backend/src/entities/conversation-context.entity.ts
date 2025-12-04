@@ -6,6 +6,8 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
+  Check,
 } from 'typeorm';
 import { Conversation } from './conversation.entity';
 import { ChatBot } from './chatbot.entity';
@@ -27,7 +29,30 @@ export interface NodeOutput {
   outputVariable?: string;
 }
 
+/**
+ * Metadata for test sessions
+ * Only populated when isTestSession = true
+ */
+export interface TestMetadata {
+  /** User ID who initiated the test */
+  selectedUserId: string;
+  /** Simulated phone number for the test */
+  testPhoneNumber: string;
+  /** When the test was started (ISO date string) */
+  startedAt: string;
+  /** Type of test: simulate (no real messages) or live (actual WhatsApp) */
+  testMode: 'simulate' | 'live';
+  /** Optional notes about the test */
+  notes?: string;
+  /** Browser/client info for debugging */
+  userAgent?: string;
+}
+
 @Entity('conversation_contexts')
+@Check(
+  'CHK_test_metadata_consistency',
+  `("isTestSession" = false AND "testMetadata" IS NULL) OR ("isTestSession" = true)`,
+)
 export class ConversationContext {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -73,9 +98,50 @@ export class ConversationContext {
   @Column({ type: 'varchar', length: 100, nullable: true })
   completionReason: string | null;
 
+  // ============================================
+  // Test Session Fields
+  // ============================================
+
+  /**
+   * Indicates if this is a test session (not a real WhatsApp conversation)
+   * Test sessions are created from the chatbot builder for testing flows
+   */
+  @Column({ type: 'boolean', default: false })
+  @Index('IDX_conversation_contexts_test_session', {
+    where: '"isTestSession" = true',
+  })
+  isTestSession: boolean;
+
+  /**
+   * Metadata for test sessions
+   * Only populated when isTestSession = true
+   * Contains info about who started the test, simulated phone number, etc.
+   */
+  @Column({ type: 'jsonb', nullable: true })
+  testMetadata: TestMetadata | null;
+
   @CreateDateColumn({ type: 'timestamp with time zone' })
   createdAt: Date;
 
   @UpdateDateColumn({ type: 'timestamp with time zone' })
   updatedAt: Date;
+
+  // ============================================
+  // Helper Methods
+  // ============================================
+
+  /**
+   * Check if this is a real production session (not a test)
+   */
+  isProductionSession(): boolean {
+    return !this.isTestSession;
+  }
+
+  /**
+   * Check if this session can be safely deleted
+   * Test sessions can always be deleted, production sessions need confirmation
+   */
+  canSafelyDelete(): boolean {
+    return this.isTestSession;
+  }
 }
